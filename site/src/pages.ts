@@ -8,7 +8,15 @@ function escape(value: string): string {
 
 const dateFormat = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
-function layout(title: string, body: string): Response {
+export function railUser(user: User): string {
+  const name = user.name ?? user.email;
+  const avatar = user.picture
+    ? `<img class="avatar" src="${escape(user.picture)}" alt="" width="28" height="28" referrerpolicy="no-referrer">`
+    : `<span class="avatar" aria-hidden="true">${escape(name.charAt(0).toUpperCase())}</span>`;
+  return `<a class="rail-user" href="/account">${avatar}<span class="rail-user-text"><span class="rail-user-name">${escape(name)}</span><span class="rail-user-email">${escape(user.email)}</span></span></a>`;
+}
+
+function layout(title: string, body: string, user?: User): Response {
   const html = `<!doctype html>
 <html lang="en">
   <head>
@@ -31,6 +39,7 @@ function layout(title: string, body: string): Response {
           <a class="rail-link" href="/docs/">Docs</a>
           <a class="rail-link" href="/account" aria-current="page">Account</a>
         </nav>
+        ${user ? railUser(user) : ""}
         <div class="rail-foot"><span>Built by <a href="https://empirical.run">Empirical</a></span><a class="rail-foot-link" href="/privacy">Privacy policy</a></div>
       </aside>
       <main class="content">
@@ -74,6 +83,7 @@ export function accountPage(user: User, keys: ApiKey[], newKey?: string): Respon
       </form>
       ${keys.length ? keyTable(keys) : `<p class="empty">No API keys yet.</p>`}
     </section>`,
+    user,
   );
 }
 

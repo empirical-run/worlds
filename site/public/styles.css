@@ -32,6 +32,8 @@
 
 * { box-sizing: border-box; }
 
+html { scrollbar-gutter: stable; }
+
 body {
   margin: 0;
   background: var(--surface);
@@ -124,6 +126,26 @@ code, pre { font-family: "Geist Mono", ui-monospace, monospace; font-size: 0.875
 
 .rail-index a:hover { color: var(--ink); }
 .rail-index .num { font-family: "Geist Mono", monospace; color: var(--ink-3); }
+
+.rail-user { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
+.rail-user:hover .rail-user-name { text-decoration: underline; }
+.avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--accent-wash);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+.rail-user-text { display: grid; min-width: 0; }
+.rail-user-name, .rail-user-email { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rail-user-name { font-size: 13px; font-weight: 500; }
+.rail-user-email { font-size: 12px; color: var(--ink-3); }
 
 .rail-foot { display: grid; gap: 6px; font-size: 12px; color: var(--ink-3); }
 .rail-foot a { color: var(--accent); font-weight: 600; text-decoration: none; }
@@ -276,7 +298,9 @@ button.button.primary { background: var(--accent); color: var(--accent-ink); }
   .brand { height: auto; }
   .rail nav { flex-direction: row; gap: 16px; }
   .rail-link { padding-left: 0; }
-  .rail-link::before, .rail-index, .rail-foot { display: none; }
+  .rail-link::before, .rail-index, .rail-foot, .rail-user-text { display: none; }
+  .rail nav { margin-left: auto; }
+  .rail-user { padding-left: 0; }
   .content { border: 0; }
   .section { padding: 40px 20px; }
   .hero { padding-top: 56px; }

@@ -14,7 +14,7 @@ import { cookie, readCookie } from "./cookies";
 import type { Env } from "./env";
 import { authorizeUrl, exchangeCode, newVerifier } from "./google";
 import { randomToken } from "./crypto";
-import { accountPage, signInPage } from "./pages";
+import { accountPage, railUser, signInPage } from "./pages";
 import type { User } from "./schema";
 
 const SESSION_COOKIE = "worlds_session";
@@ -44,7 +44,7 @@ export default {
       }
     }
 
-    return env.ASSETS.fetch(request);
+    return withRailUser(request, await env.ASSETS.fetch(request), db);
   },
 } satisfies ExportedHandler<Env>;
 
@@ -92,6 +92,22 @@ async function createKeyFor(request: Request, db: Db, user: User): Promise<Respo
   if (!name) return redirect("/account#keys");
   const key = await createKey(db, user.id, name);
   return accountPage(user, await listKeys(db, user.id), key);
+}
+
+async function withRailUser(request: Request, response: Response, db: Db): Promise<Response> {
+  if (!response.headers.get("content-type")?.startsWith("text/html")) return response;
+  const user = await currentUser(request, db);
+  if (!user) return response;
+  const page = new HTMLRewriter()
+    .on(".rail nav", { element: (nav) => {
+        nav.after(railUser(user), { html: true });
+      },
+    })
+    .transform(response);
+  const headers = new Headers(page.headers);
+  headers.set("cache-control", "private, no-store");
+  headers.delete("etag");
+  return new Response(page.body, { status: page.status, headers });
 }
 
 async function currentUser(request: Request, db: Db): Promise<User | null> {
