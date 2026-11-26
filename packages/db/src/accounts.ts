@@ -104,6 +104,11 @@ export async function useKey(db: Db, key: string): Promise<ApiKey | null> {
   return apiKey ?? null;
 }
 
+export async function providersFor(db: Db, userId: string): Promise<Provider[]> {
+  const rows = await db.select({ provider: identities.provider }).from(identities).where(eq(identities.userId, userId)).orderBy(asc(identities.createdAt));
+  return rows.map((row) => row.provider);
+}
+
 export async function teamForUser(db: Db, userId: string): Promise<TeamMembership> {
   const [row] = await db
     .select({ team: teams, role: memberships.role })

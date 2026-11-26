@@ -35,7 +35,7 @@ The Slack service lives in `services/slack` (Worker in `src/`, UI in `ui/`). `wr
 
 ## Site
 
-The site at https://makeworlds.dev (pages, sign-in, account) is the `site/` Worker. It forwards `/api/*` over a service binding to `apps/api` (Hono + zod-openapi, Worker `worlds-api`), which serves `/api/openapi.json`; `/docs/api` renders the reference from it. Schema and migrations live in `packages/db` (`pnpm db:generate`). `pnpm dev:site` runs both Workers on :8790; CI applies migrations, then deploys the API and the site after the Slack service.
+The site at https://makeworlds.dev is `apps/web`: React Router 8 (framework mode, SSR) on the `worlds-site` Worker, with sign-in under `/auth/*`. It forwards `/api/*` over a service binding to `apps/api` (Hono + zod-openapi, Worker `worlds-api`), which serves `/api/openapi.json`; `/docs/api` renders the reference from it, and the account page reads and writes through the API. Schema and migrations live in `packages/db` (`pnpm db:generate`). `pnpm dev:site` runs the site with the API on :8790; CI applies migrations, then deploys the API and the site after the Slack service.
 
 ## Deploy
 

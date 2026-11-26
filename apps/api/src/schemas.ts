@@ -12,6 +12,14 @@ export const ErrorSchema = z
 
 const Role = z.enum(["owner", "member"]);
 
+function name(max: number) {
+  return z
+    .string({ error: "name is required." })
+    .trim()
+    .min(1, { error: "name can't be empty." })
+    .max(max, { error: `name can be at most ${max} characters.` });
+}
+
 export const TeamSchema = z
   .object({
     id: z.string().openapi({ example: "team_k2v9x0q1m4s7d8f3a6b5" }),
@@ -37,7 +45,7 @@ export const TeamDetailSchema = TeamSchema.extend({ members: z.array(MemberSchem
 export const TeamListSchema = z.object({ teams: z.array(TeamSchema) }).openapi("TeamList");
 
 export const TeamUpdateSchema = z
-  .object({ name: z.string().trim().min(1).max(TEAM_NAME_MAX).openapi({ example: "Empirical" }) })
+  .object({ name: name(TEAM_NAME_MAX).openapi({ example: "Empirical" }) })
   .openapi("TeamUpdate");
 
 export const ApiKeySchema = z
@@ -54,7 +62,7 @@ export const ApiKeySchema = z
 export const ApiKeyListSchema = z.object({ api_keys: z.array(ApiKeySchema) }).openapi("ApiKeyList");
 
 export const ApiKeyCreateSchema = z
-  .object({ name: z.string().trim().min(1).max(API_KEY_NAME_MAX).openapi({ example: "CI" }) })
+  .object({ name: name(API_KEY_NAME_MAX).openapi({ example: "CI" }) })
   .openapi("ApiKeyCreate");
 
 export const ApiKeyCreatedSchema = ApiKeySchema.extend({
@@ -78,3 +86,9 @@ export function errorResponse(description: string) {
 export function jsonResponse<T extends z.ZodType>(description: string, schema: T) {
   return { description, content: { "application/json": { schema } } };
 }
+
+export type TeamJson = z.infer<typeof TeamSchema>;
+export type TeamDetailJson = z.infer<typeof TeamDetailSchema>;
+export type ApiKeyJson = z.infer<typeof ApiKeySchema>;
+export type ApiKeyListJson = z.infer<typeof ApiKeyListSchema>;
+export type ApiKeyCreatedJson = z.infer<typeof ApiKeyCreatedSchema>;

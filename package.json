@@ -5,14 +5,10 @@
   "packageManager": "pnpm@11.20.0",
   "scripts": {
     "dev": "pnpm --filter @worlds/slack dev",
-    "dev:site": "wrangler d1 migrations apply worlds-db --local -c site/wrangler.jsonc && wrangler dev -c site/wrangler.jsonc -c apps/api/wrangler.jsonc --port 8790 --infer-origin-from-routes=false --persist-to site/.wrangler/state",
-    "deploy:site": "wrangler deploy -c site/wrangler.jsonc",
-    "typecheck": "pnpm -r typecheck && tsc --noEmit -p site",
+    "dev:site": "wrangler d1 migrations apply worlds-db --local -c apps/web/wrangler.jsonc --persist-to apps/web/.wrangler/state && pnpm --filter @worlds/web dev",
+    "typecheck": "pnpm -r typecheck",
     "smoke": "pnpm --filter @worlds/slack smoke",
     "db:generate": "pnpm --filter @worlds/db generate"
-  },
-  "dependencies": {
-    "@worlds/db": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261125.1",

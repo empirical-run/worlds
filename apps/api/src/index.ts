@@ -8,9 +8,7 @@ import { teams } from "./routes/teams";
 const app = new OpenAPIHono<AppEnv>({
   defaultHook: (result, c) => {
     if (result.success) return;
-    const issue = result.error.issues[0];
-    const message = issue ? `${issue.path.join(".") || "body"}: ${issue.message}` : "Invalid request.";
-    return c.json(apiError("invalid_request", message), 400);
+    return c.json(apiError("invalid_request", result.error.issues[0]?.message ?? "Invalid request."), 400);
   },
 });
 
