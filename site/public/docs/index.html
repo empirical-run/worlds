@@ -64,6 +64,7 @@
             <ul>
               <li><code>GET /api/teams</code> lists the teams you can see. With a key, that is the key's team.</li>
               <li><code>GET /api/teams/:id</code> returns one team and its members.</li>
+              <li><code>PATCH /api/teams/:id</code> with <code>{"name": "…"}</code> renames a team. Team owners only, signed in; API keys cannot change teams.</li>
             </ul>
             <p>Errors look like <code>{"error": {"code": "unauthorized", "message": "…"}}</code>.</p>
           </section>

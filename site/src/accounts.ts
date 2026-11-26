@@ -91,16 +91,20 @@ export async function useKey(db: Db, key: string): Promise<ApiKey | null> {
   return apiKey ?? null;
 }
 
-export async function teamForUser(db: Db, userId: string): Promise<Team> {
+export async function teamForUser(db: Db, userId: string): Promise<TeamMembership> {
   const [row] = await db
-    .select({ team: teams })
+    .select({ team: teams, role: memberships.role })
     .from(memberships)
     .innerJoin(teams, eq(teams.id, memberships.teamId))
     .where(eq(memberships.userId, userId))
     .orderBy(asc(memberships.createdAt))
     .limit(1);
   if (!row) throw new Error(`user ${userId} has no team`);
-  return row.team;
+  return row;
+}
+
+export async function renameTeam(db: Db, teamId: string, name: string): Promise<void> {
+  await db.update(teams).set({ name }).where(eq(teams.id, teamId));
 }
 
 export async function createSession(db: Db, userId: string): Promise<string> {

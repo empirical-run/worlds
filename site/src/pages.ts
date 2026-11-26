@@ -1,4 +1,5 @@
-import type { ApiKey, Team, User } from "./schema";
+import { TEAM_NAME_MAX } from "./api";
+import type { ApiKey, Membership, Team, User } from "./schema";
 
 const escapes: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 
@@ -70,7 +71,7 @@ export function signInPage(error?: string): Response {
   );
 }
 
-export function accountPage(user: User, team: Team, keys: ApiKey[], newKey?: string): Response {
+export function accountPage(user: User, team: Team, role: Membership["role"], keys: ApiKey[], newKey?: string): Response {
   return layout(
     "Account",
     `<header class="section hero">
@@ -78,11 +79,15 @@ export function accountPage(user: User, team: Team, keys: ApiKey[], newKey?: str
       <p class="lede">Signed in as <strong>${escape(user.email)}</strong>.</p>
       <form method="post" action="/auth/sign-out"><button class="button" type="submit">Sign out</button></form>
     </header>
+    <section class="section" id="team">
+      <h2>Team</h2>
+      ${role === "owner" ? teamNameForm(team) : `<p><strong>${escape(team.name)}</strong>. Only owners can rename the team.</p>`}
+    </section>
     <section class="section" id="keys">
       <h2>API keys</h2>
-      <p>Keys belong to the team <strong>${escape(team.name)}</strong>. Send a key as <code>Authorization: Bearer &lt;key&gt;</code>. Keys are shown once and stored only as a hash.</p>
+      <p>Keys belong to your team. Send a key as <code>Authorization: Bearer &lt;key&gt;</code>. Keys are shown once and stored only as a hash.</p>
       ${newKey ? newKeyNotice(newKey) : ""}
-      <form class="key-form" method="post" action="/account/keys">
+      <form class="inline-form" method="post" action="/account/keys">
         <label for="key-name">Name</label>
         <input id="key-name" name="name" required maxlength="80" placeholder="CI" autocomplete="off">
         <button class="button primary" type="submit">Create key</button>
@@ -91,6 +96,16 @@ export function accountPage(user: User, team: Team, keys: ApiKey[], newKey?: str
     </section>`,
     { user, team },
   );
+}
+
+function teamNameForm(team: Team): string {
+  return `<form class="inline-form" id="team-form" data-team-id="${escape(team.id)}">
+    <label for="team-name">Name</label>
+    <input id="team-name" name="name" required maxlength="${TEAM_NAME_MAX}" value="${escape(team.name)}" autocomplete="off">
+    <button class="button" type="submit">Save</button>
+    <p class="form-status" id="team-status" role="status"></p>
+  </form>
+  <script src="/account.js" defer></script>`;
 }
 
 function newKeyNotice(key: string): string {

@@ -17,7 +17,9 @@ import type { Env } from "./env";
 import { randomToken, sha256 } from "./crypto";
 import { callbackUrl, isProvider, providers } from "./providers";
 import { accountPage, railUser, signInPage } from "./pages";
-import type { Provider, Team, User } from "./schema";
+import type { Membership, Provider, Team, User } from "./schema";
+
+type Role = Membership["role"];
 
 const SESSION_COOKIE = "worlds_session";
 const LOGIN_COOKIE = "worlds_login";
@@ -44,9 +46,11 @@ export default {
     if (url.pathname === "/account" || url.pathname.startsWith("/account/")) {
       const user = await currentUser(request, db);
       if (!user) return url.pathname === "/account" ? signInPage() : redirect("/account");
-      const team = await teamForUser(db, user.id);
-      if (url.pathname === "/account" && request.method === "GET") return accountPage(user, team, await listKeys(db, team.id));
-      if (url.pathname === "/account/keys" && request.method === "POST") return createKeyFor(request, db, user, team);
+      const { team, role } = await teamForUser(db, user.id);
+      if (url.pathname === "/account" && request.method === "GET") {
+        return accountPage(user, team, role, await listKeys(db, team.id));
+      }
+      if (url.pathname === "/account/keys" && request.method === "POST") return createKeyFor(request, db, user, team, role);
       const revoke = request.method === "POST" ? REVOKE_PATH.exec(url.pathname) : null;
       if (revoke?.[1]) {
         await revokeKey(db, team.id, revoke[1]);
@@ -97,18 +101,18 @@ async function signOut(request: Request, url: URL, db: Db): Promise<Response> {
   return response;
 }
 
-async function createKeyFor(request: Request, db: Db, user: User, team: Team): Promise<Response> {
+async function createKeyFor(request: Request, db: Db, user: User, team: Team, role: Role): Promise<Response> {
   const name = String((await request.formData()).get("name") ?? "").trim().slice(0, 80);
   if (!name) return redirect("/account#keys");
   const key = await createKey(db, team.id, user.id, name);
-  return accountPage(user, team, await listKeys(db, team.id), key);
+  return accountPage(user, team, role, await listKeys(db, team.id), key);
 }
 
 async function withRailUser(request: Request, response: Response, db: Db): Promise<Response> {
   if (!response.headers.get("content-type")?.startsWith("text/html")) return response;
   const user = await currentUser(request, db);
   if (!user) return response;
-  const team = await teamForUser(db, user.id);
+  const { team } = await teamForUser(db, user.id);
   const page = new HTMLRewriter()
     .on(".rail nav", {
       element: (nav) => {

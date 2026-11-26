@@ -264,9 +264,9 @@ button.button.primary { background: var(--accent); color: var(--accent-ink); }
 .notice p { color: var(--ink); }
 .notice pre { margin: 10px 0 0; background: var(--surface); }
 .notice.error { margin-top: 20px; border-color: #d4524d; background: none; color: #d4524d; }
-.key-form { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 24px; }
-.key-form label { font-size: 14px; font-weight: 500; }
-.key-form input {
+.inline-form { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 24px; }
+.inline-form label { font-size: 14px; font-weight: 500; }
+.inline-form input {
   flex: 1 1 200px;
   height: 40px;
   padding: 0 12px;
@@ -276,12 +276,16 @@ button.button.primary { background: var(--accent); color: var(--accent-ink); }
   font: inherit;
   font-size: 14px;
 }
-.key-form input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.inline-form input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 .keys { width: 100%; border-collapse: collapse; font-size: 14px; }
 .keys th { white-space: nowrap; padding: 8px 12px 8px 0; text-align: left; font-weight: 500; font-size: 12px; color: var(--ink-3); border-bottom: 1px solid var(--rule-strong); }
 .keys td { padding: 12px 12px 12px 0; border-bottom: 1px solid var(--rule); color: var(--ink-2); white-space: nowrap; }
 .keys td:first-child { color: var(--ink); white-space: normal; }
 .keys td:last-child { text-align: right; padding-right: 0; }
+.form-status { flex-basis: 100%; margin: 0; font-size: 13px; color: var(--ink-3); }
+.form-status:empty { display: none; }
+.form-status.error { color: #d4524d; }
+button:disabled { opacity: 0.6; cursor: default; }
 .link-button { padding: 0; border: 0; background: none; color: var(--accent); font-size: 14px; }
 .link-button:hover { text-decoration: underline; }
 .empty { color: var(--ink-3); }
