@@ -1,6 +1,6 @@
 import type { SlackSeedConfig } from "@emulators/slack";
 
-export type SlackTwinConfig = {
+export type SlackWorldConfig = {
   signingSecret: string;
   clientId: string;
   clientSecret: string;
@@ -8,7 +8,7 @@ export type SlackTwinConfig = {
   redirectUris: string[];
 };
 
-export function slackSeed(config: SlackTwinConfig): SlackSeedConfig {
+export function slackSeed(config: SlackWorldConfig): SlackSeedConfig {
   return {
     team: { name: "Worlds", domain: "worlds" },
     users: [{ name: "alice", real_name: "Alice Tester", email: "alice@worlds.test" }],

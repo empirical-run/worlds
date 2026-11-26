@@ -118,7 +118,7 @@ function Login({ error, onSubmit }: { error: string | null; onSubmit: (token: st
         }}
       >
         <h1>Worlds</h1>
-        <p>A Slack twin you can drive. Enter the world's admin token to open it.</p>
+        <p>Slack in a world you can drive. Enter the world's admin token to open it.</p>
         <input type="password" autoFocus placeholder="WORLDS_ADMIN_TOKEN" value={value} onChange={(event) => setValue(event.target.value)} />
         {error && <p className="login-error">{error}</p>}
         <button type="submit" disabled={!value.trim()}>
@@ -299,7 +299,7 @@ function Sidebar(props: {
     <nav className="sidebar">
       <header className="workspace">
         <span className="workspace-name">{props.state.team?.name ?? "World"}</span>
-        <span className="workspace-tag">twin</span>
+        <span className="workspace-tag">world</span>
       </header>
       <div className="section-title">
         <span>Channels</span>

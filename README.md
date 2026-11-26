@@ -1,10 +1,10 @@
 # worlds
 
-Hosted, stateful twins of the third-party APIs an app depends on, for testing apps and agents end to end. Slack first; GitHub next.
+Hosted, stateful worlds of the third-party services an app depends on, for testing apps and agents end to end. Slack first; GitHub next.
 
-A world is a Durable Object that holds the state of every twin in it. Twins speak the real wire protocol (Web API, OAuth, signed event callbacks), so an app under test only needs its base URL pointed at the world.
+A world is a Durable Object that holds the state of every service in it. Services in a world speak the real wire protocol (Web API, OAuth, signed event callbacks), so an app under test only needs its base URL pointed at the world.
 
-Twin behaviour comes from [emulate](https://github.com/vercel-labs/emulate) (`@emulators/*`). This repo adds hosting, persistence and the UI.
+Service behaviour comes from [emulate](https://github.com/vercel-labs/emulate) (`@emulators/*`). This repo adds hosting, persistence and the UI.
 
 ## Develop
 
@@ -35,8 +35,8 @@ pnpm smoke
 
 ## Site
 
-The marketing site at https://makeworlds.dev is static HTML in `site/public`, served by a separate assets-only Worker (`site/wrangler.jsonc`). `pnpm dev:site` serves it on :8790; CI deploys it after the twin.
+The marketing site at https://makeworlds.dev is static HTML in `site/public`, served by a separate assets-only Worker (`site/wrangler.jsonc`). `pnpm dev:site` serves it on :8790; CI deploys it after the Slack world.
 
 ## Deploy
 
-Production is https://slack.makeworlds.dev (custom domain on the `makeworlds.dev` zone; `WORLDS_SLACK_URL` pins the URLs the twin builds). worlds.empirical-run.workers.dev serves the same world. Pushes to `main` deploy through GitHub Actions (`.github/workflows/ci.yml`) after typecheck and the smoke test pass. Runtime secrets (`SLACK_*`, `WORLDS_ADMIN_TOKEN`) live on the Worker and are kept across deploys. The workflow needs a `CLOUDFLARE_API_TOKEN` repo secret with Workers Scripts: Edit on the empirical.run account.
+Production is https://slack.makeworlds.dev (custom domain on the `makeworlds.dev` zone; `WORLDS_SLACK_URL` pins the base URL in Slack responses). worlds.empirical-run.workers.dev serves the same world. Pushes to `main` deploy through GitHub Actions (`.github/workflows/ci.yml`) after typecheck and the smoke test pass. Runtime secrets (`SLACK_*`, `WORLDS_ADMIN_TOKEN`) live on the Worker and are kept across deploys. The workflow needs a `CLOUDFLARE_API_TOKEN` repo secret with Workers Scripts: Edit on the empirical.run account.

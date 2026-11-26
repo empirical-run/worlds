@@ -54,7 +54,7 @@ function installOnEmpirical(code) {
 }
 
 await admin("/_worlds/slack/redirect-uris", { redirect_uri: redirectUri });
-step("redirect URI registered on the twin");
+step("redirect URI registered on the world");
 
 const install = installOnEmpirical(await authorizeCode());
 step(`installed on ${apiWorkerUrl}: team ${install.team_id}, bot ${install.bot_user_id}, org ${install.org_id}`);
@@ -80,4 +80,4 @@ while (Date.now() < deadline) {
 }
 if (!botReplies.length) throw new Error("no bot reply within 3 minutes");
 for (const reply of botReplies) console.log(`  bot: ${reply.text}`);
-console.log(`twin UI: ${base}/?tab=messages&channel=${channel.id}`);
+console.log(`world UI: ${base}/?tab=messages&channel=${channel.id}`);
