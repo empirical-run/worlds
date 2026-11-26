@@ -1,4 +1,4 @@
-import type { ApiKey, User } from "./schema";
+import type { ApiKey, Team, User } from "./schema";
 
 const escapes: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 
@@ -64,7 +64,7 @@ export function signInPage(error?: string): Response {
   );
 }
 
-export function accountPage(user: User, keys: ApiKey[], newKey?: string): Response {
+export function accountPage(user: User, team: Team, keys: ApiKey[], newKey?: string): Response {
   return layout(
     "Account",
     `<header class="section hero">
@@ -74,7 +74,7 @@ export function accountPage(user: User, keys: ApiKey[], newKey?: string): Respon
     </header>
     <section class="section" id="keys">
       <h2>API keys</h2>
-      <p>Send a key as <code>Authorization: Bearer &lt;key&gt;</code>. Keys are shown once and stored only as a hash.</p>
+      <p>Keys belong to the team <strong>${escape(team.name)}</strong>. Send a key as <code>Authorization: Bearer &lt;key&gt;</code>. Keys are shown once and stored only as a hash.</p>
       ${newKey ? newKeyNotice(newKey) : ""}
       <form class="key-form" method="post" action="/account/keys">
         <label for="key-name">Name</label>

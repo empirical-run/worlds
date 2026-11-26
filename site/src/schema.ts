@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 const createdAt = () =>
   integer("created_at", { mode: "timestamp_ms" })
@@ -14,6 +14,27 @@ export const users = sqliteTable("users", {
   picture: text("picture"),
   createdAt: createdAt(),
 });
+
+export const teams = sqliteTable("teams", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  createdAt: createdAt(),
+});
+
+export const memberships = sqliteTable(
+  "memberships",
+  {
+    teamId: text("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: text("role", { enum: ["owner", "member"] }).notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [primaryKey({ columns: [table.teamId, table.userId] }), index("memberships_user_id_idx").on(table.userId)],
+);
 
 export const sessions = sqliteTable(
   "sessions",
@@ -32,9 +53,10 @@ export const apiKeys = sqliteTable(
   "api_keys",
   {
     id: text("id").primaryKey(),
-    userId: text("user_id")
+    teamId: text("team_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => teams.id, { onDelete: "cascade" }),
+    createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
     name: text("name").notNull(),
     keyHash: text("key_hash").notNull().unique(),
     prefix: text("prefix").notNull(),
@@ -42,8 +64,9 @@ export const apiKeys = sqliteTable(
     revokedAt: integer("revoked_at", { mode: "timestamp_ms" }),
     createdAt: createdAt(),
   },
-  (table) => [index("api_keys_user_id_idx").on(table.userId)],
+  (table) => [index("api_keys_team_id_idx").on(table.teamId)],
 );
 
 export type User = typeof users.$inferSelect;
 export type ApiKey = typeof apiKeys.$inferSelect;
+export type Team = typeof teams.$inferSelect;
