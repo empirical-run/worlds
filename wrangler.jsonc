@@ -11,6 +11,7 @@
     "url": "./src/stubs/url.ts",
     "node:url": "./src/stubs/url.ts"
   },
+  "workers_dev": true,
   "routes": [{ "pattern": "slack.makeworlds.dev", "custom_domain": true }],
   "assets": { "directory": "./ui/dist", "binding": "ASSETS", "run_worker_first": true },
   "build": { "command": "pnpm build", "watch_dir": "ui/src" },
