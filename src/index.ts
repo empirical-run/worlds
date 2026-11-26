@@ -7,6 +7,7 @@ import {
   type TokenEntry,
 } from "@emulators/core";
 import { getSlackStore, seedFromConfig, slackPlugin } from "@emulators/slack";
+import { SlackDelivery } from "./slack-delivery";
 import { registerSlackExtensions } from "./slack-extensions";
 import { slackSeed } from "./slack-seed";
 
@@ -35,6 +36,11 @@ function isAdmin(request: Request, env: Env): boolean {
 
 export class World extends DurableObject<Env> {
   private slack: SlackServer | null = null;
+  private delivery = this.newDelivery();
+
+  async alarm(): Promise<void> {
+    await this.delivery.run();
+  }
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
@@ -48,8 +54,10 @@ export class World extends DurableObject<Env> {
   private async admin(request: Request, url: URL): Promise<Response> {
     if (!isAdmin(request, this.env)) return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
     if (request.method === "POST" && url.pathname === "/_worlds/reset") {
+      await this.ctx.storage.deleteAlarm();
       await this.ctx.storage.deleteAll();
       this.slack = null;
+      this.delivery = this.newDelivery();
       return Response.json({ ok: true });
     }
     if (request.method === "POST" && url.pathname === "/_worlds/slack/redirect-uris") {
@@ -88,10 +96,15 @@ export class World extends DurableObject<Env> {
         }),
       );
     }
-    slack.webhooks.register({ owner: "slack", url: this.env.SLACK_EVENTS_URL, events: ["*"], active: true });
+    const subscription = slack.webhooks.register({ owner: "slack", url: this.env.SLACK_EVENTS_URL, events: ["*"], active: true });
+    await this.delivery.attach(slack.webhooks, subscription.id);
     this.slack = slack;
     if (!saved) await this.saveSlack();
     return slack;
+  }
+
+  private newDelivery(): SlackDelivery {
+    return new SlackDelivery(this.ctx.storage, this.env.SLACK_EVENTS_URL, this.env.SLACK_SIGNING_SECRET);
   }
 
   private async saveSlack(): Promise<void> {

@@ -22,12 +22,44 @@ function verified(headers, body) {
 const receiver = createServer((req, res) => {
   let body = "";
   req.on("data", (chunk) => (body += chunk));
-  req.on("end", () => {
+  req.on("end", async () => {
     const payload = JSON.parse(body || "{}");
-    events.push({ valid: verified(req.headers, body), type: payload.event?.type, text: payload.event?.text });
+    const retryNum = req.headers["x-slack-retry-num"];
+    const text = payload.event?.text ?? "";
+    events.push({
+      valid: verified(req.headers, body),
+      type: payload.event?.type,
+      text,
+      eventId: payload.event_id,
+      retryNum,
+      retryReason: req.headers["x-slack-retry-reason"],
+    });
+    if (!retryNum && text.includes("fail once")) {
+      res.statusCode = 500;
+      return res.end("fail");
+    }
+    if (!retryNum && text.includes("stall once")) await sleep(3500);
     res.end("ok");
   });
 }).listen(8788);
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitFor(predicate, timeoutMs = 10000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const found = predicate();
+    if (found) return found;
+    await sleep(100);
+  }
+  return undefined;
+}
+
+function mentionAttempts(text) {
+  return events.filter((event) => event.type === "app_mention" && event.text?.includes(text));
+}
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -71,9 +103,24 @@ try {
   const unknown = await fetch(`${slackApiUrl}chat.doesNotExist`, { method: "POST", headers: { authorization: `Bearer ${access.access_token}` } });
   assert(unknown.status === 200 && (await unknown.json()).error === "unknown_method", "unknown methods answer 200 unknown_method like Slack");
 
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  const appMention = events.find((event) => event.type === "app_mention");
-  assert(appMention?.text?.includes("run the login tests"), "app_mention event is delivered");
+  const appMention = await waitFor(() => mentionAttempts("run the login tests")[0]);
+  assert(appMention, "app_mention event is delivered");
+
+  await human.chat.postMessage({ channel: created.channel.id, text: `<@${access.bot_user_id}> fail once` });
+  const failed = await waitFor(() => mentionAttempts("fail once").length >= 2 && mentionAttempts("fail once"));
+  assert(
+    failed && failed[1].retryNum === "1" && failed[1].retryReason === "http_error" && failed[1].eventId === failed[0].eventId,
+    "a 500 is retried with X-Slack-Retry-Num 1, reason http_error, same event_id",
+  );
+
+  const started = Date.now();
+  await human.chat.postMessage({ channel: created.channel.id, text: `<@${access.bot_user_id}> stall once` });
+  assert(Date.now() - started < 2000, "chat.postMessage returns without waiting for the event receiver");
+  const stalled = await waitFor(() => mentionAttempts("stall once").length >= 2 && mentionAttempts("stall once"));
+  assert(stalled && stalled[1].retryNum === "1" && stalled[1].retryReason === "http_timeout", "a receiver slower than 3s is retried with reason http_timeout");
+
+  await sleep(1000);
+  assert(mentionAttempts("run the login tests").length === 1, "a 200 is not retried");
   assert(events.every((event) => event.valid), "every event carries a valid Slack signature");
 } finally {
   receiver.close();

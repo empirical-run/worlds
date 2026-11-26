@@ -20,7 +20,7 @@ pnpm smoke
 ## Slack
 
 - Web API at `/api/*`, OAuth at `/oauth/v2/authorize`, inspector UI at `/`.
-- `SLACK_EVENTS_URL` receives event callbacks, signed with `SLACK_SIGNING_SECRET`.
+- `SLACK_EVENTS_URL` receives event callbacks, signed with `SLACK_SIGNING_SECRET`. Delivery works like Slack's: API calls return without waiting for the receiver; a non-2xx (unless `x-slack-no-retry: 1`), a connection failure or no response within 3s is retried with `X-Slack-Retry-Num`/`X-Slack-Retry-Reason`, right away, after 1 minute and after 5 minutes. Pending retries and the delivery log live in Durable Object storage and alarms, so they survive eviction.
 - Admin routes take `Authorization: Bearer $WORLDS_ADMIN_TOKEN`:
   - `POST /_worlds/reset` restores the seed.
   - `POST /_worlds/slack/redirect-uris` with `{ "redirect_uri": "..." }` registers an OAuth redirect URI on the app.
