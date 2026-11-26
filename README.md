@@ -33,6 +33,10 @@ pnpm smoke
   - `GET /_worlds/slack/files/F…` returns a file's bytes; `POST /_worlds/slack/upload` (multipart `user_id`, `channel`, `file`, optional `text`, `thread_ts`) shares a file as that user.
   - `POST /_worlds/slack/act` with `{ "user_id", "method", "args" }` calls a Web API method as that user, minting a user token when the user has none. Allowed methods: `chat.postMessage`, `conversations.create`, `conversations.invite`, `reactions.add`, `reactions.remove`.
 
+## Site
+
+The marketing site at https://makeworlds.dev is static HTML in `site/public`, served by a separate assets-only Worker (`site/wrangler.jsonc`). `pnpm dev:site` serves it on :8790; CI deploys it after the twin.
+
 ## Deploy
 
 Production is https://slack.makeworlds.dev (custom domain on the `makeworlds.dev` zone; `WORLDS_SLACK_URL` pins the URLs the twin builds). worlds.empirical-run.workers.dev serves the same world. Pushes to `main` deploy through GitHub Actions (`.github/workflows/ci.yml`) after typecheck and the smoke test pass. Runtime secrets (`SLACK_*`, `WORLDS_ADMIN_TOKEN`) live on the Worker and are kept across deploys. The workflow needs a `CLOUDFLARE_API_TOKEN` repo secret with Workers Scripts: Edit on the empirical.run account.

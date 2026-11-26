@@ -1,0 +1,9 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "worlds-site",
+  "account_id": "6f3f2ef0dbeefd01119c8818ed8e3dfe",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  "routes": [{ "pattern": "makeworlds.dev", "custom_domain": true }],
+  "assets": { "directory": "./public", "not_found_handling": "404-page" }
+}

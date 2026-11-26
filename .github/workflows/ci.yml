@@ -51,3 +51,6 @@ jobs:
       - run: pnpm exec wrangler deploy --message "${{ github.sha }}"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - run: pnpm exec wrangler deploy -c site/wrangler.jsonc --message "${{ github.sha }}"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
