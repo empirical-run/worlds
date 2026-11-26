@@ -228,6 +228,38 @@ pre {
 ul { margin: 0 0 16px; padding-left: 20px; color: var(--ink-2); }
 li { margin-bottom: 6px; }
 
+button { font: inherit; cursor: pointer; }
+button.button { background: none; color: var(--ink); }
+button.button.primary { background: var(--accent); color: var(--accent-ink); }
+.hero form { margin-top: 20px; }
+.fine { margin-top: 16px; font-size: 13px; color: var(--ink-3); }
+.notice { margin: 0 0 20px; padding: 14px 16px; border: 1px solid var(--accent); background: var(--accent-wash); }
+.notice p { color: var(--ink); }
+.notice pre { margin: 10px 0 0; background: var(--surface); }
+.notice.error { margin-top: 20px; border-color: #d4524d; background: none; color: #d4524d; }
+.key-form { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 24px; }
+.key-form label { font-size: 14px; font-weight: 500; }
+.key-form input {
+  flex: 1 1 200px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--rule-strong);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+.key-form input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.keys { width: 100%; border-collapse: collapse; font-size: 14px; }
+.keys th { white-space: nowrap; padding: 8px 12px 8px 0; text-align: left; font-weight: 500; font-size: 12px; color: var(--ink-3); border-bottom: 1px solid var(--rule-strong); }
+.keys td { padding: 12px 12px 12px 0; border-bottom: 1px solid var(--rule); color: var(--ink-2); white-space: nowrap; }
+.keys td:first-child { color: var(--ink); white-space: normal; }
+.keys td:last-child { text-align: right; padding-right: 0; }
+.link-button { padding: 0; border: 0; background: none; color: var(--accent); font-size: 14px; }
+.link-button:hover { text-decoration: underline; }
+.empty { color: var(--ink-3); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
 @media (max-width: 1023.98px) {
   .page { display: block; }
   .rail {
@@ -249,4 +281,5 @@ li { margin-bottom: 6px; }
   .section { padding: 40px 20px; }
   .hero { padding-top: 56px; }
   .section::before, .section::after { display: none; }
+  .keys th:nth-child(3), .keys td:nth-child(3) { display: none; }
 }
