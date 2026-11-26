@@ -1,11 +1,21 @@
-import { membersOf, renameTeam, teamById, teamsForUser, useKey, type Db } from "./accounts";
-import type { ApiKey, Membership, Team, User } from "./schema";
+import {
+  membersOf,
+  renameTeam,
+  TEAM_NAME_MAX,
+  teamById,
+  teamsForUser,
+  useKey,
+  type ApiKey,
+  type Db,
+  type Membership,
+  type Team,
+  type User,
+} from "@worlds/db";
 
 type Caller = { kind: "key"; key: ApiKey } | { kind: "user"; user: User };
 type Role = Membership["role"];
 
 const TEAM_PATH = /^\/api\/teams\/([\w-]+)$/;
-export const TEAM_NAME_MAX = 80;
 
 export async function handleApi(request: Request, url: URL, db: Db, sessionUser: User | null): Promise<Response> {
   const caller = await authenticate(request, db, sessionUser);

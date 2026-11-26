@@ -1,4 +1,5 @@
-import type { OAuthProvider, Profile } from "./providers";
+import type { Profile } from "@worlds/db";
+import type { OAuthProvider } from "./providers";
 
 const AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";

@@ -1,15 +1,7 @@
 import type { Env } from "./env";
 import { github } from "./github";
 import { google } from "./google";
-import type { Provider } from "./schema";
-
-export type Profile = {
-  provider: Provider;
-  subject: string;
-  email: string;
-  name: string | null;
-  picture: string | null;
-};
+import type { Profile, Provider } from "@worlds/db";
 
 export type OAuthProvider = {
   authorizeUrl(env: Env, redirectUri: string, state: string, challenge: string): string;

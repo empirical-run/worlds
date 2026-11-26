@@ -17,7 +17,7 @@
       "binding": "DB",
       "database_name": "worlds-db",
       "database_id": "829a6cb6-49e1-470c-a7f5-f151014f9ad6",
-      "migrations_dir": "drizzle"
+      "migrations_dir": "../packages/db/drizzle"
     }
   ],
   "secrets": {

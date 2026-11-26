@@ -1,7 +1,6 @@
 import { and, asc, desc, eq, gt, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { randomToken, sha256 } from "./crypto";
-import type { Profile } from "./providers";
 import {
   apiKeys,
   identities,
@@ -10,10 +9,21 @@ import {
   teams,
   users,
   type ApiKey,
+  type Provider,
   type Membership,
   type Team,
   type User,
 } from "./schema";
+
+export const TEAM_NAME_MAX = 80;
+
+export type Profile = {
+  provider: Provider;
+  subject: string;
+  email: string;
+  name: string | null;
+  picture: string | null;
+};
 
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 export const SESSION_TTL_SECONDS = SESSION_TTL_MS / 1000;

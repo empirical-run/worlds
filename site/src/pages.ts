@@ -1,5 +1,4 @@
-import { TEAM_NAME_MAX } from "./api";
-import type { ApiKey, Membership, Team, User } from "./schema";
+import { TEAM_NAME_MAX, type ApiKey, type Membership, type Team, type User } from "@worlds/db";
 
 const escapes: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 
