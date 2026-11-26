@@ -11,6 +11,7 @@
     "url": "./src/stubs/url.ts",
     "node:url": "./src/stubs/url.ts"
   },
+  "routes": [{ "pattern": "slack.makeworlds.dev", "custom_domain": true }],
   "assets": { "directory": "./ui/dist", "binding": "ASSETS", "run_worker_first": true },
   "build": { "command": "pnpm build", "watch_dir": "ui/src" },
   "durable_objects": { "bindings": [{ "name": "WORLD", "class_name": "World" }] },
@@ -18,6 +19,7 @@
   "observability": { "enabled": true },
   "vars": {
     "SLACK_EVENTS_URL": "https://api-preview.empirical.run/api/slack/events",
-    "SLACK_REDIRECT_URIS": ""
+    "SLACK_REDIRECT_URIS": "",
+    "WORLDS_SLACK_URL": "https://slack.makeworlds.dev"
   }
 }

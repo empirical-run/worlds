@@ -22,6 +22,7 @@ type Env = {
   SLACK_CLIENT_SECRET: string;
   SLACK_USER_TOKEN: string;
   SLACK_REDIRECT_URIS: string;
+  WORLDS_SLACK_URL: string;
 };
 
 type Persisted = { store: StoreSnapshot; tokens: TokenEntry[] };
@@ -107,8 +108,9 @@ export class World extends DurableObject<Env> {
     return new Response(html, { status: response.status, headers: response.headers });
   }
 
-  private async loadSlack(origin: string): Promise<SlackServer> {
+  private async loadSlack(requestOrigin: string): Promise<SlackServer> {
     if (this.slack) return this.slack;
+    const origin = this.env.WORLDS_SLACK_URL || requestOrigin;
     const slack = createServer(slackPlugin, { baseUrl: origin, baseUrlDerived: false });
     registerSlackExtensions(slack.app);
     const saved = await this.ctx.storage.get<Persisted>(STATE_KEY);

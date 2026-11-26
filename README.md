@@ -33,4 +33,4 @@ pnpm smoke
 
 ## Deploy
 
-Pushes to `main` deploy through GitHub Actions (`.github/workflows/ci.yml`) after typecheck and the smoke test pass. Runtime secrets (`SLACK_*`, `WORLDS_ADMIN_TOKEN`) live on the Worker and are kept across deploys. The workflow needs a `CLOUDFLARE_API_TOKEN` repo secret with Workers Scripts: Edit on the empirical.run account.
+Production is https://slack.makeworlds.dev (custom domain on the `makeworlds.dev` zone; `WORLDS_SLACK_URL` pins the URLs the twin builds). worlds.empirical-run.workers.dev serves the same world. Pushes to `main` deploy through GitHub Actions (`.github/workflows/ci.yml`) after typecheck and the smoke test pass. Runtime secrets (`SLACK_*`, `WORLDS_ADMIN_TOKEN`) live on the Worker and are kept across deploys. The workflow needs a `CLOUDFLARE_API_TOKEN` repo secret with Workers Scripts: Edit on the empirical.run account.
