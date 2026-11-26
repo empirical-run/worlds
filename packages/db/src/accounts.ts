@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, gt, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { randomToken, sha256 } from "./crypto";
+import { newId } from "./ids";
 import {
   apiKeys,
   identities,
@@ -55,8 +56,8 @@ export async function signIn(db: Db, profile: Profile): Promise<User> {
     return sameEmail;
   }
 
-  const userId = crypto.randomUUID();
-  const teamId = crypto.randomUUID();
+  const userId = newId("user");
+  const teamId = newId("team");
   const [[user]] = await db.batch([
     db.insert(users).values({ id: userId, ...details }).returning(),
     db.insert(identities).values({ ...identity, userId }),
@@ -152,7 +153,6 @@ export async function listKeys(db: Db, teamId: string): Promise<ApiKey[]> {
 export async function createKey(db: Db, teamId: string, createdBy: string, name: string): Promise<string> {
   const key = `${API_KEY_PREFIX}${randomToken()}`;
   await db.insert(apiKeys).values({
-    id: crypto.randomUUID(),
     teamId,
     createdBy,
     name,

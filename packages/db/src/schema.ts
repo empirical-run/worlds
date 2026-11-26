@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { newId } from "./ids";
 
 const createdAt = () =>
   integer("created_at", { mode: "timestamp_ms" })
@@ -7,7 +8,9 @@ const createdAt = () =>
     .default(sql`(unixepoch() * 1000)`);
 
 export const users = sqliteTable("users", {
-  id: text("id").primaryKey(),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => newId("user")),
   email: text("email").notNull(),
   name: text("name"),
   picture: text("picture"),
@@ -28,7 +31,9 @@ export const identities = sqliteTable(
 );
 
 export const teams = sqliteTable("teams", {
-  id: text("id").primaryKey(),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => newId("team")),
   name: text("name").notNull(),
   createdAt: createdAt(),
 });
@@ -64,7 +69,9 @@ export const sessions = sqliteTable(
 export const apiKeys = sqliteTable(
   "api_keys",
   {
-    id: text("id").primaryKey(),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("apiKey")),
     teamId: text("team_id")
       .notNull()
       .references(() => teams.id, { onDelete: "cascade" }),
