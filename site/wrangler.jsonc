@@ -20,6 +20,13 @@
       "migrations_dir": "drizzle"
     }
   ],
-  "secrets": { "required": ["WORLDS_GOOGLE_CLIENT_ID", "WORLDS_GOOGLE_CLIENT_SECRET"] },
+  "secrets": {
+    "required": [
+      "WORLDS_GOOGLE_CLIENT_ID",
+      "WORLDS_GOOGLE_CLIENT_SECRET",
+      "WORLDS_GITHUB_CLIENT_ID",
+      "WORLDS_GITHUB_CLIENT_SECRET"
+    ]
+  },
   "observability": { "enabled": true }
 }

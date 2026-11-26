@@ -8,12 +8,24 @@ const createdAt = () =>
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
-  googleSub: text("google_sub").notNull().unique(),
   email: text("email").notNull(),
   name: text("name"),
   picture: text("picture"),
   createdAt: createdAt(),
 });
+
+export const identities = sqliteTable(
+  "identities",
+  {
+    provider: text("provider", { enum: ["google", "github"] }).notNull(),
+    subject: text("subject").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (table) => [primaryKey({ columns: [table.provider, table.subject] }), index("identities_user_id_idx").on(table.userId)],
+);
 
 export const teams = sqliteTable("teams", {
   id: text("id").primaryKey(),
@@ -68,6 +80,7 @@ export const apiKeys = sqliteTable(
 );
 
 export type User = typeof users.$inferSelect;
+export type Provider = (typeof identities.$inferSelect)["provider"];
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type Team = typeof teams.$inferSelect;
 export type Membership = typeof memberships.$inferSelect;

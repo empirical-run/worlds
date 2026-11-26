@@ -1,8 +1,19 @@
 import { and, asc, desc, eq, gt, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { randomToken, sha256 } from "./crypto";
-import type { GoogleProfile } from "./google";
-import { apiKeys, memberships, sessions, teams, users, type ApiKey, type Membership, type Team, type User } from "./schema";
+import type { Profile } from "./providers";
+import {
+  apiKeys,
+  identities,
+  memberships,
+  sessions,
+  teams,
+  users,
+  type ApiKey,
+  type Membership,
+  type Team,
+  type User,
+} from "./schema";
 
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 export const SESSION_TTL_SECONDS = SESSION_TTL_MS / 1000;
@@ -11,31 +22,39 @@ const API_KEY_PREFIX = "wk_";
 export type Db = ReturnType<typeof database>;
 
 export function database(d1: D1Database) {
-  return drizzle(d1, { schema: { users, teams, memberships, sessions, apiKeys } });
+  return drizzle(d1, { schema: { users, identities, teams, memberships, sessions, apiKeys } });
 }
 
-export async function upsertUser(db: Db, profile: GoogleProfile): Promise<User> {
-  const [user] = await db
-    .insert(users)
-    .values({ id: crypto.randomUUID(), googleSub: profile.sub, email: profile.email, name: profile.name, picture: profile.picture })
-    .onConflictDoUpdate({
-      target: users.googleSub,
-      set: { email: profile.email, name: profile.name, picture: profile.picture },
-    })
-    .returning();
-  if (!user) throw new Error("upsert returned no user");
-  await ensurePersonalTeam(db, user);
-  return user;
-}
+export async function signIn(db: Db, profile: Profile): Promise<User> {
+  const details = { email: profile.email, name: profile.name, picture: profile.picture };
+  const [linked] = await db
+    .select({ user: users })
+    .from(identities)
+    .innerJoin(users, eq(users.id, identities.userId))
+    .where(and(eq(identities.provider, profile.provider), eq(identities.subject, profile.subject)))
+    .limit(1);
+  if (linked) {
+    const [user] = await db.update(users).set(details).where(eq(users.id, linked.user.id)).returning();
+    return user ?? linked.user;
+  }
 
-async function ensurePersonalTeam(db: Db, user: User): Promise<void> {
-  const [membership] = await db.select().from(memberships).where(eq(memberships.userId, user.id)).limit(1);
-  if (membership) return;
+  const identity = { provider: profile.provider, subject: profile.subject };
+  const [sameEmail] = await db.select().from(users).where(eq(users.email, profile.email)).orderBy(asc(users.createdAt)).limit(1);
+  if (sameEmail) {
+    await db.insert(identities).values({ ...identity, userId: sameEmail.id });
+    return sameEmail;
+  }
+
+  const userId = crypto.randomUUID();
   const teamId = crypto.randomUUID();
-  await db.batch([
-    db.insert(teams).values({ id: teamId, name: user.name ?? user.email }),
-    db.insert(memberships).values({ teamId, userId: user.id, role: "owner" }),
+  const [[user]] = await db.batch([
+    db.insert(users).values({ id: userId, ...details }).returning(),
+    db.insert(identities).values({ ...identity, userId }),
+    db.insert(teams).values({ id: teamId, name: profile.name ?? profile.email }),
+    db.insert(memberships).values({ teamId, userId, role: "owner" }),
   ]);
+  if (!user) throw new Error("user insert returned no row");
+  return user;
 }
 
 export type TeamMembership = { team: Team; role: Membership["role"] };

@@ -61,7 +61,10 @@ export function signInPage(error?: string): Response {
       <h1>Sign in</h1>
       <p class="lede">Sign in to create API keys for Worlds.</p>
       ${error ? `<p class="notice error" role="alert">${escape(error)}</p>` : ""}
-      <div class="actions"><a class="button primary" href="/auth/google?next=/account">Sign in with Google</a></div>
+      <div class="actions">
+        <a class="button primary" href="/auth/google?next=/account">Sign in with Google</a>
+        <a class="button" href="/auth/github?next=/account">Sign in with GitHub</a>
+      </div>
       <p class="fine">By signing in you agree to the <a href="/privacy">privacy policy</a>.</p>
     </header>`,
   );
