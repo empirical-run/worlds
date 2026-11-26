@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "worlds",
+  "account_id": "6f3f2ef0dbeefd01119c8818ed8e3dfe",
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
   "compatibility_flags": ["nodejs_compat"],
@@ -14,8 +15,7 @@
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["World"] }],
   "observability": { "enabled": true },
   "vars": {
-    "SLACK_EVENTS_URL": "http://localhost:8788/slack/events",
-    "SLACK_CLIENT_ID": "worlds-client-id",
-    "SLACK_REDIRECT_URIS": "http://localhost:8788/oauth/callback"
+    "SLACK_EVENTS_URL": "https://api-preview.empirical.run/api/slack/events",
+    "SLACK_REDIRECT_URIS": ""
   }
 }

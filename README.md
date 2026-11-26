@@ -21,4 +21,10 @@ pnpm smoke
 
 - Web API at `/api/*`, OAuth at `/oauth/v2/authorize`, inspector UI at `/`.
 - `SLACK_EVENTS_URL` receives event callbacks, signed with `SLACK_SIGNING_SECRET`.
-- `POST /_worlds/reset` restores the seed.
+- Admin routes take `Authorization: Bearer $WORLDS_ADMIN_TOKEN`:
+  - `POST /_worlds/reset` restores the seed.
+  - `POST /_worlds/slack/redirect-uris` with `{ "redirect_uri": "..." }` registers an OAuth redirect URI on the app.
+
+## Deploy
+
+Pushes to `main` deploy through GitHub Actions (`.github/workflows/ci.yml`) after typecheck and the smoke test pass. Runtime secrets (`SLACK_*`, `WORLDS_ADMIN_TOKEN`) live on the Worker and are kept across deploys. The workflow needs a `CLOUDFLARE_API_TOKEN` repo secret with Workers Scripts: Edit on the empirical.run account.

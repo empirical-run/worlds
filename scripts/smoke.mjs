@@ -7,6 +7,8 @@ const signingSecret = process.env.SLACK_SIGNING_SECRET ?? "worlds-signing-secret
 const clientId = process.env.SLACK_CLIENT_ID ?? "worlds-client-id";
 const clientSecret = process.env.SLACK_CLIENT_SECRET ?? "worlds-client-secret";
 const redirectUri = "http://localhost:8788/oauth/callback";
+const userToken = process.env.SLACK_USER_TOKEN ?? "xoxp-alice";
+const adminToken = process.env.WORLDS_ADMIN_TOKEN ?? "worlds-admin-token";
 const slackApiUrl = `${base}/api/`;
 
 const events = [];
@@ -48,12 +50,13 @@ async function install() {
 }
 
 try {
-  await fetch(`${base}/_worlds/reset`, { method: "POST" });
+  const reset = await fetch(`${base}/_worlds/reset`, { method: "POST", headers: { authorization: `Bearer ${adminToken}` } });
+  assert(reset.ok, "admin reset succeeds");
   const access = await install();
   assert(access.ok && access.access_token.startsWith("xoxb-"), "OAuth install returns a bot token");
 
   const bot = new WebClient(access.access_token, { slackApiUrl });
-  const human = new WebClient("xoxp-alice", { slackApiUrl });
+  const human = new WebClient(userToken, { slackApiUrl });
   const channel = `smoke-${Date.now()}`;
   const created = await human.conversations.create({ name: channel });
   await bot.conversations.join({ channel: created.channel.id });
@@ -62,6 +65,11 @@ try {
   await bot.chat.postMessage({ channel: created.channel.id, thread_ts: mention.ts, text: "On it" });
   const thread = await bot.conversations.replies({ channel: created.channel.id, ts: mention.ts });
   assert(thread.messages.at(-1)?.text === "On it", "bot reply lands in the thread");
+
+  const status = await bot.apiCall("agents.sessions.setStatus", { channel_id: created.channel.id, thread_ts: mention.ts, status: "processing" });
+  assert(status.ok, "agents.sessions.setStatus succeeds");
+  const unknown = await fetch(`${slackApiUrl}chat.doesNotExist`, { method: "POST", headers: { authorization: `Bearer ${access.access_token}` } });
+  assert(unknown.status === 200 && (await unknown.json()).error === "unknown_method", "unknown methods answer 200 unknown_method like Slack");
 
   await new Promise((resolve) => setTimeout(resolve, 1000));
   const appMention = events.find((event) => event.type === "app_mention");

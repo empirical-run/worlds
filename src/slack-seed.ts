@@ -4,6 +4,7 @@ export type SlackTwinConfig = {
   signingSecret: string;
   clientId: string;
   clientSecret: string;
+  userToken: string;
   redirectUris: string[];
 };
 
@@ -22,7 +23,7 @@ export function slackSeed(config: SlackTwinConfig): SlackSeedConfig {
         bot_name: "empirical",
       },
     ],
-    tokens: [{ token: "xoxp-alice", type: "user", user: "alice" }],
+    tokens: [{ token: config.userToken, type: "user", user: "alice" }],
     signing_secret: config.signingSecret,
   };
 }
