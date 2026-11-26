@@ -7,10 +7,11 @@ import {
   type TokenEntry,
 } from "@emulators/core";
 import { getSlackStore, seedFromConfig, slackPlugin } from "@emulators/slack";
+import { FileBlobs } from "./file-blobs";
 import { SlackDelivery } from "./slack-delivery";
 import { registerSlackExtensions } from "./slack-extensions";
 import { slackSeed } from "./slack-seed";
-import { ACTING_METHODS, userToken, worldState } from "./slack-ui";
+import { ACTING_METHODS, fileContent, userToken, worldState } from "./slack-ui";
 
 type Env = {
   WORLD: DurableObjectNamespace<World>;
@@ -41,6 +42,7 @@ function isAdmin(request: Request, env: Env): boolean {
 export class World extends DurableObject<Env> {
   private slack: SlackServer | null = null;
   private delivery = this.newDelivery();
+  private blobs = new FileBlobs(this.ctx.storage);
 
   async alarm(): Promise<void> {
     await this.delivery.run();
@@ -62,6 +64,7 @@ export class World extends DurableObject<Env> {
       await this.ctx.storage.deleteAlarm();
       await this.ctx.storage.deleteAll();
       this.slack = null;
+      this.blobs.forget();
       this.delivery = this.newDelivery();
       return Response.json({ ok: true });
     }
@@ -81,6 +84,12 @@ export class World extends DurableObject<Env> {
       return Response.json({ ok: true, ...worldState(slack, url.searchParams.get("channel")) });
     }
     if (request.method === "POST" && url.pathname === "/_worlds/slack/act") return this.actAs(request, url);
+    if (request.method === "POST" && url.pathname === "/_worlds/slack/upload") return this.uploadAs(request, url);
+    const fileMatch = url.pathname.match(/^\/_worlds\/slack\/files\/([A-Z0-9]+)$/);
+    if (request.method === "GET" && fileMatch) {
+      const slack = await this.loadSlack(url.origin);
+      return fileContent(getSlackStore(slack.store), fileMatch[1]) ?? Response.json({ ok: false, error: "file_not_found" }, { status: 404 });
+    }
     return Response.json({ ok: false, error: "not_found" }, { status: 404 });
   }
 
@@ -90,15 +99,38 @@ export class World extends DurableObject<Env> {
     const slack = await this.loadSlack(url.origin);
     const token = userId ? userToken(slack, userId) : null;
     if (!token) return Response.json({ ok: false, error: "user_not_found" }, { status: 400 });
-    const response = await slack.app.fetch(
-      new Request(`${url.origin}/api/${method}`, {
-        method: "POST",
-        headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-        body: JSON.stringify(args ?? {}),
-      }),
-    );
+    const result = await callSlack(slack, url.origin, token, method, args ?? {});
     await this.saveSlack();
-    return response;
+    return Response.json(result);
+  }
+
+  private async uploadAs(request: Request, url: URL): Promise<Response> {
+    const form = await request.formData();
+    const file = form.get("file");
+    const userId = form.get("user_id");
+    const channel = form.get("channel");
+    if (!(file instanceof File) || typeof userId !== "string" || typeof channel !== "string") {
+      return Response.json({ ok: false, error: "invalid_arguments" }, { status: 400 });
+    }
+    const slack = await this.loadSlack(url.origin);
+    const token = userToken(slack, userId);
+    if (!token) return Response.json({ ok: false, error: "user_not_found" }, { status: 400 });
+    const target = await callSlack(slack, url.origin, token, "files.getUploadURLExternal", { filename: file.name, length: file.size });
+    if (!target.ok || typeof target.upload_url !== "string") return Response.json(target);
+    const uploaded = await slack.app.fetch(
+      new Request(`${url.origin}${new URL(target.upload_url).pathname}`, { method: "POST", body: await file.arrayBuffer() }),
+    );
+    if (!uploaded.ok) return Response.json({ ok: false, error: "upload_failed" }, { status: 502 });
+    const threadTs = form.get("thread_ts");
+    const text = form.get("text");
+    const result = await callSlack(slack, url.origin, token, "files.completeUploadExternal", {
+      files: [{ id: target.file_id, title: file.name }],
+      channel_id: channel,
+      ...(typeof threadTs === "string" && threadTs ? { thread_ts: threadTs } : {}),
+      ...(typeof text === "string" && text ? { initial_comment: text } : {}),
+    });
+    await this.saveSlack();
+    return Response.json(result);
   }
 
   private async inspector(request: Request, url: URL): Promise<Response> {
@@ -115,7 +147,7 @@ export class World extends DurableObject<Env> {
     registerSlackExtensions(slack.app);
     const saved = await this.ctx.storage.get<Persisted>(STATE_KEY);
     if (saved) {
-      slack.store.restore(saved.store);
+      slack.store.restore(await this.blobs.join(saved.store));
       restoreTokenMap(slack.tokenMap, saved.tokens);
     } else {
       slackPlugin.seed?.(slack.store, origin);
@@ -145,10 +177,27 @@ export class World extends DurableObject<Env> {
   private async saveSlack(): Promise<void> {
     if (!this.slack) return;
     await this.ctx.storage.put<Persisted>(STATE_KEY, {
-      store: this.slack.store.snapshot(),
+      store: await this.blobs.split(this.slack.store.snapshot()),
       tokens: serializeTokenMap(this.slack.tokenMap),
     });
   }
+}
+
+async function callSlack(
+  slack: SlackServer,
+  origin: string,
+  token: string,
+  method: string,
+  args: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const response = await slack.app.fetch(
+    new Request(`${origin}/api/${method}`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify(args),
+    }),
+  );
+  return (await response.json()) as Record<string, unknown>;
 }
 
 function isUiPath(pathname: string): boolean {

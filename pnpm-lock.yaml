@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@emulators/slack@0.14.0': f09e963d144bf6bd0beb97debd323439635fab7a6c62b9d9082290bd3cca0fbe
+
 importers:
 
   .:
@@ -13,7 +16,7 @@ importers:
         version: 0.14.0
       '@emulators/slack':
         specifier: 0.14.0
-        version: 0.14.0
+        version: 0.14.0(patch_hash=f09e963d144bf6bd0beb97debd323439635fab7a6c62b9d9082290bd3cca0fbe)
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^5.20261125.1
@@ -1160,7 +1163,7 @@ snapshots:
     dependencies:
       jose: 6.2.18
 
-  '@emulators/slack@0.14.0':
+  '@emulators/slack@0.14.0(patch_hash=f09e963d144bf6bd0beb97debd323439635fab7a6c62b9d9082290bd3cca0fbe)':
     dependencies:
       '@emulators/core': 0.14.0
 

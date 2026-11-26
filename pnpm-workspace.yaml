@@ -1,3 +1,5 @@
 allowBuilds:
   esbuild: true
   workerd: true
+patchedDependencies:
+  '@emulators/slack@0.14.0': patches/@emulators__slack@0.14.0.patch

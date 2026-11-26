@@ -23,12 +23,14 @@ pnpm smoke
 
 - Web API at `/api/*`, OAuth at `/oauth/v2/authorize`.
 - A Slack-style UI at `/`, opened with the admin token: channels, threads, mrkdwn, live updates. Pick a user under "Acting as" and post as them; `@name` becomes a real mention, so `@empirical` fires `app_mention` at the app under test. Create channels and add people (or the app) from the UI too.
+- Files: upload with `files.getUploadURLExternal` → upload URL → `files.completeUploadExternal`, download `url_private`/`url_private_download` with a token. A file shared with an @mention sends `app_mention` with `files`, and images report `thumb_*` (both via `patches/@emulators__slack@0.14.0.patch`). File bytes are stored in their own chunked Durable Object keys, outside the world state, so screenshots don't hit the 2 MB value limit. The UI shows images and files, and attaches files from the composer (button, paste or drop).
 - emulate's raw inspector moved to `/_inspector`.
 - `SLACK_EVENTS_URL` receives event callbacks, signed with `SLACK_SIGNING_SECRET`. Delivery works like Slack's: API calls return without waiting for the receiver; a non-2xx (unless `x-slack-no-retry: 1`), a connection failure or no response within 3s is retried with `X-Slack-Retry-Num`/`X-Slack-Retry-Reason`, right away, after 1 minute and after 5 minutes. Pending retries and the delivery log live in Durable Object storage and alarms, so they survive eviction.
 - Admin routes take `Authorization: Bearer $WORLDS_ADMIN_TOKEN`:
   - `POST /_worlds/reset` restores the seed.
   - `POST /_worlds/slack/redirect-uris` with `{ "redirect_uri": "..." }` registers an OAuth redirect URI on the app.
   - `GET /_worlds/slack/state?channel=C…` returns users, channels and the channel's messages (the UI polls it).
+  - `GET /_worlds/slack/files/F…` returns a file's bytes; `POST /_worlds/slack/upload` (multipart `user_id`, `channel`, `file`, optional `text`, `thread_ts`) shares a file as that user.
   - `POST /_worlds/slack/act` with `{ "user_id", "method", "args" }` calls a Web API method as that user, minting a user token when the user has none. Allowed methods: `chat.postMessage`, `conversations.create`, `conversations.invite`, `reactions.add`, `reactions.remove`.
 
 ## Deploy

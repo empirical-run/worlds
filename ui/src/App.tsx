@@ -1,5 +1,31 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
-import { actAs, fetchState, Unauthorized, type Channel, type Message, type User, type WorldState } from "./api";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ClipboardEvent,
+  type DragEvent,
+  type FormEvent,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
+import {
+  actAs,
+  fetchState,
+  fileObjectUrl,
+  uploadAs,
+  Unauthorized,
+  type Channel,
+  type FileRef,
+  type ImageRef,
+  type Message,
+  type User,
+  type WorldState,
+} from "./api";
 import { Mrkdwn, type Lookup } from "./mrkdwn";
 
 const TOKEN_KEY = "worlds-admin-token";
@@ -8,6 +34,10 @@ const POLL_MS = 2000;
 const GROUP_WINDOW_SECONDS = 300;
 
 type Route = { channel: string | null; thread: string | null };
+
+type Upload = (channel: string, threadTs: string | undefined, text: string, file: File) => Promise<void>;
+
+const TokenContext = createContext("");
 
 function readRoute(): Route {
   const params = new URLSearchParams(location.search);
@@ -157,6 +187,20 @@ function World({ token, onUnauthorized }: { token: string; onUnauthorized: (mess
     [actor, token, load, onUnauthorized],
   );
 
+  const upload = useCallback<Upload>(
+    async (channel, threadTs, text, file) => {
+      if (!actor) throw new Error("No user to act as");
+      try {
+        await uploadAs(token, { userId: actor.id, channel, threadTs, text, file });
+        await load();
+      } catch (caught) {
+        if (caught instanceof Unauthorized) onUnauthorized(caught.message);
+        throw caught;
+      }
+    },
+    [actor, token, load, onUnauthorized],
+  );
+
   if (!state) {
     return error ? <LoadFailed message={error} onRetry={load} /> : <WorldSkeleton />;
   }
@@ -166,56 +210,60 @@ function World({ token, onUnauthorized }: { token: string; onUnauthorized: (mess
   const parent = route.thread ? channelMessages.find((message) => message.ts === route.thread) ?? null : null;
 
   return (
-    <div className={parent ? "app with-thread" : "app"}>
-      <Sidebar
-        state={state}
-        activeChannel={route.channel}
-        actor={actor}
-        humans={humans}
-        onSelect={(id) => navigate({ channel: id, thread: null })}
-        onActorChange={(id) => {
-          localStorage.setItem(ACTOR_KEY, id);
-          setActorId(id);
-        }}
-        onCreateChannel={async (name) => {
-          const result = await act("conversations.create", { name });
-          const created = (result as { channel?: { id: string } }).channel;
-          if (created) navigate({ channel: created.id, thread: null });
-        }}
-        onSignOut={() => onUnauthorized("Signed out.")}
-      />
-      <main className="channel">
-        {error && <div className="banner">Live updates failed: {error}. Retrying every few seconds.</div>}
-        {channel ? (
-          <ChannelView
-            key={channel.id}
+    <TokenContext.Provider value={token}>
+      <div className={parent ? "app with-thread" : "app"}>
+        <Sidebar
+          state={state}
+          activeChannel={route.channel}
+          actor={actor}
+          humans={humans}
+          onSelect={(id) => navigate({ channel: id, thread: null })}
+          onActorChange={(id) => {
+            localStorage.setItem(ACTOR_KEY, id);
+            setActorId(id);
+          }}
+          onCreateChannel={async (name) => {
+            const result = await act("conversations.create", { name });
+            const created = (result as { channel?: { id: string } }).channel;
+            if (created) navigate({ channel: created.id, thread: null });
+          }}
+          onSignOut={() => onUnauthorized("Signed out.")}
+        />
+        <main className="channel">
+          {error && <div className="banner">Live updates failed: {error}. Retrying every few seconds.</div>}
+          {channel ? (
+            <ChannelView
+              key={channel.id}
+              channel={channel}
+              messages={channelMessages}
+              users={state.users}
+              lookup={lookup}
+              actor={actor}
+              openThread={route.thread}
+              onOpenThread={(ts) => navigate({ channel: channel.id, thread: ts })}
+              act={act}
+              upload={upload}
+            />
+          ) : (
+            <div className="empty">This world has no channels yet. Create one from the sidebar.</div>
+          )}
+        </main>
+        {parent && channel && (
+          <ThreadPanel
+            key={parent.ts}
             channel={channel}
-            messages={channelMessages}
+            parent={parent}
+            replies={channelMessages.filter((message) => message.thread_ts === parent.ts && message.ts !== parent.ts)}
             users={state.users}
             lookup={lookup}
             actor={actor}
-            openThread={route.thread}
-            onOpenThread={(ts) => navigate({ channel: channel.id, thread: ts })}
+            onClose={() => navigate({ channel: channel.id, thread: null })}
             act={act}
+            upload={upload}
           />
-        ) : (
-          <div className="empty">This world has no channels yet. Create one from the sidebar.</div>
         )}
-      </main>
-      {parent && channel && (
-        <ThreadPanel
-          key={parent.ts}
-          channel={channel}
-          parent={parent}
-          replies={channelMessages.filter((message) => message.thread_ts === parent.ts && message.ts !== parent.ts)}
-          users={state.users}
-          lookup={lookup}
-          actor={actor}
-          onClose={() => navigate({ channel: channel.id, thread: null })}
-          act={act}
-        />
-      )}
-    </div>
+      </div>
+    </TokenContext.Provider>
   );
 }
 
@@ -330,6 +378,7 @@ function ChannelView(props: {
   openThread: string | null;
   onOpenThread: (ts: string) => void;
   act: (method: string, args: Record<string, unknown>) => Promise<unknown>;
+  upload: Upload;
 }) {
   const topLevel = props.messages.filter(isTopLevel);
   const nonMembers = props.users.filter((user) => !props.channel.members.includes(user.id));
@@ -385,6 +434,7 @@ function ChannelView(props: {
         users={props.users}
         actor={props.actor}
         onSend={(text) => props.act("chat.postMessage", { channel: props.channel.id, text })}
+        onUpload={(text, file) => props.upload(props.channel.id, undefined, text, file)}
       />
     </>
   );
@@ -399,6 +449,7 @@ function ThreadPanel(props: {
   actor: User | null;
   onClose: () => void;
   act: (method: string, args: Record<string, unknown>) => Promise<unknown>;
+  upload: Upload;
 }) {
   return (
     <aside className="thread">
@@ -425,6 +476,7 @@ function ThreadPanel(props: {
         users={props.users}
         actor={props.actor}
         onSend={(text) => props.act("chat.postMessage", { channel: props.channel.id, thread_ts: props.parent.ts, text })}
+        onUpload={(text, file) => props.upload(props.channel.id, props.parent.ts, text, file)}
       />
     </aside>
   );
@@ -510,7 +562,8 @@ function MessageRow(props: {
             </span>
           </div>
         )}
-        <Mrkdwn text={message.text} lookup={props.lookup} />
+        {message.text && <Mrkdwn text={message.text} lookup={props.lookup} />}
+        <Attachments files={message.files} images={message.images} />
         {message.edited && <span className="edited">(edited)</span>}
         {message.reactions.length > 0 && (
           <div className="reactions">
@@ -537,16 +590,107 @@ function MessageRow(props: {
   );
 }
 
-function Composer(props: { placeholder: string; users: User[]; actor: User | null; onSend: (text: string) => Promise<unknown> }) {
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function useFileUrl(fileId: string | undefined) {
+  const token = useContext(TokenContext);
+  const [state, setState] = useState<{ url: string } | { error: string } | null>(null);
+  useEffect(() => {
+    if (!fileId) return;
+    let live = true;
+    fileObjectUrl(token, fileId).then(
+      (url) => live && setState({ url }),
+      (caught: unknown) => live && setState({ error: caught instanceof Error ? caught.message : String(caught) }),
+    );
+    return () => {
+      live = false;
+    };
+  }, [token, fileId]);
+  return state;
+}
+
+function SlackImage({ fileId, url, alt, file }: { fileId?: string; url?: string; alt: string; file?: FileRef }) {
+  const loaded = useFileUrl(fileId);
+  const [broken, setBroken] = useState(false);
+  if (broken) return file ? <FileChip file={file} /> : <span className="inline-error">Couldn't show image {alt}</span>;
+  if (url) return <img className="attachment-image" src={url} alt={alt} onError={() => setBroken(true)} />;
+  if (!loaded) return <span className="skeleton attachment-image-skeleton" />;
+  if ("error" in loaded) return <span className="inline-error">Couldn't load image: {loaded.error}</span>;
+  return (
+    <a href={loaded.url} target="_blank" rel="noreferrer">
+      <img className="attachment-image" src={loaded.url} alt={alt} onError={() => setBroken(true)} />
+    </a>
+  );
+}
+
+function FileChip({ file }: { file: FileRef }) {
+  const token = useContext(TokenContext);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <button
+      className="file-chip"
+      onClick={async () => {
+        try {
+          window.open(await fileObjectUrl(token, file.id), "_blank");
+          setError(null);
+        } catch (caught) {
+          setError(caught instanceof Error ? caught.message : String(caught));
+        }
+      }}
+    >
+      <span className="file-icon">{file.name.split(".").pop()?.slice(0, 4).toUpperCase() || "FILE"}</span>
+      <span className="file-meta">
+        <span className="file-name">{file.name}</span>
+        <span className="file-size">{error ? `Couldn't open: ${error}` : formatSize(file.size)}</span>
+      </span>
+    </button>
+  );
+}
+
+function Attachments({ files, images }: { files: FileRef[]; images: ImageRef[] }) {
+  const imageFiles = files.filter((file) => file.mimetype.startsWith("image/"));
+  const otherFiles = files.filter((file) => !file.mimetype.startsWith("image/"));
+  const blockImages = images.filter((image) => !image.file_id || !files.some((file) => file.id === image.file_id));
+  if (imageFiles.length + otherFiles.length + blockImages.length === 0) return null;
+  return (
+    <div className="attachments">
+      {imageFiles.map((file) => (
+        <SlackImage key={file.id} fileId={file.id} alt={file.name} file={file} />
+      ))}
+      {blockImages.map((image, index) => (
+        <SlackImage key={image.file_id ?? image.url ?? index} fileId={image.file_id} url={image.url} alt={image.alt} />
+      ))}
+      {otherFiles.map((file) => (
+        <FileChip key={file.id} file={file} />
+      ))}
+    </div>
+  );
+}
+
+function Composer(props: {
+  placeholder: string;
+  users: User[];
+  actor: User | null;
+  onSend: (text: string) => Promise<unknown>;
+  onUpload: (text: string, file: File) => Promise<void>;
+}) {
   const [text, setText] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [highlight, setHighlight] = useState(0);
+  const [dragging, setDragging] = useState(false);
   const input = useRef<HTMLTextAreaElement>(null);
+  const picker = useRef<HTMLInputElement>(null);
 
   const query = /(?:^|\s)@([\w.-]*)$/.exec(text)?.[1];
   const suggestions =
     query === undefined ? [] : props.users.filter((user) => user.name.toLowerCase().startsWith(query.toLowerCase())).slice(0, 6);
+  const canSend = Boolean(text.trim() || file) && !sending && Boolean(props.actor);
 
   function complete(user: User) {
     setText((current) => current.replace(/@([\w.-]*)$/, `@${user.name} `));
@@ -555,12 +699,14 @@ function Composer(props: { placeholder: string; users: User[]; actor: User | nul
   }
 
   async function send() {
-    const body = text.trim();
-    if (!body || sending || !props.actor) return;
+    if (!canSend) return;
+    const body = encodeMentions(text.trim(), props.users);
     setSending(true);
     try {
-      await props.onSend(encodeMentions(body, props.users));
+      if (file) await props.onUpload(body, file);
+      else await props.onSend(body);
       setText("");
+      setFile(null);
       setError(null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught));
@@ -587,6 +733,20 @@ function Composer(props: { placeholder: string; users: User[]; actor: User | nul
     }
   }
 
+  function onPaste(event: ClipboardEvent<HTMLTextAreaElement>) {
+    const pasted = event.clipboardData.files[0];
+    if (!pasted) return;
+    event.preventDefault();
+    setFile(pasted);
+  }
+
+  function onDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setDragging(false);
+    const dropped = event.dataTransfer.files[0];
+    if (dropped) setFile(dropped);
+  }
+
   return (
     <div className="composer">
       {suggestions.length > 0 && (
@@ -609,7 +769,27 @@ function Composer(props: { placeholder: string; users: User[]; actor: User | nul
           ))}
         </ul>
       )}
-      <div className="composer-box">
+      <div
+        className={dragging ? "composer-box dragging" : "composer-box"}
+        onDragOver={(event) => {
+          event.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={onDrop}
+      >
+        {file && (
+          <div className="pending-file">
+            <span className="file-icon">{file.name.split(".").pop()?.slice(0, 4).toUpperCase() || "FILE"}</span>
+            <span className="file-meta">
+              <span className="file-name">{file.name}</span>
+              <span className="file-size">{formatSize(file.size)}</span>
+            </span>
+            <button className="remove-file" title="Remove file" onClick={() => setFile(null)}>
+              ×
+            </button>
+          </div>
+        )}
         <textarea
           ref={input}
           rows={1}
@@ -620,13 +800,28 @@ function Composer(props: { placeholder: string; users: User[]; actor: User | nul
             setHighlight(0);
           }}
           onKeyDown={onKeyDown}
+          onPaste={onPaste}
         />
         <div className="composer-footer">
-          <span className="acting" title="Enter to send, Shift+Enter for a new line">
-            as {props.actor ? `@${props.actor.name}` : "nobody"}
+          <span className="composer-tools">
+            <button className="attach" title="Attach a file (or paste / drop one)" onClick={() => picker.current?.click()}>
+              Attach
+            </button>
+            <input
+              ref={picker}
+              type="file"
+              hidden
+              onChange={(event) => {
+                setFile(event.target.files?.[0] ?? null);
+                event.target.value = "";
+              }}
+            />
+            <span className="acting" title="Enter to send, Shift+Enter for a new line">
+              as {props.actor ? `@${props.actor.name}` : "nobody"}
+            </span>
           </span>
-          <button className="send" disabled={!text.trim() || sending || !props.actor} onClick={send}>
-            Send
+          <button className="send" disabled={!canSend} onClick={send}>
+            {sending && file ? "Uploading" : "Send"}
           </button>
         </div>
       </div>

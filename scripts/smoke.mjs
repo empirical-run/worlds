@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { createServer } from "node:http";
 import { WebClient } from "@slack/web-api";
 
@@ -33,6 +33,7 @@ const receiver = createServer((req, res) => {
       eventId: payload.event_id,
       retryNum,
       retryReason: req.headers["x-slack-retry-reason"],
+      fileIds: payload.event?.files?.map((file) => file.id) ?? [],
     });
     if (!retryNum && text.includes("fail once")) {
       res.statusCode = 500;
@@ -118,6 +119,21 @@ try {
   assert(Date.now() - started < 2000, "chat.postMessage returns without waiting for the event receiver");
   const stalled = await waitFor(() => mentionAttempts("stall once").length >= 2 && mentionAttempts("stall once"));
   assert(stalled && stalled[1].retryNum === "1" && stalled[1].retryReason === "http_timeout", "a receiver slower than 3s is retried with reason http_timeout");
+
+  const screenshot = randomBytes(3_000_000);
+  const target = await human.files.getUploadURLExternal({ filename: "screenshot.png", length: screenshot.length });
+  await fetch(target.upload_url, { method: "POST", body: screenshot });
+  await human.files.completeUploadExternal({
+    files: [{ id: target.file_id, title: "screenshot" }],
+    channel_id: created.channel.id,
+    initial_comment: `<@${access.bot_user_id}> what broke in this screenshot`,
+  });
+  const fileMention = await waitFor(() => mentionAttempts("what broke in this screenshot")[0]);
+  assert(fileMention?.fileIds.includes(target.file_id), "a file shared with an @mention sends app_mention with the file");
+  const info = await bot.files.info({ file: target.file_id });
+  assert(Boolean(info.file.thumb_360), "image files report thumbnails");
+  const download = await fetch(info.file.url_private_download, { headers: { authorization: `Bearer ${access.access_token}` } });
+  assert(Buffer.from(await download.arrayBuffer()).equals(screenshot), "the bot downloads the file's bytes over url_private_download");
 
   await sleep(1000);
   assert(mentionAttempts("run the login tests").length === 1, "a 200 is not retried");

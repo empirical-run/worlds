@@ -1,0 +1,47 @@
+diff --git a/dist/index.js b/dist/index.js
+index 9d32ad31d115a281b8ead6a634b6ccf85988f256..c21a7d134ef6993f2b059ef95222440f98ee5927 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -232,6 +232,7 @@ function formatSlackFile(file) {
+     comments_count: 0,
+     is_starred: false,
+     has_rich_preview: false,
++    ...file.mimetype?.startsWith("image/") ? Object.fromEntries([64, 80, 160, 360, 480, 720, 1024].map((size) => [`thumb_${size}`, file.url_private])) : {},
+     ...file.alt_txt ? { alt_txt: file.alt_txt } : {},
+     ...file.initial_comment ? { initial_comment: file.initial_comment } : {},
+     ...file.thread_ts ? { thread_ts: file.thread_ts } : {}
+@@ -3346,6 +3347,26 @@ function filesRoutes(ctx) {
+       files: sharedFiles.map((file) => formatSlackFileForAuth(file, authUser)),
+       ...slackMessageTextResponseMetadata(normalizedInitialComment)
+     });
++    async function dispatchFileShareMentions(channel, message) {
++      if (channel.is_im || channel.is_mpim || !message.text) return;
++      const mentioned = new Set([...message.text.matchAll(/<@([^<>\s|]+)(?:\|[^<>]*)?>/g)].map((match) => match[1]));
++      if (mentioned.size === 0) return;
++      const teamId = resolveSlackEventTeamId(c, store, channel.team_id);
++      for (const installation of ss().installations.findBy("team_id", teamId)) {
++        if (!mentioned.has(installation.bot_user_id)) continue;
++        const botUser = ss().users.findOneBy("user_id", installation.bot_user_id);
++        const bot = ss().bots.findOneBy("bot_id", installation.bot_id);
++        if (!botUser || !botUser.is_bot || botUser.deleted || !bot || bot.deleted) continue;
++        if (!channel.members.includes(botUser.user_id) && !channel.members.includes(botUser.name)) continue;
++        await dispatchSlackEvent(
++          store,
++          webhooks,
++          teamId,
++          { ...formatSlackMessage(message), subtype: void 0, type: "app_mention", channel: channel.channel_id, event_ts: message.ts },
++          installation
++        );
++      }
++    }
+     async function shareFiles(channels, files) {
+       const updatedFiles = [...files];
+       for (const channel of channels) {
+@@ -3387,6 +3408,7 @@ function filesRoutes(ctx) {
+           subtype: "file_share",
+           channel: channel.channel_id
+         });
++        await dispatchFileShareMentions(channel, updatedMessage);
+         for (const shared of messageFiles) {
+           const index = updatedFiles.findIndex((file) => file.file_id === shared.file_id);
+           if (index >= 0) updatedFiles[index] = shared;

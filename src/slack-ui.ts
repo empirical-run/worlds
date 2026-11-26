@@ -1,5 +1,5 @@
 import type { createServer } from "@emulators/core";
-import { getSlackStore, type SlackMessage } from "@emulators/slack";
+import { getSlackStore, type SlackFile, type SlackMessage, type SlackStore } from "@emulators/slack";
 
 type SlackServer = ReturnType<typeof createServer>;
 
@@ -13,6 +13,8 @@ const USER_SCOPES = [
   "users:read",
   "reactions:write",
   "reactions:read",
+  "files:read",
+  "files:write",
 ];
 
 export const ACTING_METHODS = new Set([
@@ -22,6 +24,12 @@ export const ACTING_METHODS = new Set([
   "reactions.add",
   "reactions.remove",
 ]);
+
+const VISIBLE_SUBTYPES = new Set(["file_share", "bot_message", "thread_broadcast", "me_message"]);
+
+export type UiFile = { id: string; name: string; mimetype: string; size: number };
+
+export type UiImage = { file_id?: string; url?: string; alt: string };
 
 export type UiMessage = {
   ts: string;
@@ -33,7 +41,24 @@ export type UiMessage = {
   reactions: SlackMessage["reactions"];
   bot_name?: string;
   edited: boolean;
+  files: UiFile[];
+  images: UiImage[];
 };
+
+function toUiFile(file: Pick<SlackFile, "file_id" | "name" | "mimetype" | "size">): UiFile {
+  return { id: file.file_id, name: file.name, mimetype: file.mimetype, size: file.size };
+}
+
+function blockImages(blocks: SlackMessage["blocks"]): UiImage[] {
+  return (blocks ?? []).flatMap((block): UiImage[] => {
+    if (block.type !== "image") return [];
+    const slackFile = block.slack_file as { id?: string; url?: string } | undefined;
+    const alt = typeof block.alt_text === "string" ? block.alt_text : "";
+    if (slackFile?.id) return [{ file_id: slackFile.id, alt }];
+    const url = typeof block.image_url === "string" ? block.image_url : slackFile?.url;
+    return url ? [{ url, alt }] : [];
+  });
+}
 
 function toUiMessage(message: SlackMessage): UiMessage {
   return {
@@ -46,6 +71,8 @@ function toUiMessage(message: SlackMessage): UiMessage {
     reactions: message.reactions ?? [],
     bot_name: message.bot_profile?.name ?? message.username,
     edited: Boolean(message.edited),
+    files: (message.files ?? []).map(toUiFile),
+    images: blockImages(message.blocks),
   };
 }
 
@@ -76,7 +103,7 @@ export function worldState(slack: SlackServer, channelId: string | null) {
   const messages = channelId
     ? store.messages
         .all()
-        .filter((message) => message.channel_id === channelId && !message.subtype)
+        .filter((message) => message.channel_id === channelId && (!message.subtype || VISIBLE_SUBTYPES.has(message.subtype)))
         .sort((a, b) => Number(a.ts) - Number(b.ts))
         .map(toUiMessage)
     : [];
@@ -92,4 +119,11 @@ export function userToken(slack: SlackServer, userId: string): string | null {
   const token = `xoxp-worlds-${crypto.randomUUID()}`;
   store.tokens.insert({ token, token_type: "user", team_id: user.team_id, user_id: userId, scopes: USER_SCOPES });
   return token;
+}
+
+export function fileContent(store: SlackStore, fileId: string): Response | null {
+  const file = store.files.findOneBy("file_id", fileId);
+  if (!file || file.deleted) return null;
+  const bytes = Uint8Array.from(atob(file.content_base64 ?? ""), (char) => char.charCodeAt(0));
+  return new Response(bytes, { headers: { "content-type": file.mimetype || "application/octet-stream", "cache-control": "private, max-age=3600" } });
 }
