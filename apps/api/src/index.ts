@@ -1,0 +1,48 @@
+import { OpenAPIHono } from "@hono/zod-openapi";
+import { HTTPException } from "hono/http-exception";
+import { authenticate } from "./auth";
+import { apiError, type AppEnv } from "./context";
+import { apiKeys } from "./routes/api-keys";
+import { teams } from "./routes/teams";
+
+const app = new OpenAPIHono<AppEnv>({
+  defaultHook: (result, c) => {
+    if (result.success) return;
+    const issue = result.error.issues[0];
+    const message = issue ? `${issue.path.join(".") || "body"}: ${issue.message}` : "Invalid request.";
+    return c.json(apiError("invalid_request", message), 400);
+  },
+});
+
+app.openAPIRegistry.registerComponent("securitySchemes", "bearerAuth", {
+  type: "http",
+  scheme: "bearer",
+  description: "An API key from the account page, as Authorization: Bearer wk_…",
+});
+app.openAPIRegistry.registerComponent("securitySchemes", "sessionCookie", {
+  type: "apiKey",
+  in: "cookie",
+  name: "worlds_session",
+  description: "The session from signing in at makeworlds.dev. Requests that change data must come from makeworlds.dev.",
+});
+
+app.use("/api/*", authenticate);
+app.route("/", teams);
+app.route("/", apiKeys);
+
+app.doc31("/api/openapi.json", {
+  openapi: "3.1.0",
+  info: { title: "Worlds API", version: "1" },
+  servers: [{ url: "https://makeworlds.dev" }],
+});
+
+app.notFound((c) => c.json(apiError("not_found", "No such endpoint."), 404));
+app.onError((error, c) => {
+  if (error instanceof HTTPException && error.status < 500) {
+    return c.json(apiError("invalid_request", error.message), error.status);
+  }
+  console.error(error);
+  return c.json(apiError("internal", "Something went wrong."), 500);
+});
+
+export default app;

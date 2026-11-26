@@ -1,0 +1,17 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "worlds-api",
+  "account_id": "6f3f2ef0dbeefd01119c8818ed8e3dfe",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": false,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "worlds-db",
+      "database_id": "829a6cb6-49e1-470c-a7f5-f151014f9ad6",
+      "migrations_dir": "../../packages/db/drizzle"
+    }
+  ],
+  "observability": { "enabled": true }
+}

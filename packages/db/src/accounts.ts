@@ -17,6 +17,8 @@ import {
 } from "./schema";
 
 export const TEAM_NAME_MAX = 80;
+export const API_KEY_NAME_MAX = 80;
+export const SESSION_COOKIE = "worlds_session";
 
 export type Profile = {
   provider: Provider;
@@ -150,21 +152,26 @@ export async function listKeys(db: Db, teamId: string): Promise<ApiKey[]> {
     .orderBy(desc(apiKeys.createdAt));
 }
 
-export async function createKey(db: Db, teamId: string, createdBy: string, name: string): Promise<string> {
-  const key = `${API_KEY_PREFIX}${randomToken()}`;
-  await db.insert(apiKeys).values({
-    teamId,
-    createdBy,
-    name,
-    keyHash: await sha256(key),
-    prefix: key.slice(0, API_KEY_PREFIX.length + 6),
-  });
-  return key;
+export async function createKey(
+  db: Db,
+  teamId: string,
+  createdBy: string,
+  name: string,
+): Promise<{ apiKey: ApiKey; secret: string }> {
+  const secret = `${API_KEY_PREFIX}${randomToken()}`;
+  const [apiKey] = await db
+    .insert(apiKeys)
+    .values({ teamId, createdBy, name, keyHash: await sha256(secret), prefix: secret.slice(0, API_KEY_PREFIX.length + 6) })
+    .returning();
+  if (!apiKey) throw new Error("api key insert returned no row");
+  return { apiKey, secret };
 }
 
-export async function revokeKey(db: Db, teamId: string, keyId: string): Promise<void> {
-  await db
+export async function revokeKey(db: Db, teamId: string, keyId: string): Promise<boolean> {
+  const revoked = await db
     .update(apiKeys)
     .set({ revokedAt: new Date() })
-    .where(and(eq(apiKeys.id, keyId), eq(apiKeys.teamId, teamId), isNull(apiKeys.revokedAt)));
+    .where(and(eq(apiKeys.id, keyId), eq(apiKeys.teamId, teamId), isNull(apiKeys.revokedAt)))
+    .returning({ id: apiKeys.id });
+  return revoked.length > 0;
 }

@@ -10,6 +10,7 @@ import {
   signIn,
   userForSession,
   randomToken,
+  SESSION_COOKIE,
   sha256,
   type Db,
   type Membership,
@@ -17,7 +18,7 @@ import {
   type Team,
   type User,
 } from "@worlds/db";
-import { handleApi, hasBearer } from "./api";
+import { apiReferencePage, type OpenApiDocument } from "./reference";
 import { cookie, readCookie } from "./cookies";
 import type { Env } from "./env";
 import { callbackUrl, isProvider, providers } from "./providers";
@@ -25,7 +26,6 @@ import { accountPage, railUser, signInPage } from "./pages";
 
 type Role = Membership["role"];
 
-const SESSION_COOKIE = "worlds_session";
 const LOGIN_COOKIE = "worlds_login";
 const LOGIN_TTL_SECONDS = 600;
 const REVOKE_PATH = /^\/account\/keys\/([\w-]+)\/revoke$/;
@@ -36,8 +36,9 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const db = database(env.DB);
-    if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {
-      return handleApi(request, url, db, hasBearer(request) ? null : await currentUser(request, db));
+    if (url.pathname === "/api" || url.pathname.startsWith("/api/")) return env.API.fetch(request);
+    if (url.pathname === "/docs/api" && request.method === "GET") {
+      return apiReferencePage(await openApiDocument(env, url), await railAccount(request, db));
     }
     if (request.method === "POST" && !isSameOrigin(request, url)) return new Response("Forbidden", { status: 403 });
 
@@ -108,8 +109,19 @@ async function signOut(request: Request, url: URL, db: Db): Promise<Response> {
 async function createKeyFor(request: Request, db: Db, user: User, team: Team, role: Role): Promise<Response> {
   const name = String((await request.formData()).get("name") ?? "").trim().slice(0, 80);
   if (!name) return redirect("/account#keys");
-  const key = await createKey(db, team.id, user.id, name);
-  return accountPage(user, team, role, await listKeys(db, team.id), key);
+  const { secret } = await createKey(db, team.id, user.id, name);
+  return accountPage(user, team, role, await listKeys(db, team.id), secret);
+}
+
+async function openApiDocument(env: Env, url: URL): Promise<OpenApiDocument> {
+  const response = await env.API.fetch(new Request(new URL("/api/openapi.json", url)));
+  if (!response.ok) throw new Error(`openapi.json returned ${response.status}`);
+  return (await response.json()) as OpenApiDocument;
+}
+
+async function railAccount(request: Request, db: Db): Promise<{ user: User; team: Team } | undefined> {
+  const user = await currentUser(request, db);
+  return user ? { user, team: (await teamForUser(db, user.id)).team } : undefined;
 }
 
 async function withRailUser(request: Request, response: Response, db: Db): Promise<Response> {

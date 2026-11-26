@@ -2,7 +2,7 @@ import { TEAM_NAME_MAX, type ApiKey, type Membership, type Team, type User } fro
 
 const escapes: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 
-function escape(value: string): string {
+export function escape(value: string): string {
   return value.replace(/[&<>"']/g, (char) => escapes[char] ?? char);
 }
 
@@ -19,7 +19,17 @@ export function railUser(user: User, team: Team): string {
   </div>`;
 }
 
-function layout(title: string, body: string, account?: { user: User; team: Team }): Response {
+type Section = "docs" | "account";
+
+export type RailAccount = { user: User; team: Team };
+
+type LayoutOptions = { current: Section; account?: RailAccount; railIndex?: string };
+
+function navLink(href: string, label: string, section: Section | null, current: Section): string {
+  return `<a class="rail-link" href="${href}"${section === current ? ' aria-current="page"' : ""}>${label}</a>`;
+}
+
+export function layout(title: string, body: string, { current, account, railIndex }: LayoutOptions): Response {
   const html = `<!doctype html>
 <html lang="en">
   <head>
@@ -38,11 +48,12 @@ function layout(title: string, body: string, account?: { user: User; team: Team 
       <aside class="rail">
         <a class="brand" href="/"><img src="/favicon.svg" alt="" width="18" height="18">Worlds</a>
         <nav aria-label="Main">
-          <a class="rail-link" href="/">Home</a>
-          <a class="rail-link" href="/docs/">Docs</a>
-          <a class="rail-link" href="/account" aria-current="page">Account</a>
+          ${navLink("/", "Home", null, current)}
+          ${navLink("/docs/", "Docs", "docs", current)}
+          ${navLink("/account", "Account", "account", current)}
         </nav>
         ${account ? railUser(account.user, account.team) : ""}
+        ${railIndex ?? ""}
         <div class="rail-foot"><span>Built by <a href="https://empirical.run">Empirical</a></span><a class="rail-foot-link" href="/privacy">Privacy policy</a></div>
       </aside>
       <main class="content">
@@ -67,6 +78,7 @@ export function signInPage(error?: string): Response {
       </div>
       <p class="fine">By signing in you agree to the <a href="/privacy">privacy policy</a>.</p>
     </header>`,
+    { current: "account" },
   );
 }
 
@@ -93,7 +105,7 @@ export function accountPage(user: User, team: Team, role: Membership["role"], ke
       </form>
       ${keys.length ? keyTable(keys) : `<p class="empty">No API keys yet.</p>`}
     </section>`,
-    { user, team },
+    { current: "account", account: { user, team } },
   );
 }
 

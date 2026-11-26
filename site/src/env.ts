@@ -1,4 +1,5 @@
 export type Env = {
+  API: Fetcher;
   ASSETS: Fetcher;
   DB: D1Database;
   WORLDS_GOOGLE_CLIENT_ID: string;

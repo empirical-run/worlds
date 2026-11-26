@@ -1,0 +1,20 @@
+{
+  "name": "@worlds/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "dev": "wrangler dev"
+  },
+  "dependencies": {
+    "@hono/zod-openapi": "^1.6.3",
+    "@worlds/db": "workspace:*",
+    "hono": "^4.13.22",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261125.1",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.168.0"
+  }
+}

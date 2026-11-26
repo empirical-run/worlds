@@ -26,7 +26,8 @@
           <a href="#base-url">Point your app at a world</a>
           <a href="#install">Install your app</a>
           <a href="#events">Receive events</a>
-          <a href="#teams-api">Teams API</a>
+          <a href="#teams-api">Worlds API</a>
+          <a href="/docs/api">API reference</a>
           <a href="#admin">Admin API</a>
         </div>
       </aside>
@@ -57,16 +58,11 @@
           </section>
 
           <section class="section" id="teams-api">
-            <h2>Teams API</h2>
-            <p>Create an API key on your <a href="/account">account page</a>. Keys belong to a team.</p>
+            <h2>Worlds API</h2>
+            <p>Create an API key on your <a href="/account">account page</a> and send it as <code>Authorization: Bearer &lt;key&gt;</code>.</p>
 <pre><code>curl https://makeworlds.dev/api/teams \
   -H "Authorization: Bearer $WORLDS_API_KEY"</code></pre>
-            <ul>
-              <li><code>GET /api/teams</code> lists the teams you can see. With a key, that is the key's team.</li>
-              <li><code>GET /api/teams/:id</code> returns one team and its members.</li>
-              <li><code>PATCH /api/teams/:id</code> with <code>{"name": "…"}</code> renames a team. Team owners only, signed in; API keys cannot change teams.</li>
-            </ul>
-            <p>Errors look like <code>{"error": {"code": "unauthorized", "message": "…"}}</code>.</p>
+            <p>Every endpoint is in the <a href="/docs/api">API reference</a>, generated from <a href="/api/openapi.json"><code>/api/openapi.json</code></a>.</p>
           </section>
 
           <section class="section" id="admin">

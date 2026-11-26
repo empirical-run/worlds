@@ -35,7 +35,7 @@ The Slack service lives in `services/slack` (Worker in `src/`, UI in `ui/`). `wr
 
 ## Site
 
-The site at https://makeworlds.dev (pages, sign-in, account, `/api`) is the `site/` Worker (`site/wrangler.jsonc`). `pnpm dev:site` serves it on :8790; CI deploys it after the Slack service.
+The site at https://makeworlds.dev (pages, sign-in, account) is the `site/` Worker. It forwards `/api/*` over a service binding to `apps/api` (Hono + zod-openapi, Worker `worlds-api`), which serves `/api/openapi.json`; `/docs/api` renders the reference from it. Schema and migrations live in `packages/db` (`pnpm db:generate`). `pnpm dev:site` runs both Workers on :8790; CI applies migrations, then deploys the API and the site after the Slack service.
 
 ## Deploy
 
