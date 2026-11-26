@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "worlds",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "alias": {
+    "fs": "./src/stubs/fs.ts",
+    "node:fs": "./src/stubs/fs.ts",
+    "url": "./src/stubs/url.ts",
+    "node:url": "./src/stubs/url.ts"
+  },
+  "durable_objects": { "bindings": [{ "name": "WORLD", "class_name": "World" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["World"] }],
+  "observability": { "enabled": true },
+  "vars": {
+    "SLACK_EVENTS_URL": "http://localhost:8788/slack/events",
+    "SLACK_CLIENT_ID": "worlds-client-id",
+    "SLACK_REDIRECT_URIS": "http://localhost:8788/oauth/callback"
+  }
+}

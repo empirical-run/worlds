@@ -1,0 +1,2 @@
+SLACK_SIGNING_SECRET=worlds-signing-secret
+SLACK_CLIENT_SECRET=worlds-client-secret
