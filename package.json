@@ -4,31 +4,20 @@
   "type": "module",
   "packageManager": "pnpm@11.20.0",
   "scripts": {
-    "dev": "wrangler dev --port 8787 --infer-origin-from-routes=false",
+    "dev": "pnpm --filter @worlds/slack dev",
     "dev:site": "wrangler d1 migrations apply worlds-db --local -c site/wrangler.jsonc && wrangler dev -c site/wrangler.jsonc --port 8790 --infer-origin-from-routes=false",
-    "build": "vite build",
-    "deploy": "wrangler deploy",
     "deploy:site": "wrangler deploy -c site/wrangler.jsonc",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p ui && tsc --noEmit -p site",
-    "smoke": "node scripts/smoke.mjs",
+    "typecheck": "pnpm -r typecheck && tsc --noEmit -p site",
+    "smoke": "pnpm --filter @worlds/slack smoke",
     "db:generate": "cd site && drizzle-kit generate"
   },
   "dependencies": {
-    "@emulators/core": "0.14.0",
-    "@emulators/slack": "0.14.0",
     "drizzle-orm": "^0.45.4"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261125.1",
-    "@slack/web-api": "^8.5.0",
-    "@types/react": "^19.3.2",
-    "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.3.0",
     "drizzle-kit": "^0.31.11",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1",
     "typescript": "^5.9.3",
-    "vite": "^8.3.8",
     "wrangler": "^4.168.0"
   }
 }

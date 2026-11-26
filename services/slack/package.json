@@ -1,0 +1,28 @@
+{
+  "name": "@worlds/slack",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8787 --infer-origin-from-routes=false",
+    "build": "vite build",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p ui",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "@emulators/core": "0.14.0",
+    "@emulators/slack": "0.14.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261125.1",
+    "@slack/web-api": "^8.5.0",
+    "@types/react": "^19.3.2",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.8",
+    "wrangler": "^4.168.0"
+  }
+}

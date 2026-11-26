@@ -10,14 +10,14 @@ Service behaviour comes from [emulate](https://github.com/vercel-labs/emulate) (
 
 ```bash
 pnpm install
-cp .dev.vars.example .dev.vars
+cp services/slack/.dev.vars.example services/slack/.dev.vars
 pnpm dev
 pnpm smoke
 ```
 
 `pnpm smoke` resets the world, installs the app over OAuth, posts an @mention as a user, replies as the bot and checks the signed `app_mention` callback.
 
-`wrangler dev` and `wrangler deploy` build the UI (`ui/`, Vite + React) first through the `build` command in `wrangler.jsonc`.
+The Slack service lives in `services/slack` (Worker in `src/`, UI in `ui/`). `wrangler dev` and `wrangler deploy` build the UI (Vite + React) first through the `build` command in `services/slack/wrangler.jsonc`.
 
 ## Slack
 
@@ -35,7 +35,7 @@ pnpm smoke
 
 ## Site
 
-The marketing site at https://makeworlds.dev is static HTML in `site/public`, served by a separate assets-only Worker (`site/wrangler.jsonc`). `pnpm dev:site` serves it on :8790; CI deploys it after the Slack world.
+The site at https://makeworlds.dev (pages, sign-in, account, `/api`) is the `site/` Worker (`site/wrangler.jsonc`). `pnpm dev:site` serves it on :8790; CI deploys it after the Slack service.
 
 ## Deploy
 
