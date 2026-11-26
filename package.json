@@ -2,6 +2,7 @@
   "name": "worlds",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@11.20.0",
   "scripts": {
     "dev": "wrangler dev --port 8787",
     "deploy": "wrangler deploy",
