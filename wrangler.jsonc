@@ -11,6 +11,8 @@
     "url": "./src/stubs/url.ts",
     "node:url": "./src/stubs/url.ts"
   },
+  "assets": { "directory": "./ui/dist", "binding": "ASSETS", "run_worker_first": true },
+  "build": { "command": "pnpm build", "watch_dir": "ui/src" },
   "durable_objects": { "bindings": [{ "name": "WORLD", "class_name": "World" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["World"] }],
   "observability": { "enabled": true },

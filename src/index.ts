@@ -10,9 +10,11 @@ import { getSlackStore, seedFromConfig, slackPlugin } from "@emulators/slack";
 import { SlackDelivery } from "./slack-delivery";
 import { registerSlackExtensions } from "./slack-extensions";
 import { slackSeed } from "./slack-seed";
+import { ACTING_METHODS, userToken, worldState } from "./slack-ui";
 
 type Env = {
   WORLD: DurableObjectNamespace<World>;
+  ASSETS: Fetcher;
   WORLDS_ADMIN_TOKEN: string;
   SLACK_EVENTS_URL: string;
   SLACK_SIGNING_SECRET: string;
@@ -29,6 +31,7 @@ type SlackServer = ReturnType<typeof createServer>;
 const STATE_KEY = "slack";
 const DEFAULT_WORLD = "default";
 const ADMIN_PREFIX = "/_worlds/";
+const INSPECTOR_PATH = "/_inspector";
 
 function isAdmin(request: Request, env: Env): boolean {
   return Boolean(env.WORLDS_ADMIN_TOKEN) && request.headers.get("authorization") === `Bearer ${env.WORLDS_ADMIN_TOKEN}`;
@@ -45,6 +48,7 @@ export class World extends DurableObject<Env> {
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname.startsWith(ADMIN_PREFIX)) return this.admin(request, url);
+    if (url.pathname === INSPECTOR_PATH) return this.inspector(request, url);
     const slack = await this.loadSlack(url.origin);
     const response = await slack.app.fetch(request);
     if (request.method !== "GET" && request.method !== "HEAD") await this.saveSlack();
@@ -71,7 +75,36 @@ export class World extends DurableObject<Env> {
       await this.saveSlack();
       return Response.json({ ok: true, redirect_uris: redirectUris });
     }
+    if (request.method === "GET" && url.pathname === "/_worlds/slack/state") {
+      const slack = await this.loadSlack(url.origin);
+      return Response.json({ ok: true, ...worldState(slack, url.searchParams.get("channel")) });
+    }
+    if (request.method === "POST" && url.pathname === "/_worlds/slack/act") return this.actAs(request, url);
     return Response.json({ ok: false, error: "not_found" }, { status: 404 });
+  }
+
+  private async actAs(request: Request, url: URL): Promise<Response> {
+    const { user_id: userId, method, args } = (await request.json()) as { user_id?: string; method?: string; args?: Record<string, unknown> };
+    if (!method || !ACTING_METHODS.has(method)) return Response.json({ ok: false, error: "method_not_allowed" }, { status: 400 });
+    const slack = await this.loadSlack(url.origin);
+    const token = userId ? userToken(slack, userId) : null;
+    if (!token) return Response.json({ ok: false, error: "user_not_found" }, { status: 400 });
+    const response = await slack.app.fetch(
+      new Request(`${url.origin}/api/${method}`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+        body: JSON.stringify(args ?? {}),
+      }),
+    );
+    await this.saveSlack();
+    return response;
+  }
+
+  private async inspector(request: Request, url: URL): Promise<Response> {
+    const slack = await this.loadSlack(url.origin);
+    const response = await slack.app.fetch(new Request(`${url.origin}/${url.search}`, request));
+    const html = (await response.text()).replaceAll('href="/?', `href="${INSPECTOR_PATH}?`);
+    return new Response(html, { status: response.status, headers: response.headers });
   }
 
   private async loadSlack(origin: string): Promise<SlackServer> {
@@ -116,8 +149,14 @@ export class World extends DurableObject<Env> {
   }
 }
 
+function isUiPath(pathname: string): boolean {
+  return pathname === "/" || pathname === "/index.html" || pathname.startsWith("/assets/");
+}
+
 export default {
   fetch(request: Request, env: Env): Promise<Response> {
+    const { pathname } = new URL(request.url);
+    if (request.method === "GET" && isUiPath(pathname)) return env.ASSETS.fetch(request);
     return env.WORLD.get(env.WORLD.idFromName(DEFAULT_WORLD)).fetch(request);
   },
 };
