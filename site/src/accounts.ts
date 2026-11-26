@@ -2,7 +2,7 @@ import { and, asc, desc, eq, gt, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { randomToken, sha256 } from "./crypto";
 import type { GoogleProfile } from "./google";
-import { apiKeys, memberships, sessions, teams, users, type ApiKey, type Team, type User } from "./schema";
+import { apiKeys, memberships, sessions, teams, users, type ApiKey, type Membership, type Team, type User } from "./schema";
 
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 export const SESSION_TTL_SECONDS = SESSION_TTL_MS / 1000;
@@ -36,6 +36,40 @@ async function ensurePersonalTeam(db: Db, user: User): Promise<void> {
     db.insert(teams).values({ id: teamId, name: user.name ?? user.email }),
     db.insert(memberships).values({ teamId, userId: user.id, role: "owner" }),
   ]);
+}
+
+export type TeamMembership = { team: Team; role: Membership["role"] };
+
+export async function teamsForUser(db: Db, userId: string): Promise<TeamMembership[]> {
+  return db
+    .select({ team: teams, role: memberships.role })
+    .from(memberships)
+    .innerJoin(teams, eq(teams.id, memberships.teamId))
+    .where(eq(memberships.userId, userId))
+    .orderBy(asc(memberships.createdAt));
+}
+
+export async function teamById(db: Db, teamId: string): Promise<Team | null> {
+  const [team] = await db.select().from(teams).where(eq(teams.id, teamId)).limit(1);
+  return team ?? null;
+}
+
+export async function membersOf(db: Db, teamId: string) {
+  return db
+    .select({ user: users, role: memberships.role })
+    .from(memberships)
+    .innerJoin(users, eq(users.id, memberships.userId))
+    .where(eq(memberships.teamId, teamId))
+    .orderBy(asc(memberships.createdAt));
+}
+
+export async function useKey(db: Db, key: string): Promise<ApiKey | null> {
+  const [apiKey] = await db
+    .update(apiKeys)
+    .set({ lastUsedAt: new Date() })
+    .where(and(eq(apiKeys.keyHash, await sha256(key)), isNull(apiKeys.revokedAt)))
+    .returning();
+  return apiKey ?? null;
 }
 
 export async function teamForUser(db: Db, userId: string): Promise<Team> {

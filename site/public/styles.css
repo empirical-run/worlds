@@ -127,6 +127,11 @@ code, pre { font-family: "Geist Mono", ui-monospace, monospace; font-size: 0.875
 .rail-index a:hover { color: var(--ink); }
 .rail-index .num { font-family: "Geist Mono", monospace; color: var(--ink-3); }
 
+.rail-account { display: grid; gap: 14px; }
+.rail-team { display: grid; gap: 2px; text-decoration: none; color: var(--ink); }
+.rail-team .rail-heading { margin: 0; }
+.rail-team-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 500; }
+.rail-team:hover .rail-team-name { text-decoration: underline; }
 .rail-user { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
 .rail-user:hover .rail-user-name { text-decoration: underline; }
 .avatar {
@@ -298,9 +303,9 @@ button.button.primary { background: var(--accent); color: var(--accent-ink); }
   .brand { height: auto; }
   .rail nav { flex-direction: row; gap: 16px; }
   .rail-link { padding-left: 0; }
-  .rail-link::before, .rail-index, .rail-foot, .rail-user-text { display: none; }
+  .rail-link::before, .rail-index, .rail-foot, .rail-user-text, .rail-team { display: none; }
   .rail nav { margin-left: auto; }
-  .rail-user { padding-left: 0; }
+  .rail-account { padding-left: 0; }
   .content { border: 0; }
   .section { padding: 40px 20px; }
   .hero { padding-top: 56px; }

@@ -11,6 +11,7 @@ import {
   userForSession,
   type Db,
 } from "./accounts";
+import { handleApi, hasBearer } from "./api";
 import { cookie, readCookie } from "./cookies";
 import type { Env } from "./env";
 import { authorizeUrl, exchangeCode, newVerifier } from "./google";
@@ -27,6 +28,9 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const db = database(env.DB);
+    if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {
+      return handleApi(request, url, db, hasBearer(request) ? null : await currentUser(request, db));
+    }
     if (request.method === "POST" && !isSameOrigin(request, url)) return new Response("Forbidden", { status: 403 });
 
     if (url.pathname === "/auth/google" && request.method === "GET") return startLogin(env, url);
@@ -100,9 +104,11 @@ async function withRailUser(request: Request, response: Response, db: Db): Promi
   if (!response.headers.get("content-type")?.startsWith("text/html")) return response;
   const user = await currentUser(request, db);
   if (!user) return response;
+  const team = await teamForUser(db, user.id);
   const page = new HTMLRewriter()
-    .on(".rail nav", { element: (nav) => {
-        nav.after(railUser(user), { html: true });
+    .on(".rail nav", {
+      element: (nav) => {
+        nav.after(railUser(user, team), { html: true });
       },
     })
     .transform(response);

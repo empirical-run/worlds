@@ -70,3 +70,4 @@ export const apiKeys = sqliteTable(
 export type User = typeof users.$inferSelect;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type Team = typeof teams.$inferSelect;
+export type Membership = typeof memberships.$inferSelect;

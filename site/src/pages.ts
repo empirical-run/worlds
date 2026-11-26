@@ -8,15 +8,18 @@ function escape(value: string): string {
 
 const dateFormat = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
-export function railUser(user: User): string {
+export function railUser(user: User, team: Team): string {
   const name = user.name ?? user.email;
   const avatar = user.picture
     ? `<img class="avatar" src="${escape(user.picture)}" alt="" width="28" height="28" referrerpolicy="no-referrer">`
     : `<span class="avatar" aria-hidden="true">${escape(name.charAt(0).toUpperCase())}</span>`;
-  return `<a class="rail-user" href="/account">${avatar}<span class="rail-user-text"><span class="rail-user-name">${escape(name)}</span><span class="rail-user-email">${escape(user.email)}</span></span></a>`;
+  return `<div class="rail-account">
+    <a class="rail-user" href="/account">${avatar}<span class="rail-user-text"><span class="rail-user-name">${escape(name)}</span><span class="rail-user-email">${escape(user.email)}</span></span></a>
+    <a class="rail-team" href="/account#keys"><span class="rail-heading">Team</span><span class="rail-team-name">${escape(team.name)}</span></a>
+  </div>`;
 }
 
-function layout(title: string, body: string, user?: User): Response {
+function layout(title: string, body: string, account?: { user: User; team: Team }): Response {
   const html = `<!doctype html>
 <html lang="en">
   <head>
@@ -39,7 +42,7 @@ function layout(title: string, body: string, user?: User): Response {
           <a class="rail-link" href="/docs/">Docs</a>
           <a class="rail-link" href="/account" aria-current="page">Account</a>
         </nav>
-        ${user ? railUser(user) : ""}
+        ${account ? railUser(account.user, account.team) : ""}
         <div class="rail-foot"><span>Built by <a href="https://empirical.run">Empirical</a></span><a class="rail-foot-link" href="/privacy">Privacy policy</a></div>
       </aside>
       <main class="content">
@@ -83,7 +86,7 @@ export function accountPage(user: User, team: Team, keys: ApiKey[], newKey?: str
       </form>
       ${keys.length ? keyTable(keys) : `<p class="empty">No API keys yet.</p>`}
     </section>`,
-    user,
+    { user, team },
   );
 }
 

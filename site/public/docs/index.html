@@ -26,6 +26,7 @@
           <a href="#base-url">Point your app at a world</a>
           <a href="#install">Install your app</a>
           <a href="#events">Receive events</a>
+          <a href="#teams-api">Teams API</a>
           <a href="#admin">Admin API</a>
         </div>
       </aside>
@@ -53,6 +54,18 @@
           <section class="section" id="events">
             <h2>Receive events</h2>
             <p>The world posts event callbacks to your events URL, signed with your signing secret. A non-2xx response, a connection failure or no answer within 3 seconds is retried with <code>X-Slack-Retry-Num</code> right away, after 1 minute and after 5 minutes.</p>
+          </section>
+
+          <section class="section" id="teams-api">
+            <h2>Teams API</h2>
+            <p>Create an API key on your <a href="/account">account page</a>. Keys belong to a team.</p>
+<pre><code>curl https://makeworlds.dev/api/teams \
+  -H "Authorization: Bearer $WORLDS_API_KEY"</code></pre>
+            <ul>
+              <li><code>GET /api/teams</code> lists the teams you can see. With a key, that is the key's team.</li>
+              <li><code>GET /api/teams/:id</code> returns one team and its members.</li>
+            </ul>
+            <p>Errors look like <code>{"error": {"code": "unauthorized", "message": "…"}}</code>.</p>
           </section>
 
           <section class="section" id="admin">
