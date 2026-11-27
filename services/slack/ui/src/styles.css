@@ -37,7 +37,7 @@ button {
 .app {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
-  height: 100vh;
+  height: calc(100vh - var(--worlds-banner-height, 0px));
   overflow: hidden;
 }
 
@@ -629,7 +629,7 @@ button {
 }
 
 .login {
-  min-height: 100vh;
+  min-height: calc(100vh - var(--worlds-banner-height, 0px));
   display: grid;
   place-items: center;
   background: var(--sidebar);

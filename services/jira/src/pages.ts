@@ -27,7 +27,7 @@ a:hover { text-decoration: underline; }
 .topbar { height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 16px; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 1; }
 .product { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 16px; color: var(--text); }
 .product-mark { width: 24px; height: 24px; border-radius: 4px; background: var(--brand); display: grid; place-items: center; color: var(--on-brand); font-size: 13px; font-weight: 700; }
-.layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: calc(100vh - 56px); }
+.layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: calc(100vh - 56px - var(--worlds-banner-height, 0px)); }
 .sidebar { border-right: 1px solid var(--border); background: var(--surface); padding: 16px 8px; }
 .project { display: flex; align-items: center; gap: 10px; padding: 8px; margin-bottom: 12px; }
 .project-avatar { width: 32px; height: 32px; border-radius: 4px; background: #6e5dc6; color: #fff; display: grid; place-items: center; font-weight: 600; flex-shrink: 0; }
