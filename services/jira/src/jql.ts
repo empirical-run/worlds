@@ -17,7 +17,10 @@ const FIELDS: Record<string, Field> = {
 };
 
 const VALUE = String.raw`"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|[^\s,()"']+`;
-const CLAUSE = new RegExp(String.raw`^\s*([a-zA-Z]+)\s*(=|!=|not\s+in|in)\s*(\((?:\s*(?:${VALUE})\s*,?)+\)|${VALUE})\s*`, "i");
+const CLAUSE = new RegExp(
+  String.raw`^\s*([a-zA-Z]+)\s*(=|!=|not\s+in|in)\s*(\((?:\s*(?:${VALUE})\s*,?)+\)|${VALUE})\s*`,
+  "i",
+);
 
 export function parseJql(jql: string): Jql | null {
   const clauses: Clause[] = [];
@@ -29,7 +32,9 @@ export function parseJql(jql: string): Jql | null {
     if (!match || !field) return null;
     const operator = (match[2] ?? "").toLowerCase().replace(/\s+/g, " ");
     const raw = match[3] ?? "";
-    const values = raw.startsWith("(") ? [...raw.slice(1, -1).matchAll(new RegExp(VALUE, "g"))].map((value) => unquote(value[0])) : [unquote(raw)];
+    const values = raw.startsWith("(")
+      ? [...raw.slice(1, -1).matchAll(new RegExp(VALUE, "g"))].map((value) => unquote(value[0]))
+      : [unquote(raw)];
     if ((operator === "=" || operator === "!=") && raw.startsWith("(")) return null;
     clauses.push({ field, negated: operator === "!=" || operator === "not in", values });
     rest = rest.slice(match[0].length);
@@ -41,7 +46,11 @@ export function parseJql(jql: string): Jql | null {
   return clauses;
 }
 
-export function matchesJql(jql: Jql, issue: Issue, userName: (accountId: string | null) => string[]): boolean {
+export function matchesJql(
+  jql: Jql,
+  issue: Issue,
+  userName: (accountId: string | null) => string[],
+): boolean {
   return jql.every((clause) => {
     const actual = fieldValues(clause.field, issue, userName).map((value) => value.toLowerCase());
     const hit = clause.values.some((value) => actual.includes(value.toLowerCase()));
@@ -49,7 +58,11 @@ export function matchesJql(jql: Jql, issue: Issue, userName: (accountId: string 
   });
 }
 
-function fieldValues(field: Field, issue: Issue, userName: (accountId: string | null) => string[]): string[] {
+function fieldValues(
+  field: Field,
+  issue: Issue,
+  userName: (accountId: string | null) => string[],
+): string[] {
   switch (field) {
     case "labels":
       return issue.labels;
@@ -67,7 +80,10 @@ function fieldValues(field: Field, issue: Issue, userName: (accountId: string | 
 }
 
 function unquote(value: string): string {
-  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
     return value.slice(1, -1).replace(/\\(.)/g, "$1");
   }
   return value;

@@ -1,0 +1,10 @@
+pre-commit:
+  parallel: true
+  commands:
+    format:
+      run: pnpm exec oxfmt --no-error-on-unmatched-pattern {staged_files}
+      stage_fixed: true
+    lint:
+      glob: "*.{js,mjs,cjs,ts,mts,tsx}"
+      run: pnpm exec oxlint --fix {staged_files}
+      stage_fixed: true

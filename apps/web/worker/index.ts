@@ -1,10 +1,14 @@
 import { database } from "@worlds/db";
 import { createRequestHandler, RouterContextProvider } from "react-router";
+
 import { accountFor, handleAuth } from "./auth";
 import { workerContext } from "./context";
 import type { Env } from "./env";
 
-const renderPage = createRequestHandler(() => import("virtual:react-router/server-build"), import.meta.env.MODE);
+const renderPage = createRequestHandler(
+  () => import("virtual:react-router/server-build"),
+  import.meta.env.MODE,
+);
 
 export default {
   async fetch(request, env): Promise<Response> {

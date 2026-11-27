@@ -1,5 +1,6 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { membersOf, renameTeam } from "@worlds/db";
+
 import { apiError, type AppEnv } from "../context";
 import {
   errorResponse,
@@ -68,21 +69,33 @@ export const teams = new OpenAPIHono<AppEnv>()
   })
   .openapi(getTeam, async (c) => {
     const access = await accessibleTeam(c.var.db, c.var.caller, c.req.valid("param").teamId);
-    if (!access) return c.json(apiError("not_found", "No team with that id is visible to you."), 404);
+    if (!access)
+      return c.json(apiError("not_found", "No team with that id is visible to you."), 404);
     const members = await membersOf(c.var.db, access.team.id);
     return c.json(
       {
         ...teamJson(access),
-        members: members.map(({ user, role }) => ({ id: user.id, email: user.email, name: user.name, role })),
+        members: members.map(({ user, role }) => ({
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role,
+        })),
       },
       200,
     );
   })
   .openapi(updateTeam, async (c) => {
     const access = await accessibleTeam(c.var.db, c.var.caller, c.req.valid("param").teamId);
-    if (!access) return c.json(apiError("not_found", "No team with that id is visible to you."), 404);
-    if (c.var.caller.kind === "key") return c.json(apiError("forbidden", "API keys cannot change teams. Sign in as a team owner."), 403);
-    if (access.role !== "owner") return c.json(apiError("forbidden", "Only team owners can change the team."), 403);
+    if (!access)
+      return c.json(apiError("not_found", "No team with that id is visible to you."), 404);
+    if (c.var.caller.kind === "key")
+      return c.json(
+        apiError("forbidden", "API keys cannot change teams. Sign in as a team owner."),
+        403,
+      );
+    if (access.role !== "owner")
+      return c.json(apiError("forbidden", "Only team owners can change the team."), 403);
     const { name } = c.req.valid("json");
     const team = await renameTeam(c.var.db, access.team.id, name);
     return c.json(teamJson({ ...access, team }), 200);

@@ -21,8 +21,8 @@ export default function Home() {
       <section className="section hero">
         <h1>The APIs your app depends on, as worlds you control.</h1>
         <p className="lede">
-          Worlds runs third-party services like Slack in a hosted, stateful world. Point your app at a world, then drive it from a UI or an
-          API to test real flows end to end.
+          Worlds runs third-party services like Slack in a hosted, stateful world. Point your app at
+          a world, then drive it from a UI or an API to test real flows end to end.
         </p>
         <div className="actions">
           <a className="button primary" href="/docs">
@@ -38,10 +38,14 @@ export default function Home() {
         <span className="section-num">01</span>
         <h2>What a world is</h2>
         <p>
-          A world holds the state of every service in it: users, channels, messages, installs. It persists between requests, so a test can
-          set up a scene, run your app against it and check what happened.
+          A world holds the state of every service in it: users, channels, messages, installs. It
+          persists between requests, so a test can set up a scene, run your app against it and check
+          what happened.
         </p>
-        <p>Services in a world speak the real wire protocol. Your app keeps its SDK and only changes its base URL.</p>
+        <p>
+          Services in a world speak the real wire protocol. Your app keeps its SDK and only changes
+          its base URL.
+        </p>
       </section>
 
       <section className="section" id="services">
@@ -66,15 +70,16 @@ export default function Home() {
         <h2>How it works</h2>
         <ul>
           <li>
-            <strong>Web API and OAuth.</strong> Install your app through the world's OAuth flow and call the same methods you call on the
-            real service.
+            <strong>Web API and OAuth.</strong> Install your app through the world's OAuth flow and
+            call the same methods you call on the real service.
           </li>
           <li>
-            <strong>Signed events.</strong> Mentions and messages arrive at your events URL, signed and retried the way the real service
-            does it.
+            <strong>Signed events.</strong> Mentions and messages arrive at your events URL, signed
+            and retried the way the real service does it.
           </li>
           <li>
-            <strong>A UI to act in.</strong> Post as any user, create channels and add your app, and watch your app reply.
+            <strong>A UI to act in.</strong> Post as any user, create channels and add your app, and
+            watch your app reply.
           </li>
         </ul>
       </section>

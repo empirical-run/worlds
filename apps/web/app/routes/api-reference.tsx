@@ -1,5 +1,5 @@
-import { type RailHandle } from "../components/Rail";
 import { workerContext } from "../../worker/context";
+import { type RailHandle } from "../components/Rail";
 import {
   endpointsByTag,
   fieldDescription,
@@ -30,9 +30,18 @@ export const handle: RailHandle = {
       { heading: "Overview", links: [{ id: "authentication", label: "Authentication" }] },
       ...endpointsByTag(spec).map(([tag, endpoints]) => ({
         heading: tag,
-        links: endpoints.map((endpoint) => ({ id: endpoint.anchor, label: endpoint.operation.summary ?? endpoint.path })),
+        links: endpoints.map((endpoint) => ({
+          id: endpoint.anchor,
+          label: endpoint.operation.summary ?? endpoint.path,
+        })),
       })),
-      { heading: "Objects", links: Object.keys(spec.components?.schemas ?? {}).map((name) => ({ id: objectAnchor(name), label: name })) },
+      {
+        heading: "Objects",
+        links: Object.keys(spec.components?.schemas ?? {}).map((name) => ({
+          id: objectAnchor(name),
+          label: name,
+        })),
+      },
     ];
   },
 };
@@ -64,7 +73,11 @@ export default function ApiReference({ loaderData: { spec } }: Route.ComponentPr
         </p>
       </section>
 
-      {endpointsByTag(spec).flatMap(([, endpoints]) => endpoints.map((endpoint) => <EndpointSection key={endpoint.anchor} endpoint={endpoint} spec={spec} />))}
+      {endpointsByTag(spec).flatMap(([, endpoints]) =>
+        endpoints.map((endpoint) => (
+          <EndpointSection key={endpoint.anchor} endpoint={endpoint} spec={spec} />
+        )),
+      )}
 
       <section className="section" id="objects">
         <h2>Objects</h2>
@@ -79,8 +92,16 @@ export default function ApiReference({ loaderData: { spec } }: Route.ComponentPr
   );
 }
 
-function EndpointSection({ endpoint: { method, path, operation, anchor }, spec }: { endpoint: Endpoint; spec: OpenApiDocument }) {
-  const params = (operation.parameters ?? []).filter((param) => param.in === "path" || param.in === "query");
+function EndpointSection({
+  endpoint: { method, path, operation, anchor },
+  spec,
+}: {
+  endpoint: Endpoint;
+  spec: OpenApiDocument;
+}) {
+  const params = (operation.parameters ?? []).filter(
+    (param) => param.in === "path" || param.in === "query",
+  );
   const requestSchema = operation.requestBody?.content?.["application/json"]?.schema;
   const success = Object.entries(operation.responses).find(([status]) => status.startsWith("2"));
   const successSchema = success?.[1].content?.["application/json"]?.schema;
@@ -96,7 +117,12 @@ function EndpointSection({ endpoint: { method, path, operation, anchor }, spec }
         <>
           <h3>Parameters</h3>
           <FieldsTable
-            fields={params.map((param) => ({ name: param.name, schema: param.schema ?? {}, required: param.required ?? false, note: param.description }))}
+            fields={params.map((param) => ({
+              name: param.name,
+              schema: param.schema ?? {},
+              required: param.required ?? false,
+              note: param.description,
+            }))}
             spec={spec}
           />
         </>
@@ -112,7 +138,11 @@ function EndpointSection({ endpoint: { method, path, operation, anchor }, spec }
           <h3>
             Response <code>{success[0]}</code>
           </h3>
-          {successSchema ? <SchemaFields schema={successSchema} spec={spec} /> : <p>{success[1].description}</p>}
+          {successSchema ? (
+            <SchemaFields schema={successSchema} spec={spec} />
+          ) : (
+            <p>{success[1].description}</p>
+          )}
         </>
       )}
       <h3>Status codes</h3>

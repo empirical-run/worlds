@@ -8,5 +8,8 @@ export async function sha256(value: string): Promise<string> {
 }
 
 export function base64url(bytes: Uint8Array): string {
-  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }

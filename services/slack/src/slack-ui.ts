@@ -1,5 +1,10 @@
 import type { createServer } from "@emulators/core";
-import { getSlackStore, type SlackFile, type SlackMessage, type SlackStore } from "@emulators/slack";
+import {
+  getSlackStore,
+  type SlackFile,
+  type SlackMessage,
+  type SlackStore,
+} from "@emulators/slack";
 
 type SlackServer = ReturnType<typeof createServer>;
 
@@ -87,7 +92,9 @@ export function worldState(slack: SlackServer, channelId: string | null) {
       name: user.name,
       real_name: user.real_name || user.profile.real_name || user.name,
       is_bot: user.is_bot,
-      has_token: store.tokens.all().some((token) => token.token_type === "user" && token.user_id === user.user_id),
+      has_token: store.tokens
+        .all()
+        .some((token) => token.token_type === "user" && token.user_id === user.user_id),
     }));
   const channels = store.channels
     .all()
@@ -103,7 +110,11 @@ export function worldState(slack: SlackServer, channelId: string | null) {
   const messages = channelId
     ? store.messages
         .all()
-        .filter((message) => message.channel_id === channelId && (!message.subtype || VISIBLE_SUBTYPES.has(message.subtype)))
+        .filter(
+          (message) =>
+            message.channel_id === channelId &&
+            (!message.subtype || VISIBLE_SUBTYPES.has(message.subtype)),
+        )
         .sort((a, b) => Number(a.ts) - Number(b.ts))
         .map(toUiMessage)
     : [];
@@ -114,10 +125,18 @@ export function userToken(slack: SlackServer, userId: string): string | null {
   const store = getSlackStore(slack.store);
   const user = store.users.findOneBy("user_id", userId);
   if (!user || user.is_bot || user.deleted) return null;
-  const existing = store.tokens.all().find((token) => token.token_type === "user" && token.user_id === userId);
+  const existing = store.tokens
+    .all()
+    .find((token) => token.token_type === "user" && token.user_id === userId);
   if (existing) return existing.token;
   const token = `xoxp-worlds-${crypto.randomUUID()}`;
-  store.tokens.insert({ token, token_type: "user", team_id: user.team_id, user_id: userId, scopes: USER_SCOPES });
+  store.tokens.insert({
+    token,
+    token_type: "user",
+    team_id: user.team_id,
+    user_id: userId,
+    scopes: USER_SCOPES,
+  });
   return token;
 }
 
@@ -125,5 +144,10 @@ export function fileContent(store: SlackStore, fileId: string): Response | null 
   const file = store.files.findOneBy("file_id", fileId);
   if (!file || file.deleted) return null;
   const bytes = Uint8Array.from(atob(file.content_base64 ?? ""), (char) => char.charCodeAt(0));
-  return new Response(bytes, { headers: { "content-type": file.mimetype || "application/octet-stream", "cache-control": "private, max-age=3600" } });
+  return new Response(bytes, {
+    headers: {
+      "content-type": file.mimetype || "application/octet-stream",
+      "cache-control": "private, max-age=3600",
+    },
+  });
 }

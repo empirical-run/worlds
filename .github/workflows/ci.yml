@@ -20,9 +20,15 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
       - run: pnpm typecheck
-      - name: makeworlds types match the API
-        run: pnpm --filter makeworlds generate && git diff --exit-code packages/makeworlds
+      - run: pnpm lint
+      - name: Generated files match their sources
+        run: |
+          pnpm --filter makeworlds generate
+          pnpm db:generate
+          git add --intent-to-add --all
+          git diff --exit-code
       - name: Smoke test against wrangler dev
         run: |
           cp services/world/.dev.vars.example services/world/.dev.vars

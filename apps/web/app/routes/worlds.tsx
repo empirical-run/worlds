@@ -1,8 +1,9 @@
 import { WORLD_NAME_MAX } from "@worlds/db";
 import type { World } from "makeworlds";
 import { Form, useNavigation } from "react-router";
+
 import { requireAccount } from "../account.server";
-import { actionData, api, orThrow } from "../api.server";
+import { actionData, api, formText, orThrow } from "../api.server";
 import { ActionError, dateFormat, useSubmitting } from "../components/forms";
 import type { Route } from "./+types/worlds";
 
@@ -17,15 +18,20 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 export async function action({ request, context }: Route.ActionArgs) {
   requireAccount(context, request);
   const form = await request.formData();
-  const intent = String(form.get("intent"));
+  const intent = formText(form, "intent");
   if (intent === "create-world") {
-    const name = String(form.get("name") ?? "").trim();
+    const name = formText(form, "name").trim();
     const result = await api(context, request).POST("/api/worlds", { body: name ? { name } : {} });
     return actionData(intent, result, (world) => ({ createdWorld: world.id }));
   }
   if (intent === "archive-world") {
-    const worldId = String(form.get("worldId"));
-    return actionData(intent, await api(context, request).POST("/api/worlds/{worldId}/archive", { params: { path: { worldId } } }));
+    const worldId = formText(form, "worldId");
+    return actionData(
+      intent,
+      await api(context, request).POST("/api/worlds/{worldId}/archive", {
+        params: { path: { worldId } },
+      }),
+    );
   }
   throw new Response("Unknown action.", { status: 400 });
 }
@@ -35,10 +41,16 @@ export default function Worlds({ loaderData: { worlds }, actionData }: Route.Com
     <article>
       <header className="section hero">
         <h1>Worlds</h1>
-        <p className="lede">Each world is a separate Slack workspace your app can talk to. It keeps its state until you archive it.</p>
+        <p className="lede">
+          Each world is a separate Slack workspace your app can talk to. It keeps its state until
+          you archive it.
+        </p>
       </header>
       <section className="section">
-        <CreateWorldForm key={actionData?.createdWorld} error={actionData?.intent === "create-world" ? actionData.error : undefined} />
+        <CreateWorldForm
+          key={actionData?.createdWorld}
+          error={actionData?.intent === "create-world" ? actionData.error : undefined}
+        />
         <ActionError result={actionData} intent="archive-world" />
         {worlds.length ? <WorldTable worlds={worlds} /> : <p className="empty">No worlds yet.</p>}
       </section>
@@ -52,7 +64,13 @@ function CreateWorldForm({ error }: { error?: string }) {
     <Form className="inline-form" method="post">
       <input type="hidden" name="intent" value="create-world" />
       <label htmlFor="world-name">Name</label>
-      <input id="world-name" name="name" maxLength={WORLD_NAME_MAX} placeholder="Untitled world" autoComplete="off" />
+      <input
+        id="world-name"
+        name="name"
+        maxLength={WORLD_NAME_MAX}
+        placeholder="Untitled world"
+        autoComplete="off"
+      />
       <button className="button primary" type="submit" disabled={submitting}>
         Create world
       </button>
@@ -67,7 +85,10 @@ function CreateWorldForm({ error }: { error?: string }) {
 
 function WorldTable({ worlds }: { worlds: World[] }) {
   const navigation = useNavigation();
-  const archiving = navigation.formData?.get("intent") === "archive-world" ? navigation.formData.get("worldId") : null;
+  const archiving =
+    navigation.formData?.get("intent") === "archive-world"
+      ? navigation.formData.get("worldId")
+      : null;
   return (
     <table className="keys">
       <thead>

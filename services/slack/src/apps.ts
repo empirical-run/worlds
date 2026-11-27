@@ -1,8 +1,14 @@
 import type { Store } from "@emulators/core";
 import { getSlackStore, normalizeScopes } from "@emulators/slack";
+
 import type { SlackCredentials, SlackManifest } from "./manifest";
 
-export { validateManifest, type ManifestProblem, type SlackCredentials, type SlackManifest } from "./manifest";
+export {
+  validateManifest,
+  type ManifestProblem,
+  type SlackCredentials,
+  type SlackManifest,
+} from "./manifest";
 
 export type SlackApp = { app_id: string; manifest: SlackManifest; credentials: SlackCredentials };
 
@@ -19,7 +25,11 @@ export function findApp(store: Store, appId: string): SlackApp | undefined {
   return listApps(store).find((app) => app.app_id === appId);
 }
 
-export function createApp(store: Store, manifest: SlackManifest, pinned?: Partial<SlackCredentials>): SlackApp {
+export function createApp(
+  store: Store,
+  manifest: SlackManifest,
+  pinned?: Partial<SlackCredentials>,
+): SlackApp {
   const app: SlackApp = {
     app_id: `A${randomCode(10)}`,
     manifest,
@@ -35,14 +45,22 @@ export function createApp(store: Store, manifest: SlackManifest, pinned?: Partia
   return app;
 }
 
-export function eventTarget(store: Store, appId: string | undefined, eventType: string): EventTarget | null {
+export function eventTarget(
+  store: Store,
+  appId: string | undefined,
+  eventType: string,
+): EventTarget | null {
   const app = appId ? findApp(store, appId) : undefined;
   const subscriptions = app?.manifest.settings?.event_subscriptions;
   if (!app || !subscriptions?.request_url) return null;
   const events = subscriptions.bot_events ?? [];
   const subscribed =
-    ALWAYS_DELIVERED.has(eventType) || events.includes(eventType) || (eventType === "message" && events.some((event) => event.startsWith("message.")));
-  return subscribed ? { url: subscriptions.request_url, signingSecret: app.credentials.signing_secret } : null;
+    ALWAYS_DELIVERED.has(eventType) ||
+    events.includes(eventType) ||
+    (eventType === "message" && events.some((event) => event.startsWith("message.")));
+  return subscribed
+    ? { url: subscriptions.request_url, signingSecret: app.credentials.signing_secret }
+    : null;
 }
 
 function mirror(store: Store, app: SlackApp): void {
@@ -57,7 +75,9 @@ function mirror(store: Store, app: SlackApp): void {
     scopes: normalizeScopes(manifest.oauth_config?.scopes?.bot),
     user_scopes: normalizeScopes(manifest.oauth_config?.scopes?.user),
     bot_name: manifest.features?.bot_user?.display_name,
-    interactivity_url: manifest.settings?.interactivity?.is_enabled ? manifest.settings.interactivity.request_url : undefined,
+    interactivity_url: manifest.settings?.interactivity?.is_enabled
+      ? manifest.settings.interactivity.request_url
+      : undefined,
   };
   const existing = slack.oauthApps.findOneBy("app_id", app.app_id);
   if (existing) slack.oauthApps.update(existing.id, fields);
@@ -67,23 +87,36 @@ function mirror(store: Store, app: SlackApp): void {
 const CODE_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 function randomCode(length: number): string {
-  return [...crypto.getRandomValues(new Uint8Array(length))].map((byte) => CODE_ALPHABET[byte % CODE_ALPHABET.length]).join("");
+  return [...crypto.getRandomValues(new Uint8Array(length))]
+    .map((byte) => CODE_ALPHABET[byte % CODE_ALPHABET.length])
+    .join("");
 }
 
 function randomDigits(length: number): string {
-  return [...crypto.getRandomValues(new Uint8Array(length))].map((byte) => String(byte % 10)).join("");
+  return [...crypto.getRandomValues(new Uint8Array(length))]
+    .map((byte) => String(byte % 10))
+    .join("");
 }
 
 function randomHex(length: number): string {
-  return [...crypto.getRandomValues(new Uint8Array(length / 2))].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return [...crypto.getRandomValues(new Uint8Array(length / 2))]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 export function acceptRedirect(store: Store, clientId: string, redirectUri: string): void {
   const app = listApps(store).find((candidate) => candidate.credentials.client_id === clientId);
   const record = getSlackStore(store).oauthApps.findOneBy("client_id", clientId);
   if (!app || !record || record.redirect_uris.includes(redirectUri)) return;
-  if (!(app.manifest.oauth_config?.redirect_urls ?? []).some((registered) => redirectMatches(registered, redirectUri))) return;
-  getSlackStore(store).oauthApps.update(record.id, { redirect_uris: [...record.redirect_uris, redirectUri] });
+  if (
+    !(app.manifest.oauth_config?.redirect_urls ?? []).some((registered) =>
+      redirectMatches(registered, redirectUri),
+    )
+  )
+    return;
+  getSlackStore(store).oauthApps.update(record.id, {
+    redirect_uris: [...record.redirect_uris, redirectUri],
+  });
 }
 
 function redirectMatches(registered: string, incoming: string): boolean {

@@ -47,13 +47,22 @@ export type SlackAppState = {
   app_id: string;
   manifest: SlackManifest;
   credentials: SlackCredentials;
-  install: (Required<Pick<SlackInstallSpec, "installer" | "bot_user_id" | "bot_token">> & { channels: string[] }) | null;
+  install:
+    | (Required<Pick<SlackInstallSpec, "installer" | "bot_user_id" | "bot_token">> & {
+        channels: string[];
+      })
+    | null;
 };
 
 export type SlackState = {
   team: { id: string; name: string; domain: string };
-  users: (Required<Pick<SlackUserSpec, "id" | "name" | "real_name" | "email">> & { token: string | null })[];
-  channels: (Required<Pick<SlackChannelSpec, "id" | "name" | "private" | "topic">> & { members: string[]; messages: SlackMessageSpec[] })[];
+  users: (Required<Pick<SlackUserSpec, "id" | "name" | "real_name" | "email">> & {
+    token: string | null;
+  })[];
+  channels: (Required<Pick<SlackChannelSpec, "id" | "name" | "private" | "topic">> & {
+    members: string[];
+    messages: SlackMessageSpec[];
+  })[];
   apps: SlackAppState[];
 };
 
@@ -64,21 +73,29 @@ export const DEFAULT_SLACK_SPEC: SlackSpec = {
 };
 
 export function unknownReferences(spec: SlackSpec): string[] {
-  const names = new Set((spec.users ?? []).flatMap((user) => [user.name, ...(user.id ? [user.id] : [])]));
+  const names = new Set(
+    (spec.users ?? []).flatMap((user) => [user.name, ...(user.id ? [user.id] : [])]),
+  );
   const channelNames = new Set((spec.channels ?? []).map((channel) => channel.name));
   const problems: string[] = [];
   for (const channel of spec.channels ?? []) {
-    for (const member of channel.members ?? []) if (!names.has(member)) problems.push(`channels.${channel.name}.members: unknown user ${member}`);
+    for (const member of channel.members ?? [])
+      if (!names.has(member))
+        problems.push(`channels.${channel.name}.members: unknown user ${member}`);
     for (const message of channel.messages ?? []) {
       for (const author of [message.user, ...(message.replies ?? []).map((reply) => reply.user)]) {
-        if (!names.has(author)) problems.push(`channels.${channel.name}.messages: unknown user ${author}`);
+        if (!names.has(author))
+          problems.push(`channels.${channel.name}.messages: unknown user ${author}`);
       }
     }
   }
   for (const [index, app] of (spec.apps ?? []).entries()) {
     const install = typeof app.install === "object" ? app.install : null;
-    if (install?.installer && !names.has(install.installer)) problems.push(`apps[${index}].install.installer: unknown user ${install.installer}`);
-    for (const channel of install?.channels ?? []) if (!channelNames.has(channel)) problems.push(`apps[${index}].install.channels: unknown channel ${channel}`);
+    if (install?.installer && !names.has(install.installer))
+      problems.push(`apps[${index}].install.installer: unknown user ${install.installer}`);
+    for (const channel of install?.channels ?? [])
+      if (!channelNames.has(channel))
+        problems.push(`apps[${index}].install.channels: unknown channel ${channel}`);
   }
   return problems;
 }

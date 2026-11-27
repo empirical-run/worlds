@@ -109,7 +109,16 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 `;
 
-const AVATAR_COLORS = ["#1d7afc", "#6e5dc6", "#1f845a", "#c9372c", "#a54800", "#0055cc", "#943d73", "#216e4e"];
+const AVATAR_COLORS = [
+  "#1d7afc",
+  "#6e5dc6",
+  "#1f845a",
+  "#c9372c",
+  "#a54800",
+  "#0055cc",
+  "#943d73",
+  "#216e4e",
+];
 
 const SCOPE_DESCRIPTIONS: Record<string, string> = {
   "read:jira-work": "View issues, projects and comments",
@@ -122,7 +131,11 @@ const SCOPE_DESCRIPTIONS: Record<string, string> = {
   offline_access: "Keep access when you're not using the app",
 };
 
-const STATUS_CLASS: Record<IssueStatus, string> = { "To Do": "todo", "In Progress": "progress", Done: "done" };
+const STATUS_CLASS: Record<IssueStatus, string> = {
+  "To Do": "todo",
+  "In Progress": "progress",
+  Done: "done",
+};
 
 export function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
@@ -131,7 +144,10 @@ export function escapeHtml(value: string): string {
 function page(title: string, body: string, status = 200): Response {
   return new Response(
     `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(title)}</title><style>${STYLE}</style></head><body>${body}</body></html>`,
-    { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } },
+    {
+      status,
+      headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
+    },
   );
 }
 
@@ -155,19 +171,35 @@ function shell(state: JiraState, title: string, content: string, status = 200): 
 }
 
 function user(state: JiraState, accountId: string | null): JiraUserState | undefined {
-  return accountId ? state.users.find((candidate) => candidate.account_id === accountId) : undefined;
+  return accountId
+    ? state.users.find((candidate) => candidate.account_id === accountId)
+    : undefined;
 }
 
 function avatar(person: JiraUserState | undefined, size: "" | "large" = ""): string {
-  if (!person) return `<span class="avatar ${size}" style="background: var(--todo-bg); color: var(--subtle)">?</span>`;
-  const initials = person.display_name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("");
-  const color = AVATAR_COLORS[[...person.account_id].reduce((sum, char) => sum + char.charCodeAt(0), 0) % AVATAR_COLORS.length];
+  if (!person)
+    return `<span class="avatar ${size}" style="background: var(--todo-bg); color: var(--subtle)">?</span>`;
+  const initials = person.display_name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+  const color =
+    AVATAR_COLORS[
+      Array.from(person.account_id, (char) => char.charCodeAt(0)).reduce(
+        (sum, code) => sum + code,
+        0,
+      ) % AVATAR_COLORS.length
+    ];
   return `<span class="avatar ${size}" style="background: ${color}" title="${escapeHtml(person.display_name)}">${escapeHtml(initials)}</span>`;
 }
 
 function personCell(state: JiraState, accountId: string | null): string {
   const person = user(state, accountId);
-  return person ? `<span class="person">${avatar(person)}${escapeHtml(person.display_name)}</span>` : `<span class="person">${avatar(undefined)}<span class="muted">Unassigned</span></span>`;
+  return person
+    ? `<span class="person">${avatar(person)}${escapeHtml(person.display_name)}</span>`
+    : `<span class="person">${avatar(undefined)}<span class="muted">Unassigned</span></span>`;
 }
 
 function lozenge(status: IssueStatus): string {
@@ -175,16 +207,33 @@ function lozenge(status: IssueStatus): string {
 }
 
 function labels(values: string[]): string {
-  return values.length ? values.map((value) => `<span class="label">${escapeHtml(value)}</span>`).join("") : `<span class="muted">None</span>`;
+  return values.length
+    ? values.map((value) => `<span class="label">${escapeHtml(value)}</span>`).join("")
+    : `<span class="muted">None</span>`;
 }
 
 function displayDate(ms: number): string {
-  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }).format(ms) + " UTC";
+  return (
+    new Intl.DateTimeFormat("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "UTC",
+    }).format(ms) + " UTC"
+  );
 }
 
 function adfToHtml(node: unknown): string {
   if (!node || typeof node !== "object") return "";
-  const { type, text, content, marks, attrs } = node as { type?: string; text?: string; content?: unknown[]; marks?: { type?: string; attrs?: { href?: string } }[]; attrs?: { href?: string } };
+  const { type, text, content, marks, attrs } = node as {
+    type?: string;
+    text?: string;
+    content?: unknown[];
+    marks?: { type?: string; attrs?: { href?: string } }[];
+    attrs?: { href?: string };
+  };
   const inner = (content ?? []).map(adfToHtml).join("");
   switch (type) {
     case "text": {
@@ -193,7 +242,8 @@ function adfToHtml(node: unknown): string {
         if (mark.type === "strong") html = `<strong>${html}</strong>`;
         if (mark.type === "em") html = `<em>${html}</em>`;
         if (mark.type === "code") html = `<code>${html}</code>`;
-        if (mark.type === "link" && mark.attrs?.href && /^https?:/i.test(mark.attrs.href)) html = `<a href="${escapeHtml(mark.attrs.href)}">${html}</a>`;
+        if (mark.type === "link" && mark.attrs?.href && /^https?:/i.test(mark.attrs.href))
+          html = `<a href="${escapeHtml(mark.attrs.href)}">${html}</a>`;
       }
       return html;
     }
@@ -202,7 +252,9 @@ function adfToHtml(node: unknown): string {
     case "paragraph":
       return `<p>${inner}</p>`;
     case "inlineCard":
-      return attrs?.href && /^https?:/i.test(attrs.href) ? `<a href="${escapeHtml(attrs.href)}">${escapeHtml(attrs.href)}</a>` : "";
+      return attrs?.href && /^https?:/i.test(attrs.href)
+        ? `<a href="${escapeHtml(attrs.href)}">${escapeHtml(attrs.href)}</a>`
+        : "";
     default:
       return inner;
   }
@@ -210,15 +262,31 @@ function adfToHtml(node: unknown): string {
 
 function prose(doc: Adf | null, empty: string): string {
   const html = doc ? adfToHtml(doc) : "";
-  return html.replace(/<p><\/p>/g, "") ? `<div class="prose">${html}</div>` : `<p class="muted">${escapeHtml(empty)}</p>`;
+  return html.replace(/<p><\/p>/g, "")
+    ? `<div class="prose">${html}</div>`
+    : `<p class="muted">${escapeHtml(empty)}</p>`;
 }
 
 export function errorPage(message: string, status = 400): Response {
-  return page("Something went wrong", `<div class="card"><h1>Something went wrong</h1><p class="centered">${escapeHtml(message)}</p></div>`, status);
+  return page(
+    "Something went wrong",
+    `<div class="card"><h1>Something went wrong</h1><p class="centered">${escapeHtml(message)}</p></div>`,
+    status,
+  );
 }
 
-export function consentPage(state: JiraState, app: JiraAppState, params: URLSearchParams, scopes: string[]): Response {
-  const hidden = [...params.entries()].map(([name, value]) => `<input type="hidden" name="${escapeHtml(name)}" value="${escapeHtml(value)}">`).join("");
+export function consentPage(
+  state: JiraState,
+  app: JiraAppState,
+  params: URLSearchParams,
+  scopes: string[],
+): Response {
+  const hidden = [...params.entries()]
+    .map(
+      ([name, value]) =>
+        `<input type="hidden" name="${escapeHtml(name)}" value="${escapeHtml(value)}">`,
+    )
+    .join("");
   const users = state.users
     .map(
       (person, index) =>
@@ -278,7 +346,10 @@ function commentHtml(state: JiraState, comment: Comment): string {
 
 export function issuePage(state: JiraState, issue: Issue): Response {
   const project = state.projects.find((candidate) => candidate.key === issue.project);
-  const comments = [...issue.comments].reverse().map((comment) => commentHtml(state, comment)).join("");
+  const comments = [...issue.comments]
+    .reverse()
+    .map((comment) => commentHtml(state, comment))
+    .join("");
   return shell(
     state,
     `[${issue.key}] ${issue.summary}`,

@@ -2,6 +2,11 @@
   "name": "@worlds/slack",
   "private": true,
   "type": "module",
+  "exports": {
+    "./service": "./src/service.ts",
+    "./manifest": "./src/manifest.ts",
+    "./spec": "./src/spec.ts"
+  },
   "scripts": {
     "build": "vite build",
     "typecheck": "tsc --noEmit && tsc --noEmit -p ui"
@@ -20,10 +25,5 @@
     "react-dom": "^19.3.1",
     "typescript": "^5.9.3",
     "vite": "^8.3.8"
-  },
-  "exports": {
-    "./service": "./src/service.ts",
-    "./manifest": "./src/manifest.ts",
-    "./spec": "./src/spec.ts"
   }
 }

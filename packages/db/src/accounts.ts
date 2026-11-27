@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, gt, inArray, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
+
 import { randomToken, sha256 } from "./crypto";
 import { API_KEY_SECRET_PREFIX, newApiKeySecret, newId } from "./ids";
 import {
@@ -37,7 +38,9 @@ export const SESSION_TTL_SECONDS = SESSION_TTL_MS / 1000;
 export type Db = ReturnType<typeof database>;
 
 export function database(d1: D1Database) {
-  return drizzle(d1, { schema: { users, identities, teams, memberships, sessions, apiKeys, worlds } });
+  return drizzle(d1, {
+    schema: { users, identities, teams, memberships, sessions, apiKeys, worlds },
+  });
 }
 
 export async function signIn(db: Db, profile: Profile): Promise<User> {
@@ -49,12 +52,21 @@ export async function signIn(db: Db, profile: Profile): Promise<User> {
     .where(and(eq(identities.provider, profile.provider), eq(identities.subject, profile.subject)))
     .limit(1);
   if (linked) {
-    const [user] = await db.update(users).set(details).where(eq(users.id, linked.user.id)).returning();
+    const [user] = await db
+      .update(users)
+      .set(details)
+      .where(eq(users.id, linked.user.id))
+      .returning();
     return user ?? linked.user;
   }
 
   const identity = { provider: profile.provider, subject: profile.subject };
-  const [sameEmail] = await db.select().from(users).where(eq(users.email, profile.email)).orderBy(asc(users.createdAt)).limit(1);
+  const [sameEmail] = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, profile.email))
+    .orderBy(asc(users.createdAt))
+    .limit(1);
   if (sameEmail) {
     await db.insert(identities).values({ ...identity, userId: sameEmail.id });
     return sameEmail;
@@ -63,7 +75,10 @@ export async function signIn(db: Db, profile: Profile): Promise<User> {
   const userId = newId("user");
   const teamId = newId("team");
   const [[user]] = await db.batch([
-    db.insert(users).values({ id: userId, ...details }).returning(),
+    db
+      .insert(users)
+      .values({ id: userId, ...details })
+      .returning(),
     db.insert(identities).values({ ...identity, userId }),
     db.insert(teams).values({ id: teamId, name: profile.name ?? profile.email }),
     db.insert(memberships).values({ teamId, userId, role: "owner" }),
@@ -107,7 +122,11 @@ export async function useKey(db: Db, key: string): Promise<ApiKey | null> {
 }
 
 export async function providersFor(db: Db, userId: string): Promise<Provider[]> {
-  const rows = await db.select({ provider: identities.provider }).from(identities).where(eq(identities.userId, userId)).orderBy(asc(identities.createdAt));
+  const rows = await db
+    .select({ provider: identities.provider })
+    .from(identities)
+    .where(eq(identities.userId, userId))
+    .orderBy(asc(identities.createdAt));
   return rows.map((row) => row.provider);
 }
 
@@ -170,7 +189,13 @@ export async function createKey(
   const secret = newApiKeySecret();
   const [apiKey] = await db
     .insert(apiKeys)
-    .values({ teamId, createdBy, name, keyHash: await sha256(secret), prefix: secret.slice(0, API_KEY_SECRET_PREFIX.length + 6) })
+    .values({
+      teamId,
+      createdBy,
+      name,
+      keyHash: await sha256(secret),
+      prefix: secret.slice(0, API_KEY_SECRET_PREFIX.length + 6),
+    })
     .returning();
   if (!apiKey) throw new Error("api key insert returned no row");
   return { apiKey, secret };
@@ -185,7 +210,12 @@ export async function revokeKey(db: Db, teamId: string, keyId: string): Promise<
   return revoked.length > 0;
 }
 
-export async function createWorld(db: Db, teamId: string, createdBy: string | null, name: string): Promise<World> {
+export async function createWorld(
+  db: Db,
+  teamId: string,
+  createdBy: string | null,
+  name: string,
+): Promise<World> {
   const [world] = await db.insert(worlds).values({ teamId, createdBy, name }).returning();
   if (!world) throw new Error("world insert returned no row");
   return world;

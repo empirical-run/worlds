@@ -1,0 +1,9 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "sortImports": true,
+  "ignorePatterns": [
+    "packages/db/drizzle/",
+    "packages/makeworlds/openapi.json",
+    "packages/makeworlds/src/openapi.ts"
+  ]
+}

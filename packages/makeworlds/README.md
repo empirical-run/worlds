@@ -13,20 +13,33 @@ const worlds = createClient({ apiKey: process.env.WORLDS_API_KEY });
 
 const slack: SlackSpec = {
   users: [{ name: "alice" }, { name: "bob" }],
-  channels: [{ name: "general", members: ["alice", "bob"], messages: [{ user: "alice", text: "Deploy failed on main" }] }],
+  channels: [
+    {
+      name: "general",
+      members: ["alice", "bob"],
+      messages: [{ user: "alice", text: "Deploy failed on main" }],
+    },
+  ],
   apps: [
     {
       manifest: {
         display_information: { name: "My app" },
         oauth_config: { scopes: { bot: ["app_mentions:read", "chat:write"] } },
-        settings: { event_subscriptions: { request_url: "https://example.com/slack/events", bot_events: ["app_mention"] } },
+        settings: {
+          event_subscriptions: {
+            request_url: "https://example.com/slack/events",
+            bot_events: ["app_mention"],
+          },
+        },
       },
       install: true,
     },
   ],
 };
 
-const { data: world, error } = await worlds.POST("/api/worlds", { body: { name: "Thread routing eval", slack } });
+const { data: world, error } = await worlds.POST("/api/worlds", {
+  body: { name: "Thread routing eval", slack },
+});
 if (error) throw new Error(error.error.message);
 
 world.slack.api_url;

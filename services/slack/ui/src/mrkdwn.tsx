@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+
 import { Emoji, emojiFor } from "./emoji";
 
 export type Lookup = { userName: (id: string) => string; channelName: (id: string) => string };
@@ -74,7 +75,9 @@ export function Mrkdwn({ text, lookup }: { text: string; lookup: Lookup }) {
         index % 2 === 1 ? (
           <pre key={index}>{decode(part.replace(/^\n/, ""))}</pre>
         ) : (
-          <span key={index}>{inline(trimAroundCode(part, index, parts.length), lookup, String(index))}</span>
+          <span key={index}>
+            {inline(trimAroundCode(part, index, parts.length), lookup, String(index))}
+          </span>
         ),
       )}
     </div>

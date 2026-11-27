@@ -5,7 +5,10 @@ import { defineConfig } from "vite";
 export default defineConfig({
   server: { port: 8790 },
   plugins: [
-    cloudflare({ viteEnvironment: { name: "ssr" }, auxiliaryWorkers: [{ configPath: "../api/wrangler.jsonc" }] }),
+    cloudflare({
+      viteEnvironment: { name: "ssr" },
+      auxiliaryWorkers: [{ configPath: "../api/wrangler.jsonc" }],
+    }),
     reactRouter(),
   ],
 });

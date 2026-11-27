@@ -9,7 +9,7 @@
     "fs": "./src/stubs/fs.ts",
     "node:fs": "./src/stubs/fs.ts",
     "url": "./src/stubs/url.ts",
-    "node:url": "./src/stubs/url.ts"
+    "node:url": "./src/stubs/url.ts",
   },
   "workers_dev": true,
   "routes": [{ "pattern": "*.makeworlds.dev/*", "zone_name": "makeworlds.dev" }],
@@ -23,13 +23,13 @@
       "binding": "DB",
       "database_name": "worlds-db",
       "database_id": "829a6cb6-49e1-470c-a7f5-f151014f9ad6",
-      "migrations_dir": "../../packages/db/drizzle"
-    }
+      "migrations_dir": "../../packages/db/drizzle",
+    },
   ],
   "vars": {
     "WORLDS_DOMAIN": "makeworlds.dev",
     "WORLDS_SCHEME": "https",
     "WORLDS_PORT": "",
-    "MAKEWORLDS_URL": "https://makeworlds.dev"
-  }
+    "MAKEWORLDS_URL": "https://makeworlds.dev",
+  },
 }

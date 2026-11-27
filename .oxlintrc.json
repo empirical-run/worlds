@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "import", "react", "jsx-a11y", "promise"],
+  "categories": {
+    "correctness": "error"
+  },
+  "options": {
+    "typeAware": true,
+    "reportUnusedDisableDirectives": "error"
+  },
+  "rules": {
+    "jsx-a11y/control-has-associated-label": "off",
+    "jsx-a11y/no-autofocus": "off",
+    "jsx-a11y/prefer-tag-over-role": "off",
+    "react/set-state-in-effect": "off"
+  },
+  "ignorePatterns": ["packages/makeworlds/src/openapi.ts"]
+}

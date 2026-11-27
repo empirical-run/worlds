@@ -14,7 +14,13 @@ export type Schema = {
   maxLength?: number;
 };
 
-type Parameter = { name: string; in: string; required?: boolean; schema?: Schema; description?: string };
+type Parameter = {
+  name: string;
+  in: string;
+  required?: boolean;
+  schema?: Schema;
+  description?: string;
+};
 
 type Content = Record<string, { schema?: Schema }>;
 
@@ -50,7 +56,12 @@ export function endpointsByTag(spec: OpenApiDocument): [string, Endpoint[]][] {
       const operation = item[method];
       if (!operation) continue;
       const tag = operation.tags?.[0] ?? "Other";
-      const endpoint = { method, path, operation, anchor: slug(operation.summary ?? `${method} ${path}`) };
+      const endpoint = {
+        method,
+        path,
+        operation,
+        anchor: slug(operation.summary ?? `${method} ${path}`),
+      };
       groups.set(tag, [...(groups.get(tag) ?? []), endpoint]);
     }
   }
@@ -58,7 +69,9 @@ export function endpointsByTag(spec: OpenApiDocument): [string, Endpoint[]][] {
 }
 
 export function resolve(schema: Schema, spec: OpenApiDocument): Schema {
-  const target = schema.$ref ? (spec.components?.schemas?.[refName(schema.$ref)] ?? schema) : schema;
+  const target = schema.$ref
+    ? (spec.components?.schemas?.[refName(schema.$ref)] ?? schema)
+    : schema;
   if (!target.allOf) return target;
   return target.allOf
     .map((part) => resolve(part, spec))
@@ -76,7 +89,11 @@ export function fieldsOf(schema: Schema, spec: OpenApiDocument): Field[] | null 
   const resolved = resolve(schema, spec);
   if (!resolved.properties) return null;
   const required = new Set(resolved.required ?? []);
-  return Object.entries(resolved.properties).map(([name, field]) => ({ name, schema: field, required: required.has(name) }));
+  return Object.entries(resolved.properties).map(([name, field]) => ({
+    name,
+    schema: field,
+    required: required.has(name),
+  }));
 }
 
 export function typeLabel(schema: Schema): string {
@@ -101,7 +118,8 @@ export function fieldDescription(field: Field, spec: OpenApiDocument): string {
       : resolved.maxLength !== undefined
         ? `Up to ${resolved.maxLength} characters.`
         : "";
-  const example = resolved.example === undefined ? "" : `Example: ${JSON.stringify(resolved.example)}`;
+  const example =
+    resolved.example === undefined ? "" : `Example: ${JSON.stringify(resolved.example)}`;
   return [field.note ?? resolved.description, constraint, example].filter(Boolean).join(" ");
 }
 
@@ -119,5 +137,8 @@ function refName(ref: string): string {
 }
 
 function slug(text: string): string {
-  return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }

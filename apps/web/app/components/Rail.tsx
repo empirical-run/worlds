@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
 import { NavLink, useLocation, useMatches } from "react-router";
+
 import type { RootData } from "../root";
 
 export type RailIndexLink = { id: string; label: string };
 export type RailIndexGroup = { heading?: string; links: RailIndexLink[] };
-export type RailHandle = { railIndex?: (data: unknown) => RailIndexGroup[]; numberedRailIndex?: boolean };
+export type RailHandle = {
+  railIndex?: (data: unknown) => RailIndexGroup[];
+  numberedRailIndex?: boolean;
+};
 
 export function Rail({ account }: { account: RootData["account"] }) {
   const matches = useMatches();
@@ -72,7 +76,14 @@ function RailAccount({ account }: { account: NonNullable<RootData["account"]> })
   return (
     <NavLink className="rail-user" to="/account" aria-label={`Account: ${name}`}>
       {account.user.picture ? (
-        <img className="avatar" src={account.user.picture} alt="" width="28" height="28" referrerPolicy="no-referrer" />
+        <img
+          className="avatar"
+          src={account.user.picture}
+          alt=""
+          width="28"
+          height="28"
+          referrerPolicy="no-referrer"
+        />
       ) : (
         <span className="avatar" aria-hidden="true">
           {name.charAt(0).toUpperCase()}
@@ -89,22 +100,24 @@ function RailAccount({ account }: { account: NonNullable<RootData["account"]> })
 function RailIndex({ groups, numbered }: { groups: RailIndexGroup[]; numbered: boolean }) {
   const ids = groups.flatMap((group) => group.links.map((link) => link.id));
   const active = useActiveSection(ids);
-  let position = 0;
   return (
     <nav className="rail-index" aria-label="On this page">
       {!groups[0]?.heading && <p className="rail-heading">On this page</p>}
       {groups.map((group, index) => (
         <div className="rail-group" key={group.heading ?? index}>
           {group.heading && <p className="rail-heading rail-subheading">{group.heading}</p>}
-          {group.links.map((link) => {
-            position += 1;
-            return (
-              <a key={link.id} href={`#${link.id}`} aria-current={link.id === active ? "location" : undefined}>
-                {numbered && <span className="num">{String(position).padStart(2, "0")}</span>}
-                {link.label}
-              </a>
-            );
-          })}
+          {group.links.map((link) => (
+            <a
+              key={link.id}
+              href={`#${link.id}`}
+              aria-current={link.id === active ? "location" : undefined}
+            >
+              {numbered && (
+                <span className="num">{String(ids.indexOf(link.id) + 1).padStart(2, "0")}</span>
+              )}
+              {link.label}
+            </a>
+          ))}
         </div>
       ))}
     </nav>
@@ -122,13 +135,18 @@ function useActiveSection(ids: string[]) {
     const update = () => {
       frame = 0;
       const sections = sectionIds.flatMap((id) => document.getElementById(id) ?? []);
-      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+      const atBottom =
+        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
       const hashed = sections.find((section) => `#${section.id}` === window.location.hash);
       if (atBottom && hashed && hashed.getBoundingClientRect().top < window.innerHeight) {
         setActive(hashed.id);
         return;
       }
-      const passed = sections.filter((section) => section.getBoundingClientRect().top <= window.innerHeight * ACTIVE_SECTION_VIEWPORT_FRACTION);
+      const passed = sections.filter(
+        (section) =>
+          section.getBoundingClientRect().top <=
+          window.innerHeight * ACTIVE_SECTION_VIEWPORT_FRACTION,
+      );
       const current = atBottom ? sections.at(-1) : passed.at(-1);
       setActive(current?.id ?? null);
     };

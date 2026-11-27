@@ -2,6 +2,7 @@ import { database, liveWorld, parseWorldHost } from "@worlds/db";
 import type { JiraSpec, JiraState } from "@worlds/jira/spec";
 import type { SlackSpec, SlackState } from "@worlds/slack/spec";
 import { WorkerEntrypoint } from "cloudflare:workers";
+
 import { canControl } from "./access";
 import type { Env } from "./env";
 import { SERVICES, serviceOrigin, type Service } from "./origins";
@@ -17,7 +18,10 @@ export class WorldsControl extends WorkerEntrypoint<Env> {
   }
 
   async setupSlack(worldId: string, spec: SlackSpec): Promise<SlackState> {
-    return this.env.WORLD.get(this.env.WORLD.idFromName(worldId)).setupSlack(spec, serviceOrigin(this.env, worldId, "slack"));
+    return this.env.WORLD.get(this.env.WORLD.idFromName(worldId)).setupSlack(
+      spec,
+      serviceOrigin(this.env, worldId, "slack"),
+    );
   }
 
   async slackState(worldId: string): Promise<SlackState | null> {
@@ -44,13 +48,27 @@ export default {
     const world = await liveWorld(db, target.worldId);
     if (!world) return slackError(404, "world_not_found");
 
-    if (target.service === "jira" && isSitePage(url.pathname) && !(await canControl(request, db, world))) {
-      return new Response(`Sign in at ${env.MAKEWORLDS_URL}/account with a member of this world's team to see its Jira site.`, { status: 401 });
+    if (
+      target.service === "jira" &&
+      isSitePage(url.pathname) &&
+      !(await canControl(request, db, world))
+    ) {
+      return new Response(
+        `Sign in at ${env.MAKEWORLDS_URL}/account with a member of this world's team to see its Jira site.`,
+        { status: 401 },
+      );
     }
-    if (target.service === "slack" && request.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")) {
+    if (
+      target.service === "slack" &&
+      request.method === "GET" &&
+      (url.pathname === "/" || url.pathname === "/index.html")
+    ) {
       return env.ASSETS.fetch(new Request(new URL("/", url), request));
     }
-    if (CONTROL_PATHS.some((prefix) => url.pathname.startsWith(prefix)) && !(await canControl(request, db, world))) {
+    if (
+      CONTROL_PATHS.some((prefix) => url.pathname.startsWith(prefix)) &&
+      !(await canControl(request, db, world))
+    ) {
       return slackError(401, "not_authed");
     }
 

@@ -1,9 +1,20 @@
 import type { Store } from "@emulators/core";
 import { getSlackStore } from "@emulators/slack";
+
 import type { SlackSpec, SlackState } from "./spec";
 
 const ID_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const USER_SCOPES = ["chat:write", "channels:read", "channels:write", "channels:history", "groups:read", "reactions:write", "users:read", "files:write", "files:read"];
+const USER_SCOPES = [
+  "chat:write",
+  "channels:read",
+  "channels:write",
+  "channels:history",
+  "groups:read",
+  "reactions:write",
+  "users:read",
+  "files:write",
+  "files:read",
+];
 
 export function slackId(prefix: string): string {
   return `${prefix}${[...crypto.getRandomValues(new Uint8Array(10))].map((byte) => ID_ALPHABET[byte % ID_ALPHABET.length]).join("")}`;
@@ -55,7 +66,13 @@ export function seedWorkspace(store: Store, spec: SlackSpec): Omit<SlackState, "
       last_activity: now,
     });
     if (user.token) {
-      slack.tokens.insert({ token: user.token, token_type: "user", team_id: team.id, user_id: user.id, scopes: USER_SCOPES });
+      slack.tokens.insert({
+        token: user.token,
+        token_type: "user",
+        team_id: team.id,
+        user_id: user.id,
+        scopes: USER_SCOPES,
+      });
     }
   }
 
@@ -66,7 +83,9 @@ export function seedWorkspace(store: Store, spec: SlackSpec): Omit<SlackState, "
     name: channel.name,
     private: channel.private ?? false,
     topic: channel.topic ?? "",
-    members: (channel.members ?? []).map((member) => userIdFor(member)).filter((id): id is string => Boolean(id)),
+    members: (channel.members ?? [])
+      .map((member) => userIdFor(member))
+      .filter((id): id is string => Boolean(id)),
     messages: channel.messages ?? [],
   }));
   for (const channel of channels) {

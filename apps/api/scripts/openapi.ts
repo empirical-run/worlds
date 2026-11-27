@@ -1,4 +1,5 @@
 import { writeFileSync } from "node:fs";
+
 import app from "../src/index";
 
 const [outPath] = process.argv.slice(2);

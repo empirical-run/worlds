@@ -1,20 +1,29 @@
 {
   "name": "worlds",
   "private": true,
+  "license": "Apache-2.0",
   "type": "module",
-  "packageManager": "pnpm@11.20.0",
   "scripts": {
     "dev": "pnpm --filter @worlds/world dev",
     "dev:site": "wrangler d1 migrations apply worlds-db --local -c apps/web/wrangler.jsonc --persist-to apps/web/.wrangler/state && pnpm --filter @worlds/web dev",
     "typecheck": "pnpm -r typecheck",
     "smoke": "pnpm --filter @worlds/world smoke",
     "db:generate": "pnpm --filter @worlds/db generate",
-    "dev:api": "wrangler dev -c apps/api/wrangler.jsonc --port 8791 --persist-to services/world/.wrangler/state"
+    "dev:api": "wrangler dev -c apps/api/wrangler.jsonc --port 8791 --persist-to services/world/.wrangler/state",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "prepare": "lefthook install"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261125.1",
+    "lefthook": "^2.2.3",
+    "oxfmt": "^0.80.0",
+    "oxlint": "^1.95.0",
+    "oxlint-tsgolint": "^7.0.2008",
     "typescript": "^5.9.3",
     "wrangler": "^4.168.0"
   },
-  "license": "Apache-2.0"
+  "packageManager": "pnpm@11.20.0"
 }

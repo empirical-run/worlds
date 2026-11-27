@@ -49,9 +49,15 @@ export type JiraData = {
 
 export type Origins = { site: string; auth: string; api: string };
 
-const STATUS_DETAILS: Record<IssueStatus, { id: string; category: { id: number; key: string; name: string; colorName: string } }> = {
+const STATUS_DETAILS: Record<
+  IssueStatus,
+  { id: string; category: { id: number; key: string; name: string; colorName: string } }
+> = {
   "To Do": { id: "10000", category: { id: 2, key: "new", name: "To Do", colorName: "blue-gray" } },
-  "In Progress": { id: "3", category: { id: 4, key: "indeterminate", name: "In Progress", colorName: "yellow" } },
+  "In Progress": {
+    id: "3",
+    category: { id: 4, key: "indeterminate", name: "In Progress", colorName: "yellow" },
+  },
   Done: { id: "10001", category: { id: 3, key: "done", name: "Done", colorName: "green" } },
 };
 
@@ -67,15 +73,25 @@ export function textToAdf(text: string): Adf {
   return {
     type: "doc",
     version: 1,
-    content: text.split(/\n{2,}/).map((paragraph) => ({ type: "paragraph", content: paragraph ? [{ type: "text", text: paragraph }] : [] })),
+    content: text.split(/\n{2,}/).map((paragraph) => ({
+      type: "paragraph",
+      content: paragraph ? [{ type: "text", text: paragraph }] : [],
+    })),
   };
 }
 
 export function adfToText(node: unknown): string {
   if (!node || typeof node !== "object") return "";
-  const { type, text, content, attrs } = node as { type?: string; text?: string; content?: unknown[]; attrs?: { href?: string } };
+  const { type, text, content, attrs } = node as {
+    type?: string;
+    text?: string;
+    content?: unknown[];
+    attrs?: { href?: string };
+  };
   if (type === "text") {
-    const link = ((node as { marks?: { type?: string; attrs?: { href?: string } }[] }).marks ?? []).find((mark) => mark.type === "link");
+    const link = (
+      (node as { marks?: { type?: string; attrs?: { href?: string } }[] }).marks ?? []
+    ).find((mark) => mark.type === "link");
     return link?.attrs?.href ? `[${text ?? ""}|${link.attrs.href}]` : (text ?? "");
   }
   if (type === "hardBreak") return "\n";
@@ -107,7 +123,9 @@ export class JiraJson {
   }
 
   user(accountId: string | null, via: "api" | "site", withEmail = true) {
-    const user = accountId ? this.state.users.find((candidate) => candidate.account_id === accountId) : undefined;
+    const user = accountId
+      ? this.state.users.find((candidate) => candidate.account_id === accountId)
+      : undefined;
     if (!user) return null;
     const avatar = `${this.origins.site}/avatar/${user.account_id}.png`;
     return {
@@ -142,7 +160,10 @@ export class JiraJson {
       description: "",
       name: status,
       id: details.id,
-      statusCategory: { self: `${base}/statuscategory/${details.category.id}`, ...details.category },
+      statusCategory: {
+        self: `${base}/statuscategory/${details.category.id}`,
+        ...details.category,
+      },
     };
   }
 
@@ -172,10 +193,21 @@ export class JiraJson {
       key: issue.key,
       fields: {
         summary: issue.summary,
-        description: via === "api" ? issue.description : issue.description ? adfToText(issue.description) : null,
+        description:
+          via === "api"
+            ? issue.description
+            : issue.description
+              ? adfToText(issue.description)
+              : null,
         labels: issue.labels,
         status: this.status(issue.status, base),
-        issuetype: { self: `${base}/issuetype/10001`, id: "10001", name: "Task", subtask: false, hierarchyLevel: 0 },
+        issuetype: {
+          self: `${base}/issuetype/10001`,
+          id: "10001",
+          name: "Task",
+          subtask: false,
+          hierarchyLevel: 0,
+        },
         priority: { self: `${base}/priority/3`, id: "3", name: "Medium" },
         project: this.project(issue.project, base),
         reporter: this.user(issue.reporter, via, withEmail),
@@ -185,7 +217,13 @@ export class JiraJson {
         updated: jiraDate(issue.updated),
         statuscategorychangedate: jiraDate(issue.created),
         attachment: [],
-        comment: { comments, self: `${base}/issue/${issue.id}/comment`, maxResults: comments.length, total: comments.length, startAt: 0 },
+        comment: {
+          comments,
+          self: `${base}/issue/${issue.id}/comment`,
+          maxResults: comments.length,
+          total: comments.length,
+          startAt: 0,
+        },
       },
     };
   }

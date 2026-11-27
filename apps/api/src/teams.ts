@@ -1,4 +1,5 @@
 import { teamById, teamsForUser, type Db } from "@worlds/db";
+
 import type { Caller, TeamAccess } from "./context";
 
 export async function accessibleTeams(db: Db, caller: Caller): Promise<TeamAccess[]> {
@@ -7,7 +8,11 @@ export async function accessibleTeams(db: Db, caller: Caller): Promise<TeamAcces
   return team ? [{ team, role: null }] : [];
 }
 
-export async function accessibleTeam(db: Db, caller: Caller, teamId: string): Promise<TeamAccess | null> {
+export async function accessibleTeam(
+  db: Db,
+  caller: Caller,
+  teamId: string,
+): Promise<TeamAccess | null> {
   return (await accessibleTeams(db, caller)).find(({ team }) => team.id === teamId) ?? null;
 }
 

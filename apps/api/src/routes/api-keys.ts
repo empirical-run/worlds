@@ -1,5 +1,6 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { createKey, listKeys, revokeKey, type ApiKey } from "@worlds/db";
+
 import { apiError, type AppEnv } from "../context";
 import {
   ApiKeyCreatedSchema,
@@ -76,27 +77,36 @@ function apiKeyJson(key: ApiKey) {
   };
 }
 
-const KEYS_NEED_SESSION = "API keys cannot manage API keys. Sign in and use Settings on makeworlds.dev.";
+const KEYS_NEED_SESSION =
+  "API keys cannot manage API keys. Sign in and use Settings on makeworlds.dev.";
 
 export const apiKeys = new OpenAPIHono<AppEnv>()
   .openapi(listApiKeys, async (c) => {
     const access = await accessibleTeam(c.var.db, c.var.caller, c.req.valid("param").teamId);
-    if (!access) return c.json(apiError("not_found", "No team with that id is visible to you."), 404);
+    if (!access)
+      return c.json(apiError("not_found", "No team with that id is visible to you."), 404);
     const keys = await listKeys(c.var.db, access.team.id);
     return c.json({ api_keys: keys.map(apiKeyJson) }, 200);
   })
   .openapi(createApiKey, async (c) => {
     const { caller } = c.var;
     const access = await accessibleTeam(c.var.db, caller, c.req.valid("param").teamId);
-    if (!access) return c.json(apiError("not_found", "No team with that id is visible to you."), 404);
+    if (!access)
+      return c.json(apiError("not_found", "No team with that id is visible to you."), 404);
     if (caller.kind === "key") return c.json(apiError("forbidden", KEYS_NEED_SESSION), 403);
-    const { apiKey, secret } = await createKey(c.var.db, access.team.id, caller.user.id, c.req.valid("json").name);
+    const { apiKey, secret } = await createKey(
+      c.var.db,
+      access.team.id,
+      caller.user.id,
+      c.req.valid("json").name,
+    );
     return c.json({ ...apiKeyJson(apiKey), secret }, 201);
   })
   .openapi(revokeApiKey, async (c) => {
     const { teamId, keyId } = c.req.valid("param");
     const access = await accessibleTeam(c.var.db, c.var.caller, teamId);
-    if (!access) return c.json(apiError("not_found", "No team with that id is visible to you."), 404);
+    if (!access)
+      return c.json(apiError("not_found", "No team with that id is visible to you."), 404);
     if (c.var.caller.kind === "key") return c.json(apiError("forbidden", KEYS_NEED_SESSION), 403);
     if (!(await revokeKey(c.var.db, access.team.id, keyId))) {
       return c.json(apiError("not_found", "No active key with that id in this team."), 404);

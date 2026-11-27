@@ -2,6 +2,10 @@
   "name": "@worlds/jira",
   "private": true,
   "type": "module",
+  "exports": {
+    "./service": "./src/service.ts",
+    "./spec": "./src/spec.ts"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
@@ -11,9 +15,5 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261125.1",
     "typescript": "^5.9.3"
-  },
-  "exports": {
-    "./service": "./src/service.ts",
-    "./spec": "./src/spec.ts"
   }
 }

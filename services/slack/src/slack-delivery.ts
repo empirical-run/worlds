@@ -1,4 +1,5 @@
 import type { WebhookDelivery, WebhookDispatcher } from "@emulators/core";
+
 import type { EventTarget } from "./apps";
 
 const TIMEOUT_MS = 3000;
@@ -25,7 +26,13 @@ type Outcome = { delivery: WebhookDelivery; retry: RetryReason | null };
 
 async function sign(secret: string, payload: string): Promise<string> {
   const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
   const mac = new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(payload)));
   return [...mac].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
@@ -50,7 +57,8 @@ export class SlackDelivery {
     this.hookId = hookId;
     await this.load();
     webhooks.dispatch = (event, _action, payload) => this.enqueue(event, payload);
-    webhooks.getDeliveries = (id) => (id === undefined ? [...this.log] : this.log.filter((d) => d.hook_id === id));
+    webhooks.getDeliveries = (id) =>
+      id === undefined ? [...this.log] : this.log.filter((d) => d.hook_id === id);
     webhooks.redeliver = async (deliveryId, options) => {
       const original = this.log.find((d) => d.id === deliveryId);
       if (!original) return undefined;
@@ -71,9 +79,9 @@ export class SlackDelivery {
   async run(): Promise<void> {
     await this.load();
     const now = Date.now();
-    const due = [...(await this.storage.list<Pending>({ prefix: PENDING_PREFIX })).entries()].filter(
-      ([, pending]) => pending.dueAt <= now,
-    );
+    const due = [
+      ...(await this.storage.list<Pending>({ prefix: PENDING_PREFIX })).entries(),
+    ].filter(([, pending]) => pending.dueAt <= now);
     await Promise.all(due.map(([key, pending]) => this.attempt(key, pending)));
   }
 
@@ -112,12 +120,22 @@ export class SlackDelivery {
     if (!this.resolveTarget(appId, event)) return;
     const id = await this.nextId();
     const dueAt = Date.now();
-    await this.storage.put<Pending>(`${PENDING_PREFIX}${id}`, { id, appId, event, body: JSON.stringify(payload), retryNum: 0, dueAt });
+    await this.storage.put<Pending>(`${PENDING_PREFIX}${id}`, {
+      id,
+      appId,
+      event,
+      body: JSON.stringify(payload),
+      retryNum: 0,
+      dueAt,
+    });
     const alarm = await this.storage.getAlarm();
     if (alarm === null || dueAt < alarm) await this.storage.setAlarm(dueAt);
   }
 
-  private async send(pending: Pending, extraHeaders: Record<string, string>): Promise<Outcome | null> {
+  private async send(
+    pending: Pending,
+    extraHeaders: Record<string, string>,
+  ): Promise<Outcome | null> {
     const target = this.resolveTarget(pending.appId, pending.event);
     if (!target) return null;
     const timestamp = Math.floor(Date.now() / 1000);
@@ -142,7 +160,10 @@ export class SlackDelivery {
       const noRetry = response.headers.get("x-slack-no-retry") === "1";
       if (!response.ok && !noRetry) retry = "http_error";
     } catch (error) {
-      retry = error instanceof Error && error.name === "TimeoutError" ? "http_timeout" : "connection_failed";
+      retry =
+        error instanceof Error && error.name === "TimeoutError"
+          ? "http_timeout"
+          : "connection_failed";
     }
     const delivery: WebhookDelivery = {
       id: await this.nextId(),

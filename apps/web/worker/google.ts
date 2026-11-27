@@ -1,4 +1,5 @@
 import type { Profile } from "@worlds/db";
+
 import type { OAuthProvider } from "./providers";
 
 const AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -44,7 +45,8 @@ export const google: OAuthProvider = {
         code_verifier: verifier,
       }),
     });
-    if (!response.ok) throw new Error(`google token exchange failed: ${response.status} ${await response.text()}`);
+    if (!response.ok)
+      throw new Error(`google token exchange failed: ${response.status} ${await response.text()}`);
     const { id_token: idToken } = (await response.json()) as { id_token?: string };
     if (!idToken) throw new Error("google token response has no id_token");
     return profileFromIdToken(env.WORLDS_GOOGLE_CLIENT_ID, idToken);
@@ -53,11 +55,14 @@ export const google: OAuthProvider = {
 
 // OIDC Core 3.1.3.7: an id_token received directly from the token endpoint over TLS needs no signature check.
 function profileFromIdToken(clientId: string, idToken: string): Profile {
-  const claims = JSON.parse(new TextDecoder().decode(decodeBase64url(idToken.split(".")[1] ?? ""))) as IdTokenClaims;
+  const claims = JSON.parse(
+    new TextDecoder().decode(decodeBase64url(idToken.split(".")[1] ?? "")),
+  ) as IdTokenClaims;
   if (!ISSUERS.has(claims.iss)) throw new Error(`unexpected id_token issuer ${claims.iss}`);
   if (claims.aud !== clientId) throw new Error("id_token audience mismatch");
   if (claims.exp * 1000 < Date.now()) throw new Error("id_token expired");
-  if (!claims.email || !claims.email_verified) throw new Error("google account email is not verified");
+  if (!claims.email || !claims.email_verified)
+    throw new Error("google account email is not verified");
   return {
     provider: "google",
     subject: claims.sub,
@@ -68,6 +73,9 @@ function profileFromIdToken(clientId: string, idToken: string): Profile {
 }
 
 function decodeBase64url(value: string): Uint8Array {
-  const base64 = value.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(value.length / 4) * 4, "=");
+  const base64 = value
+    .replace(/-/g, "+")
+    .replace(/_/g, "/")
+    .padEnd(Math.ceil(value.length / 4) * 4, "=");
   return Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
 }

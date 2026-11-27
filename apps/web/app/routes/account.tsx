@@ -1,4 +1,5 @@
 import { providersFor, type Provider } from "@worlds/db";
+
 import { workerContext } from "../../worker/context";
 import type { Route } from "./+types/account";
 
@@ -23,7 +24,11 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       next: next?.startsWith("/") && !next.startsWith("//") ? next : "/worlds",
     };
   }
-  return { signedIn: true as const, email: account.user.email, providers: await providersFor(db, account.user.id) };
+  return {
+    signedIn: true as const,
+    email: account.user.email,
+    providers: await providersFor(db, account.user.id),
+  };
 }
 
 export default function Account({ loaderData }: Route.ComponentProps) {

@@ -3,12 +3,32 @@
   "slack": {
     "team": { "id": "T0EMPREVIEW1", "name": "Empirical preview", "domain": "empirical-preview" },
     "users": [
-      { "id": "U0ALICE00001", "name": "alice", "real_name": "Alice Tester", "email": "alice@empirical-preview.test" },
-      { "id": "U0BOB0000001", "name": "bob", "real_name": "Bob Tester", "email": "bob@empirical-preview.test" }
+      {
+        "id": "U0ALICE00001",
+        "name": "alice",
+        "real_name": "Alice Tester",
+        "email": "alice@empirical-preview.test"
+      },
+      {
+        "id": "U0BOB0000001",
+        "name": "bob",
+        "real_name": "Bob Tester",
+        "email": "bob@empirical-preview.test"
+      }
     ],
     "channels": [
-      { "id": "C0GENERAL001", "name": "general", "topic": "General discussion", "members": ["alice", "bob"] },
-      { "id": "C0ALERTS0001", "name": "test-alerts", "topic": "Test run notifications", "members": ["alice"] }
+      {
+        "id": "C0GENERAL001",
+        "name": "general",
+        "topic": "General discussion",
+        "members": ["alice", "bob"]
+      },
+      {
+        "id": "C0ALERTS0001",
+        "name": "test-alerts",
+        "topic": "Test run notifications",
+        "members": ["alice"]
+      }
     ],
     "apps": [
       {
@@ -26,16 +46,38 @@
             ],
             "scopes": {
               "bot": [
-                "app_mentions:read", "assistant:write", "channels:history", "chat:write", "chat:write.customize",
-                "files:read", "files:write", "groups:history", "im:history", "im:write", "links:read", "links:write",
-                "reactions:read", "reactions:write", "team:read", "users:read", "users:read.email"
+                "app_mentions:read",
+                "assistant:write",
+                "channels:history",
+                "chat:write",
+                "chat:write.customize",
+                "files:read",
+                "files:write",
+                "groups:history",
+                "im:history",
+                "im:write",
+                "links:read",
+                "links:write",
+                "reactions:read",
+                "reactions:write",
+                "team:read",
+                "users:read",
+                "users:read.email"
               ]
             }
           },
           "settings": {
             "event_subscriptions": {
               "request_url": "https://api-preview.empirical.run/api/slack/events",
-              "bot_events": ["app_mention", "message.channels", "message.groups", "message.im", "reaction_added", "link_shared", "entity_details_requested"]
+              "bot_events": [
+                "app_mention",
+                "message.channels",
+                "message.groups",
+                "message.im",
+                "reaction_added",
+                "link_shared",
+                "entity_details_requested"
+              ]
             }
           }
         },

@@ -1,5 +1,6 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
+
 import { authenticate } from "./auth";
 import { apiError, type AppEnv } from "./context";
 import { apiKeys } from "./routes/api-keys";
@@ -9,7 +10,10 @@ import { worlds } from "./routes/worlds";
 const app = new OpenAPIHono<AppEnv>({
   defaultHook: (result, c) => {
     if (result.success) return;
-    return c.json(apiError("invalid_request", result.error.issues[0]?.message ?? "Invalid request."), 400);
+    return c.json(
+      apiError("invalid_request", result.error.issues[0]?.message ?? "Invalid request."),
+      400,
+    );
   },
 });
 
@@ -22,7 +26,8 @@ app.openAPIRegistry.registerComponent("securitySchemes", "sessionCookie", {
   type: "apiKey",
   in: "cookie",
   name: "worlds_session",
-  description: "The session from signing in at makeworlds.dev. Requests that change data must come from makeworlds.dev.",
+  description:
+    "The session from signing in at makeworlds.dev. Requests that change data must come from makeworlds.dev.",
 });
 
 app.use("/api/*", authenticate);

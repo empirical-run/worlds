@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+
 import { WebClient } from "@slack/web-api";
 
 const base = process.env.WORLDS_URL;
@@ -26,15 +27,28 @@ async function admin(path, body) {
 }
 
 async function authorizeCode() {
-  const query = new URLSearchParams({ client_id: clientId, scope, redirect_uri: redirectUri, state: "preview" });
+  const query = new URLSearchParams({
+    client_id: clientId,
+    scope,
+    redirect_uri: redirectUri,
+    state: "preview",
+  });
   const html = await (await fetch(`${base}/oauth/v2/authorize?${query}`)).text();
-  const userIds = [...html.matchAll(/name="user_id"[^>]*value="([^"]+)"/g)].map((match) => match[1]);
+  const userIds = [...html.matchAll(/name="user_id"[^>]*value="([^"]+)"/g)].map(
+    (match) => match[1],
+  );
   const alice = (await new WebClient(userToken, { slackApiUrl }).auth.test()).user_id;
   const userId = userIds.includes(alice) ? alice : userIds[0];
   const callback = await fetch(`${base}/oauth/v2/authorize/callback`, {
     method: "POST",
     redirect: "manual",
-    body: new URLSearchParams({ user_id: userId, client_id: clientId, redirect_uri: redirectUri, scope, state: "preview" }),
+    body: new URLSearchParams({
+      user_id: userId,
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      scope,
+      state: "preview",
+    }),
   });
   const location = callback.headers.get("location");
   const code = location && new URL(location).searchParams.get("code");
@@ -46,7 +60,16 @@ function installOnEmpirical(code) {
   const output = execFileSync(
     "empirical",
     ["api", "api/slack/installations", "-X", "POST", "--input", "-"],
-    { input: JSON.stringify({ org_id: orgId, code, redirect_uri: redirectUri }), env: { ...process.env, EMPIRICAL_ENV: "local", EMPIRICAL_API_WORKER_URL: apiWorkerUrl, DO_NOT_TRACK: "1" }, encoding: "utf8" },
+    {
+      input: JSON.stringify({ org_id: orgId, code, redirect_uri: redirectUri }),
+      env: {
+        ...process.env,
+        EMPIRICAL_ENV: "local",
+        EMPIRICAL_API_WORKER_URL: apiWorkerUrl,
+        DO_NOT_TRACK: "1",
+      },
+      encoding: "utf8",
+    },
   );
   const install = JSON.parse(output.slice(output.indexOf("{"), output.lastIndexOf("}") + 1));
   if (!install.success) throw new Error(`install failed: ${output}`);
@@ -57,7 +80,9 @@ await admin("/_worlds/slack/redirect-uris", { redirect_uri: redirectUri });
 step("redirect URI registered on the world");
 
 const install = installOnEmpirical(await authorizeCode());
-step(`installed on ${apiWorkerUrl}: team ${install.team_id}, bot ${install.bot_user_id}, org ${install.org_id}`);
+step(
+  `installed on ${apiWorkerUrl}: team ${install.team_id}, bot ${install.bot_user_id}, org ${install.org_id}`,
+);
 
 const alice = new WebClient(userToken, { slackApiUrl });
 const channel = (await alice.conversations.create({ name: `mention-${Date.now()}` })).channel;
@@ -74,7 +99,9 @@ const deadline = Date.now() + 180_000;
 let botReplies = [];
 while (Date.now() < deadline) {
   const thread = await alice.conversations.replies({ channel: channel.id, ts: mention.ts });
-  botReplies = thread.messages.filter((message) => message.user === install.bot_user_id || message.bot_id);
+  botReplies = thread.messages.filter(
+    (message) => message.user === install.bot_user_id || message.bot_id,
+  );
   if (botReplies.length) break;
   await new Promise((resolve) => setTimeout(resolve, 3000));
 }

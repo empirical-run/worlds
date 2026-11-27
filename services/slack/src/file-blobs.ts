@@ -6,7 +6,9 @@ const CHUNK_CHARS = 1_000_000;
 type BlobItem = { file_id?: string; content_base64?: string };
 
 function blobItems(snapshot: StoreSnapshot): BlobItem[] {
-  return BLOB_COLLECTIONS.flatMap((name) => (snapshot.collections[name]?.items ?? []) as BlobItem[]);
+  return BLOB_COLLECTIONS.flatMap(
+    (name) => (snapshot.collections[name]?.items ?? []) as BlobItem[],
+  );
 }
 
 function chunkKey(fileId: string, index: number): string {
@@ -48,7 +50,10 @@ export class FileBlobs {
   private async write(fileId: string, content: string): Promise<void> {
     const chunks: Record<string, string> = {};
     for (let index = 0; index * CHUNK_CHARS < content.length; index += 1) {
-      chunks[chunkKey(fileId, index)] = content.slice(index * CHUNK_CHARS, (index + 1) * CHUNK_CHARS);
+      chunks[chunkKey(fileId, index)] = content.slice(
+        index * CHUNK_CHARS,
+        (index + 1) * CHUNK_CHARS,
+      );
     }
     for (const [key, value] of Object.entries(chunks)) await this.storage.put(key, value);
     await this.storage.put(countKey(fileId), Object.keys(chunks).length);

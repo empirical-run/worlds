@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+
 import { newId } from "./ids";
 
 const timestamps = () => ({
@@ -32,7 +33,10 @@ export const identities = sqliteTable(
       .references(() => users.id, { onDelete: "cascade" }),
     ...timestamps(),
   },
-  (table) => [primaryKey({ columns: [table.provider, table.subject] }), index("identities_user_id_idx").on(table.userId)],
+  (table) => [
+    primaryKey({ columns: [table.provider, table.subject] }),
+    index("identities_user_id_idx").on(table.userId),
+  ],
 );
 
 export const teams = sqliteTable("teams", {
@@ -55,7 +59,10 @@ export const memberships = sqliteTable(
     role: text("role", { enum: ["owner", "member"] }).notNull(),
     ...timestamps(),
   },
-  (table) => [primaryKey({ columns: [table.teamId, table.userId] }), index("memberships_user_id_idx").on(table.userId)],
+  (table) => [
+    primaryKey({ columns: [table.teamId, table.userId] }),
+    index("memberships_user_id_idx").on(table.userId),
+  ],
 );
 
 export const sessions = sqliteTable(

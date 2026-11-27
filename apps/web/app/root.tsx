@@ -1,5 +1,14 @@
 import type { ReactNode } from "react";
-import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteLoaderData } from "react-router";
+import {
+  isRouteErrorResponse,
+  Links,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+  useRouteLoaderData,
+} from "react-router";
+
 import { workerContext } from "../worker/context";
 import type { Route } from "./+types/root";
 import { Rail } from "./components/Rail";
@@ -8,7 +17,10 @@ export const links: Route.LinksFunction = () => [
   { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-  { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" },
+  {
+    rel: "stylesheet",
+    href: "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap",
+  },
   { rel: "stylesheet", href: "/styles.css" },
 ];
 
@@ -58,7 +70,8 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       <title>{notFound ? "Not found · Worlds" : "Error · Worlds"}</title>
       <h1>{notFound ? "Not found" : "Something went wrong"}</h1>
       <p>
-        {notFound ? "This page doesn't exist." : "The page failed to load. Try again in a moment."} <a href="/">Go home</a>.
+        {notFound ? "This page doesn't exist." : "The page failed to load. Try again in a moment."}{" "}
+        <a href="/">Go home</a>.
       </p>
     </section>
   );

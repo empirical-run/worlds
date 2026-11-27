@@ -19,6 +19,7 @@ export function cookie(url: URL, name: string, value: string, options: CookieOpt
     "SameSite=Lax",
   ];
   if (url.protocol === "https:") parts.push("Secure");
-  if (options.sharedAcrossSubdomains && url.hostname.endsWith("makeworlds.dev")) parts.push("Domain=makeworlds.dev");
+  if (options.sharedAcrossSubdomains && url.hostname.endsWith("makeworlds.dev"))
+    parts.push("Domain=makeworlds.dev");
   return parts.join("; ");
 }

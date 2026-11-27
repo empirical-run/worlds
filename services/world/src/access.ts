@@ -1,6 +1,17 @@
-import { database, SESSION_COOKIE, teamsForUser, useKey, userForSession, type World as WorldRecord } from "@worlds/db";
+import {
+  database,
+  SESSION_COOKIE,
+  teamsForUser,
+  useKey,
+  userForSession,
+  type World as WorldRecord,
+} from "@worlds/db";
 
-export async function canControl(request: Request, db: ReturnType<typeof database>, world: WorldRecord): Promise<boolean> {
+export async function canControl(
+  request: Request,
+  db: ReturnType<typeof database>,
+  world: WorldRecord,
+): Promise<boolean> {
   const authorization = request.headers.get("authorization");
   if (authorization?.startsWith("Bearer wk_")) {
     const key = await useKey(db, authorization.slice("Bearer ".length).trim());

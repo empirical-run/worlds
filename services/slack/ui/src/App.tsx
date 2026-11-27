@@ -11,6 +11,7 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from "react";
+
 import {
   actAs,
   fetchState,
@@ -34,7 +35,12 @@ const GROUP_WINDOW_SECONDS = 300;
 
 type Route = { channel: string | null; thread: string | null };
 
-type Upload = (channel: string, threadTs: string | undefined, text: string, file: File) => Promise<void>;
+type Upload = (
+  channel: string,
+  threadTs: string | undefined,
+  text: string,
+  file: File,
+) => Promise<void>;
 
 function readRoute(): Route {
   const params = new URLSearchParams(location.search);
@@ -60,7 +66,11 @@ function formatTime(ts: string): string {
 }
 
 function formatDay(ts: string): string {
-  return new Date(Number(ts) * 1000).toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
+  return new Date(Number(ts) * 1000).toLocaleDateString([], {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
 }
 
 function isTopLevel(message: Message): boolean {
@@ -118,19 +128,24 @@ function World({ onUnauthorized }: { onUnauthorized: (message: string) => void }
   }, [route.channel, onUnauthorized]);
 
   useEffect(() => {
-    load();
+    void load();
     const timer = setInterval(load, POLL_MS);
     return () => clearInterval(timer);
   }, [load]);
 
   useEffect(() => {
     if (!state || route.channel) return;
-    const fallback = state.channels.find((channel) => channel.name === "general") ?? state.channels[0];
+    const fallback =
+      state.channels.find((channel) => channel.name === "general") ?? state.channels[0];
     if (fallback) navigate({ channel: fallback.id, thread: null });
   }, [state, route.channel, navigate]);
 
   const humans = useMemo(() => state?.users.filter((user) => !user.is_bot) ?? [], [state]);
-  const actor = humans.find((user) => user.id === actorId) ?? humans.find((user) => user.has_token) ?? humans[0] ?? null;
+  const actor =
+    humans.find((user) => user.id === actorId) ??
+    humans.find((user) => user.has_token) ??
+    humans[0] ??
+    null;
 
   const lookup = useMemo<Lookup>(() => {
     const users = new Map(state?.users.map((user) => [user.id, user.name]));
@@ -173,7 +188,9 @@ function World({ onUnauthorized }: { onUnauthorized: (message: string) => void }
 
   const channel = state.channels.find((candidate) => candidate.id === route.channel) ?? null;
   const channelMessages = channel ? state.messages : [];
-  const parent = route.thread ? channelMessages.find((message) => message.ts === route.thread) ?? null : null;
+  const parent = route.thread
+    ? (channelMessages.find((message) => message.ts === route.thread) ?? null)
+    : null;
 
   return (
     <>
@@ -195,7 +212,9 @@ function World({ onUnauthorized }: { onUnauthorized: (message: string) => void }
           }}
         />
         <main className="channel">
-          {error && <div className="banner">Live updates failed: {error}. Retrying every few seconds.</div>}
+          {error && (
+            <div className="banner">Live updates failed: {error}. Retrying every few seconds.</div>
+          )}
           {channel ? (
             <ChannelView
               key={channel.id}
@@ -210,7 +229,9 @@ function World({ onUnauthorized }: { onUnauthorized: (message: string) => void }
               upload={upload}
             />
           ) : (
-            <div className="empty">This world has no channels yet. Create one from the sidebar.</div>
+            <div className="empty">
+              This world has no channels yet. Create one from the sidebar.
+            </div>
           )}
         </main>
         {parent && channel && (
@@ -218,7 +239,9 @@ function World({ onUnauthorized }: { onUnauthorized: (message: string) => void }
             key={parent.ts}
             channel={channel}
             parent={parent}
-            replies={channelMessages.filter((message) => message.thread_ts === parent.ts && message.ts !== parent.ts)}
+            replies={channelMessages.filter(
+              (message) => message.thread_ts === parent.ts && message.ts !== parent.ts,
+            )}
             users={state.users}
             lookup={lookup}
             actor={actor}
@@ -247,7 +270,10 @@ function Sidebar(props: {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const clean = name.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
+    const clean = name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, "-");
     if (!clean) return;
     try {
       await props.onCreateChannel(clean);
@@ -267,20 +293,34 @@ function Sidebar(props: {
       </header>
       <div className="section-title">
         <span>Channels</span>
-        <button className="icon-button" title="Create a channel" onClick={() => setCreating((open) => !open)}>
+        <button
+          className="icon-button"
+          title="Create a channel"
+          onClick={() => setCreating((open) => !open)}
+        >
           +
         </button>
       </div>
       {creating && (
         <form className="create-channel" onSubmit={submit}>
-          <input autoFocus placeholder="channel-name" value={name} onChange={(event) => setName(event.target.value)} />
+          <input
+            autoFocus
+            placeholder="channel-name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+          />
           {createError && <p className="inline-error">{createError}</p>}
         </form>
       )}
       <ul className="channel-list">
         {props.state.channels.map((channel) => (
           <li key={channel.id}>
-            <button className={channel.id === props.activeChannel ? "channel-link active" : "channel-link"} onClick={() => props.onSelect(channel.id)}>
+            <button
+              className={
+                channel.id === props.activeChannel ? "channel-link active" : "channel-link"
+              }
+              onClick={() => props.onSelect(channel.id)}
+            >
               <span className="hash">{channel.is_private ? "🔒" : "#"}</span>
               {channel.name}
             </button>
@@ -302,7 +342,10 @@ function Sidebar(props: {
       <footer className="sidebar-footer">
         <label>
           <span>Acting as</span>
-          <select value={props.actor?.id ?? ""} onChange={(event) => props.onActorChange(event.target.value)}>
+          <select
+            value={props.actor?.id ?? ""}
+            onChange={(event) => props.onActorChange(event.target.value)}
+          >
             {props.humans.map((user) => (
               <option key={user.id} value={user.id}>
                 {user.real_name} (@{user.name})
@@ -324,7 +367,12 @@ function Avatar({ user, size }: { user: User | undefined; size: number }) {
   return (
     <span
       className={user?.is_bot ? "avatar bot" : "avatar"}
-      style={{ width: size, height: size, fontSize: size * 0.5, background: `hsl(${hue(user?.id ?? "?")} 45% 42%)` }}
+      style={{
+        width: size,
+        height: size,
+        fontSize: size * 0.5,
+        background: `hsl(${hue(user?.id ?? "?")} 45% 42%)`,
+      }}
     >
       {label}
     </span>
@@ -369,7 +417,10 @@ function ChannelView(props: {
               value=""
               onChange={async (event) => {
                 try {
-                  await props.act("conversations.invite", { channel: props.channel.id, users: event.target.value });
+                  await props.act("conversations.invite", {
+                    channel: props.channel.id,
+                    users: event.target.value,
+                  });
                   setInviteError(null);
                 } catch (caught) {
                   setInviteError(caught instanceof Error ? caught.message : String(caught));
@@ -388,8 +439,16 @@ function ChannelView(props: {
         </div>
       </header>
       {inviteError && <div className="banner">Couldn't add to channel: {inviteError}</div>}
-      <MessageList messages={topLevel} users={props.users} lookup={props.lookup} activeThread={props.openThread} onOpenThread={props.onOpenThread}>
-        <div className="empty">No messages in #{props.channel.name} yet. Say something, or @mention the app.</div>
+      <MessageList
+        messages={topLevel}
+        users={props.users}
+        lookup={props.lookup}
+        activeThread={props.openThread}
+        onOpenThread={props.onOpenThread}
+      >
+        <div className="empty">
+          No messages in #{props.channel.name} yet. Say something, or @mention the app.
+        </div>
       </MessageList>
       <Composer
         placeholder={`Message #${props.channel.name}`}
@@ -424,7 +483,12 @@ function ThreadPanel(props: {
           ×
         </button>
       </header>
-      <MessageList messages={[props.parent]} users={props.users} lookup={props.lookup} hideThreadSummary>
+      <MessageList
+        messages={[props.parent]}
+        users={props.users}
+        lookup={props.lookup}
+        hideThreadSummary
+      >
         {null}
       </MessageList>
       <div className="reply-divider">
@@ -437,7 +501,13 @@ function ThreadPanel(props: {
         placeholder="Reply…"
         users={props.users}
         actor={props.actor}
-        onSend={(text) => props.act("chat.postMessage", { channel: props.channel.id, thread_ts: props.parent.ts, text })}
+        onSend={(text) =>
+          props.act("chat.postMessage", {
+            channel: props.channel.id,
+            thread_ts: props.parent.ts,
+            text,
+          })
+        }
         onUpload={(text, file) => props.upload(props.channel.id, props.parent.ts, text, file)}
       />
     </aside>
@@ -513,7 +583,13 @@ function MessageRow(props: {
   const name = user?.real_name ?? message.bot_name ?? message.user;
   return (
     <div className={`message${props.grouped ? " grouped" : ""}${props.active ? " active" : ""}`}>
-      <div className="gutter">{props.grouped ? <span className="hover-time">{formatTime(message.ts)}</span> : <Avatar user={user} size={36} />}</div>
+      <div className="gutter">
+        {props.grouped ? (
+          <span className="hover-time">{formatTime(message.ts)}</span>
+        ) : (
+          <Avatar user={user} size={36} />
+        )}
+      </div>
       <div className="body">
         {!props.grouped && (
           <div className="meta">
@@ -530,7 +606,11 @@ function MessageRow(props: {
         {message.reactions.length > 0 && (
           <div className="reactions">
             {message.reactions.map((reaction) => (
-              <span key={reaction.name} className="reaction" title={reaction.users.map(props.lookup.userName).join(", ")}>
+              <span
+                key={reaction.name}
+                className="reaction"
+                title={reaction.users.map(props.lookup.userName).join(", ")}
+              >
                 <Emoji name={reaction.name} /> {reaction.count}
               </span>
             ))}
@@ -565,7 +645,8 @@ function useFileUrl(fileId: string | undefined) {
     let live = true;
     fileObjectUrl(fileId).then(
       (url) => live && setState({ url }),
-      (caught: unknown) => live && setState({ error: caught instanceof Error ? caught.message : String(caught) }),
+      (caught: unknown) =>
+        live && setState({ error: caught instanceof Error ? caught.message : String(caught) }),
     );
     return () => {
       live = false;
@@ -574,16 +655,38 @@ function useFileUrl(fileId: string | undefined) {
   return state;
 }
 
-function SlackImage({ fileId, url, alt, file }: { fileId?: string; url?: string; alt: string; file?: FileRef }) {
+function SlackImage({
+  fileId,
+  url,
+  alt,
+  file,
+}: {
+  fileId?: string;
+  url?: string;
+  alt: string;
+  file?: FileRef;
+}) {
   const loaded = useFileUrl(fileId);
   const [broken, setBroken] = useState(false);
-  if (broken) return file ? <FileChip file={file} /> : <span className="inline-error">Couldn't show image {alt}</span>;
-  if (url) return <img className="attachment-image" src={url} alt={alt} onError={() => setBroken(true)} />;
+  if (broken)
+    return file ? (
+      <FileChip file={file} />
+    ) : (
+      <span className="inline-error">Couldn't show image {alt}</span>
+    );
+  if (url)
+    return <img className="attachment-image" src={url} alt={alt} onError={() => setBroken(true)} />;
   if (!loaded) return <span className="skeleton attachment-image-skeleton" />;
-  if ("error" in loaded) return <span className="inline-error">Couldn't load image: {loaded.error}</span>;
+  if ("error" in loaded)
+    return <span className="inline-error">Couldn't load image: {loaded.error}</span>;
   return (
     <a href={loaded.url} target="_blank" rel="noreferrer">
-      <img className="attachment-image" src={loaded.url} alt={alt} onError={() => setBroken(true)} />
+      <img
+        className="attachment-image"
+        src={loaded.url}
+        alt={alt}
+        onError={() => setBroken(true)}
+      />
     </a>
   );
 }
@@ -602,10 +705,14 @@ function FileChip({ file }: { file: FileRef }) {
         }
       }}
     >
-      <span className="file-icon">{file.name.split(".").pop()?.slice(0, 4).toUpperCase() || "FILE"}</span>
+      <span className="file-icon">
+        {file.name.split(".").pop()?.slice(0, 4).toUpperCase() || "FILE"}
+      </span>
       <span className="file-meta">
         <span className="file-name">{file.name}</span>
-        <span className="file-size">{error ? `Couldn't open: ${error}` : formatSize(file.size)}</span>
+        <span className="file-size">
+          {error ? `Couldn't open: ${error}` : formatSize(file.size)}
+        </span>
       </span>
     </button>
   );
@@ -614,7 +721,9 @@ function FileChip({ file }: { file: FileRef }) {
 function Attachments({ files, images }: { files: FileRef[]; images: ImageRef[] }) {
   const imageFiles = files.filter((file) => file.mimetype.startsWith("image/"));
   const otherFiles = files.filter((file) => !file.mimetype.startsWith("image/"));
-  const blockImages = images.filter((image) => !image.file_id || !files.some((file) => file.id === image.file_id));
+  const blockImages = images.filter(
+    (image) => !image.file_id || !files.some((file) => file.id === image.file_id),
+  );
   if (imageFiles.length + otherFiles.length + blockImages.length === 0) return null;
   return (
     <div className="attachments">
@@ -622,7 +731,12 @@ function Attachments({ files, images }: { files: FileRef[]; images: ImageRef[] }
         <SlackImage key={file.id} fileId={file.id} alt={file.name} file={file} />
       ))}
       {blockImages.map((image, index) => (
-        <SlackImage key={image.file_id ?? image.url ?? index} fileId={image.file_id} url={image.url} alt={image.alt} />
+        <SlackImage
+          key={image.file_id ?? image.url ?? index}
+          fileId={image.file_id}
+          url={image.url}
+          alt={image.alt}
+        />
       ))}
       {otherFiles.map((file) => (
         <FileChip key={file.id} file={file} />
@@ -649,7 +763,11 @@ function Composer(props: {
 
   const query = /(?:^|\s)@([\w.-]*)$/.exec(text)?.[1];
   const suggestions =
-    query === undefined ? [] : props.users.filter((user) => user.name.toLowerCase().startsWith(query.toLowerCase())).slice(0, 6);
+    query === undefined
+      ? []
+      : props.users
+          .filter((user) => user.name.toLowerCase().startsWith(query.toLowerCase()))
+          .slice(0, 6);
   const canSend = Boolean(text.trim() || file) && !sending && Boolean(props.actor);
 
   function complete(user: User) {
@@ -679,7 +797,10 @@ function Composer(props: {
   function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (suggestions.length > 0 && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
       event.preventDefault();
-      setHighlight((index) => (index + (event.key === "ArrowDown" ? 1 : suggestions.length - 1)) % suggestions.length);
+      setHighlight(
+        (index) =>
+          (index + (event.key === "ArrowDown" ? 1 : suggestions.length - 1)) % suggestions.length,
+      );
       return;
     }
     if (suggestions.length > 0 && (event.key === "Tab" || event.key === "Enter")) {
@@ -689,7 +810,7 @@ function Composer(props: {
     }
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      send();
+      void send();
     }
   }
 
@@ -714,7 +835,11 @@ function Composer(props: {
           {suggestions.map((user, index) => (
             <li key={user.id}>
               <button
-                className={index === Math.min(highlight, suggestions.length - 1) ? "suggestion active" : "suggestion"}
+                className={
+                  index === Math.min(highlight, suggestions.length - 1)
+                    ? "suggestion active"
+                    : "suggestion"
+                }
                 onMouseDown={(event) => {
                   event.preventDefault();
                   complete(user);
@@ -740,7 +865,9 @@ function Composer(props: {
       >
         {file && (
           <div className="pending-file">
-            <span className="file-icon">{file.name.split(".").pop()?.slice(0, 4).toUpperCase() || "FILE"}</span>
+            <span className="file-icon">
+              {file.name.split(".").pop()?.slice(0, 4).toUpperCase() || "FILE"}
+            </span>
             <span className="file-meta">
               <span className="file-name">{file.name}</span>
               <span className="file-size">{formatSize(file.size)}</span>
@@ -764,7 +891,11 @@ function Composer(props: {
         />
         <div className="composer-footer">
           <span className="composer-tools">
-            <button className="attach" title="Attach a file (or paste / drop one)" onClick={() => picker.current?.click()}>
+            <button
+              className="attach"
+              title="Attach a file (or paste / drop one)"
+              onClick={() => picker.current?.click()}
+            >
               Attach
             </button>
             <input

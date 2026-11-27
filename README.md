@@ -52,11 +52,11 @@ WORLDS_API_KEY=wk_live_… node scripts/create-world.mjs specs/empirical-preview
 
 Every world has a Jira Cloud site, written for this repo (emulate has no Jira) in `services/jira`. Like Atlassian it answers on three hosts:
 
-| Atlassian | World host | Serves |
-|---|---|---|
-| `auth.atlassian.com` | `{id}-jira-auth.makeworlds.dev` | `/authorize` (consent page: pick the user), `/oauth/token` (authorization_code, rotating refresh tokens with a 10-minute reuse window) |
-| `api.atlassian.com` | `{id}-jira-api.makeworlds.dev` | `/oauth/token/accessible-resources`, `/ex/jira/{cloudId}/rest/api/3/…`: `GET issue/{key}`, `POST issue/{key}/comment` (ADF), `GET user?accountId=`, `GET myself`, `GET/POST/DELETE webhook`, `PUT webhook/refresh` |
-| `{site}.atlassian.net` | `{id}-jira.makeworlds.dev` | the site URL in `issue.self` and webhooks; `/` and `/browse/{key}` for the world's team; `/rest/*` refuses OAuth tokens |
+| Atlassian              | World host                      | Serves                                                                                                                                                                                                             |
+| ---------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `auth.atlassian.com`   | `{id}-jira-auth.makeworlds.dev` | `/authorize` (consent page: pick the user), `/oauth/token` (authorization_code, rotating refresh tokens with a 10-minute reuse window)                                                                             |
+| `api.atlassian.com`    | `{id}-jira-api.makeworlds.dev`  | `/oauth/token/accessible-resources`, `/ex/jira/{cloudId}/rest/api/3/…`: `GET issue/{key}`, `POST issue/{key}/comment` (ADF), `GET user?accountId=`, `GET myself`, `GET/POST/DELETE webhook`, `PUT webhook/refresh` |
+| `{site}.atlassian.net` | `{id}-jira.makeworlds.dev`      | the site URL in `issue.self` and webhooks; `/` and `/browse/{key}` for the world's team; `/rest/*` refuses OAuth tokens                                                                                            |
 
 - The spec (`POST /api/worlds` with `jira: { site, users, projects, issues, apps }`) seeds once. Apps are OAuth 2.0 (3LO) integrations: `name`, `callback_urls` (`*` matches one host label), `scopes`, optional pinned `credentials`. The cloud id is a random UUID per world unless pinned.
 - REST responses are v3 (ADF descriptions and comments); webhook payloads are v2 (plain-text bodies), like Jira's.

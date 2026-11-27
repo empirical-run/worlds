@@ -11,7 +11,14 @@ const JWT_LIFETIME_S = 180;
 
 export type DeliveryTarget = { url: string; clientId: string; accountId: string; cloudId: string };
 
-type Pending = DeliveryTarget & { id: number; identifier: string; event: string; body: string; retry: number; dueAt: number };
+type Pending = DeliveryTarget & {
+  id: number;
+  identifier: string;
+  event: string;
+  body: string;
+  retry: number;
+  dueAt: number;
+};
 
 export type DeliveryLog = {
   id: number;
@@ -51,7 +58,9 @@ export class JiraDelivery {
 
   async run(): Promise<void> {
     const now = Date.now();
-    const due = [...(await this.storage.list<Pending>({ prefix: PENDING_PREFIX })).entries()].filter(([, pending]) => pending.dueAt <= now);
+    const due = [
+      ...(await this.storage.list<Pending>({ prefix: PENDING_PREFIX })).entries(),
+    ].filter(([, pending]) => pending.dueAt <= now);
     await Promise.all(due.map(([key, pending]) => this.attempt(key, pending)));
   }
 
@@ -89,7 +98,8 @@ export class JiraDelivery {
       status = response.status;
       await response.body?.cancel();
     } catch (caught) {
-      error = caught instanceof Error && caught.name === "TimeoutError" ? "timeout" : "connection_failed";
+      error =
+        caught instanceof Error && caught.name === "TimeoutError" ? "timeout" : "connection_failed";
     }
     await this.record({
       id: await this.nextId(),
@@ -104,7 +114,11 @@ export class JiraDelivery {
     });
     const retryable = status === null || status >= 500 || RETRIED_STATUSES.has(status);
     if (retryable && pending.retry < MAX_RETRIES) {
-      await this.storage.put<Pending>(key, { ...pending, retry: pending.retry + 1, dueAt: Date.now() + RETRY_MIN_MS + Math.random() * RETRY_SPREAD_MS });
+      await this.storage.put<Pending>(key, {
+        ...pending,
+        retry: pending.retry + 1,
+        dueAt: Date.now() + RETRY_MIN_MS + Math.random() * RETRY_SPREAD_MS,
+      });
     } else {
       await this.storage.delete(key);
     }
@@ -113,7 +127,8 @@ export class JiraDelivery {
   private async record(entry: DeliveryLog): Promise<void> {
     await this.storage.put(`${LOG_PREFIX}${String(entry.id).padStart(12, "0")}`, entry);
     const keys = [...(await this.storage.list({ prefix: LOG_PREFIX })).keys()];
-    if (keys.length > MAX_LOGGED) await this.storage.delete(keys.slice(0, keys.length - MAX_LOGGED));
+    if (keys.length > MAX_LOGGED)
+      await this.storage.delete(keys.slice(0, keys.length - MAX_LOGGED));
   }
 
   private async nextId(): Promise<number> {
@@ -133,11 +148,22 @@ async function webhookJwt(secret: string, pending: Pending): Promise<string> {
     iat: now,
     exp: now + JWT_LIFETIME_S,
   })}`;
-  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const signature = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(unsigned)));
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = new Uint8Array(
+    await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(unsigned)),
+  );
   return `${unsigned}.${base64Url(signature)}`;
 }
 
 function base64Url(bytes: Uint8Array): string {
-  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }

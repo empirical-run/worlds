@@ -3,6 +3,7 @@ import type { JiraSpec, JiraState } from "@worlds/jira/spec";
 import { SlackService } from "@worlds/slack/service";
 import type { SlackSpec, SlackState } from "@worlds/slack/spec";
 import { DurableObject } from "cloudflare:workers";
+
 import type { Env } from "./env";
 import { jiraOrigins } from "./origins";
 
@@ -34,7 +35,9 @@ export class World extends DurableObject<Env> {
     const worldId = await this.ctx.storage.get<string>(WORLD_ID_KEY);
     await this.slack().alarm();
     await this.jira().alarm(worldId ? jiraOrigins(this.env, worldId) : null);
-    const due = [await this.slack().nextDue(), await this.jira().nextDue()].filter((value): value is number => value !== null);
+    const due = [await this.slack().nextDue(), await this.jira().nextDue()].filter(
+      (value): value is number => value !== null,
+    );
     if (due.length) await this.ctx.storage.setAlarm(Math.min(...due));
   }
 
@@ -61,7 +64,8 @@ export class World extends DurableObject<Env> {
   }
 
   private async rememberWorldId(worldId: string): Promise<void> {
-    if ((await this.ctx.storage.get<string>(WORLD_ID_KEY)) !== worldId) await this.ctx.storage.put(WORLD_ID_KEY, worldId);
+    if ((await this.ctx.storage.get<string>(WORLD_ID_KEY)) !== worldId)
+      await this.ctx.storage.put(WORLD_ID_KEY, worldId);
   }
 
   private slack(): SlackService {

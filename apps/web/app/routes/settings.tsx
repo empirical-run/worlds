@@ -1,8 +1,9 @@
 import { API_KEY_NAME_MAX, TEAM_NAME_MAX } from "@worlds/db";
 import type { ApiKey } from "makeworlds";
 import { Form, useNavigation } from "react-router";
+
 import { requireAccount } from "../account.server";
-import { actionData, api, orThrow } from "../api.server";
+import { actionData, api, formText, orThrow } from "../api.server";
 import { ActionError, type ActionResult, dateFormat, useSubmitting } from "../components/forms";
 import type { Route } from "./+types/settings";
 
@@ -11,32 +12,50 @@ export const meta = () => [{ title: "Settings · Worlds" }, { name: "robots", co
 export async function loader({ request, context }: Route.LoaderArgs) {
   const account = requireAccount(context, request);
   const teamId = account.team.id;
-  const { api_keys: keys } = orThrow(await api(context, request).GET("/api/teams/{teamId}/api-keys", { params: { path: { teamId } } }));
+  const { api_keys: keys } = orThrow(
+    await api(context, request).GET("/api/teams/{teamId}/api-keys", {
+      params: { path: { teamId } },
+    }),
+  );
   return { team: { id: account.team.id, name: account.team.name }, role: account.role, keys };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
   const account = requireAccount(context, request);
   const form = await request.formData();
-  const intent = String(form.get("intent"));
+  const intent = formText(form, "intent");
   const client = api(context, request);
   const teamId = account.team.id;
   if (intent === "rename-team") {
-    const result = await client.PATCH("/api/teams/{teamId}", { params: { path: { teamId } }, body: { name: String(form.get("name") ?? "") } });
+    const result = await client.PATCH("/api/teams/{teamId}", {
+      params: { path: { teamId } },
+      body: { name: formText(form, "name") },
+    });
     return actionData(intent, result, () => ({ saved: true }));
   }
   if (intent === "create-key") {
-    const result = await client.POST("/api/teams/{teamId}/api-keys", { params: { path: { teamId } }, body: { name: String(form.get("name") ?? "") } });
+    const result = await client.POST("/api/teams/{teamId}/api-keys", {
+      params: { path: { teamId } },
+      body: { name: formText(form, "name") },
+    });
     return actionData(intent, result, (key) => ({ secret: key.secret }));
   }
   if (intent === "revoke-key") {
-    const keyId = String(form.get("keyId"));
-    return actionData(intent, await client.DELETE("/api/teams/{teamId}/api-keys/{keyId}", { params: { path: { teamId, keyId } } }));
+    const keyId = formText(form, "keyId");
+    return actionData(
+      intent,
+      await client.DELETE("/api/teams/{teamId}/api-keys/{keyId}", {
+        params: { path: { teamId, keyId } },
+      }),
+    );
   }
   throw new Response("Unknown action.", { status: 400 });
 }
 
-export default function Settings({ loaderData: { team, role, keys }, actionData }: Route.ComponentProps) {
+export default function Settings({
+  loaderData: { team, role, keys },
+  actionData,
+}: Route.ComponentProps) {
   return (
     <article>
       <header className="section hero">
@@ -49,7 +68,10 @@ export default function Settings({ loaderData: { team, role, keys }, actionData 
       <section className="section" id="team">
         <h2>Team name</h2>
         {role === "owner" ? (
-          <TeamNameForm name={team.name} result={actionData?.intent === "rename-team" ? actionData : undefined} />
+          <TeamNameForm
+            name={team.name}
+            result={actionData?.intent === "rename-team" ? actionData : undefined}
+          />
         ) : (
           <p>
             <strong>{team.name}</strong>. Only owners can rename the team.
@@ -60,8 +82,8 @@ export default function Settings({ loaderData: { team, role, keys }, actionData 
       <section className="section" id="keys">
         <h2>API keys</h2>
         <p>
-          Keys belong to your team. Send a key as <code>Authorization: Bearer &lt;key&gt;</code>. Keys are shown once and stored only as a
-          hash.
+          Keys belong to your team. Send a key as <code>Authorization: Bearer &lt;key&gt;</code>.
+          Keys are shown once and stored only as a hash.
         </p>
         {actionData?.secret && (
           <div className="notice" role="status">
@@ -73,7 +95,10 @@ export default function Settings({ loaderData: { team, role, keys }, actionData 
             </pre>
           </div>
         )}
-        <CreateKeyForm key={actionData?.secret} error={actionData?.intent === "create-key" ? actionData.error : undefined} />
+        <CreateKeyForm
+          key={actionData?.secret}
+          error={actionData?.intent === "create-key" ? actionData.error : undefined}
+        />
         <ActionError result={actionData} intent="revoke-key" />
         {keys.length ? <KeyTable keys={keys} /> : <p className="empty">No API keys yet.</p>}
       </section>
@@ -87,7 +112,14 @@ function TeamNameForm({ name, result }: { name: string; result?: ActionResult })
     <Form className="inline-form" method="post" key={name}>
       <input type="hidden" name="intent" value="rename-team" />
       <label htmlFor="team-name">Name</label>
-      <input id="team-name" name="name" required maxLength={TEAM_NAME_MAX} defaultValue={name} autoComplete="off" />
+      <input
+        id="team-name"
+        name="name"
+        required
+        maxLength={TEAM_NAME_MAX}
+        defaultValue={name}
+        autoComplete="off"
+      />
       <button className="button" type="submit" disabled={submitting}>
         Save
       </button>
@@ -106,7 +138,14 @@ function CreateKeyForm({ error }: { error?: string }) {
     <Form className="inline-form" method="post">
       <input type="hidden" name="intent" value="create-key" />
       <label htmlFor="key-name">Name</label>
-      <input id="key-name" name="name" required maxLength={API_KEY_NAME_MAX} placeholder="CI" autoComplete="off" />
+      <input
+        id="key-name"
+        name="name"
+        required
+        maxLength={API_KEY_NAME_MAX}
+        placeholder="CI"
+        autoComplete="off"
+      />
       <button className="button primary" type="submit" disabled={submitting}>
         Create key
       </button>
@@ -121,7 +160,8 @@ function CreateKeyForm({ error }: { error?: string }) {
 
 function KeyTable({ keys }: { keys: ApiKey[] }) {
   const navigation = useNavigation();
-  const revoking = navigation.formData?.get("intent") === "revoke-key" ? navigation.formData.get("keyId") : null;
+  const revoking =
+    navigation.formData?.get("intent") === "revoke-key" ? navigation.formData.get("keyId") : null;
   return (
     <table className="keys">
       <thead>
