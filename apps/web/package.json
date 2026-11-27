@@ -10,6 +10,7 @@
   "dependencies": {
     "@pierre/highlights": "0.6.0",
     "@worlds/db": "workspace:*",
+    "@worlds/services": "workspace:*",
     "isbot": "^5.2.4",
     "makeworlds": "workspace:*",
     "react": "^19.3.1",

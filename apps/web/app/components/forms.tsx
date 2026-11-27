@@ -1,4 +1,4 @@
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { Form, useNavigation } from "react-router";
 
 import { Button, type ButtonVariant, TextButton } from "./Button";
@@ -62,6 +62,7 @@ export function InlineTextForm({
   variant,
   result,
   successMessage,
+  children,
 }: {
   intent: string;
   label: string;
@@ -70,6 +71,7 @@ export function InlineTextForm({
   variant?: ButtonVariant;
   result?: ActionResult;
   successMessage?: string;
+  children?: ReactNode;
 }) {
   const submitting = useSubmitting(intent);
   const status = !submitting && result?.intent === intent ? result : undefined;
@@ -78,6 +80,7 @@ export function InlineTextForm({
       <input type="hidden" name="intent" value={intent} />
       <label htmlFor={input.id}>{label}</label>
       <input className="input" autoComplete="off" {...input} />
+      {children}
       <Button variant={variant} type="submit" disabled={submitting}>
         {submitLabel}
       </Button>

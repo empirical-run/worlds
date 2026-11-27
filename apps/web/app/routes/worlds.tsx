@@ -1,4 +1,5 @@
 import { WORLD_NAME_MAX } from "@worlds/db";
+import { SERVICES, starterSpecs } from "@worlds/services";
 import type { World } from "makeworlds";
 
 import { requireAccount } from "../account.server";
@@ -12,7 +13,10 @@ export const meta = () => [{ title: "Worlds · Worlds" }, { name: "robots", cont
 export async function loader({ request, context }: Route.LoaderArgs) {
   const account = requireAccount(context, request);
   const { worlds } = orThrow(await api(context, request).GET("/api/worlds"));
-  return { worlds: worlds.filter((world) => world.team_id === account.team.id) };
+  return {
+    worlds: worlds.filter((world) => world.team_id === account.team.id),
+    services: SERVICES.map(({ name, title }) => ({ name, title })),
+  };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -21,7 +25,10 @@ export async function action({ request, context }: Route.ActionArgs) {
   const intent = formText(form, "intent");
   if (intent === "create-world") {
     const name = formText(form, "name").trim();
-    const result = await api(context, request).POST("/api/worlds", { body: name ? { name } : {} });
+    const services = form.getAll("service").filter((value) => typeof value === "string");
+    const result = await api(context, request).POST("/api/worlds", {
+      body: { ...(name ? { name } : {}), ...starterSpecs(services) },
+    });
     return actionData(intent, result, (world) => ({ createdWorld: world.id }));
   }
   if (intent === "archive-world") {
@@ -36,7 +43,10 @@ export async function action({ request, context }: Route.ActionArgs) {
   throw new Response("Unknown action.", { status: 400 });
 }
 
-export default function Worlds({ loaderData: { worlds }, actionData }: Route.ComponentProps) {
+export default function Worlds({
+  loaderData: { worlds, services },
+  actionData,
+}: Route.ComponentProps) {
   return (
     <article>
       <header className="section hero">
@@ -60,7 +70,17 @@ export default function Worlds({ loaderData: { worlds }, actionData }: Route.Com
           submitLabel="Create world"
           variant="primary"
           result={actionData}
-        />
+        >
+          <fieldset className="service-picker">
+            <legend className="visually-hidden">Services</legend>
+            {services.map((service) => (
+              <label key={service.name}>
+                <input type="checkbox" name="service" value={service.name} defaultChecked />
+                {service.title}
+              </label>
+            ))}
+          </fieldset>
+        </InlineTextForm>
         <ActionError result={actionData} intent="archive-world" />
         {worlds.length ? <WorldTable worlds={worlds} /> : <p className="empty">No worlds yet.</p>}
       </section>
@@ -70,11 +90,20 @@ export default function Worlds({ loaderData: { worlds }, actionData }: Route.Com
 
 function WorldTable({ worlds }: { worlds: World[] }) {
   return (
-    <DataTable columns={["Name", "Id", "Created"]}>
+    <DataTable columns={["Name", "Services", "Id", "Created"]}>
       {worlds.map((world) => (
         <tr key={world.id}>
           <td>
             <a href={world.ui_url}>{world.name}</a>
+          </td>
+          <td>
+            <ul className="world-services">
+              {world.services.map((service) => (
+                <li key={service.name}>
+                  <a href={service.ui_url}>{service.title}</a>
+                </li>
+              ))}
+            </ul>
           </td>
           <td>
             <code>{world.id}</code>

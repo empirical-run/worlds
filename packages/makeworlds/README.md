@@ -12,6 +12,7 @@ import { createClient, type SlackSpec } from "makeworlds";
 const worlds = createClient({ apiKey: process.env.WORLDS_API_KEY });
 
 const slack: SlackSpec = {
+  team: { name: "Acme", domain: "acme" },
   users: [{ name: "alice" }, { name: "bob" }],
   channels: [
     {
@@ -32,7 +33,7 @@ const slack: SlackSpec = {
           },
         },
       },
-      install: true,
+      install: { installer: "alice", channels: ["general"] },
     },
   ],
 };
@@ -42,8 +43,8 @@ const { data: world, error } = await worlds.POST("/api/worlds", {
 });
 if (error) throw new Error(error.error.message);
 
-world.slack.api_url;
-world.slack.spec.apps[0].install?.bot_token;
+world.slack?.api_url;
+world.slack?.spec.apps[0]?.install?.bot_token;
 
 await worlds.POST("/api/worlds/{worldId}/archive", { params: { path: { worldId: world.id } } });
 ```
@@ -54,7 +55,11 @@ await worlds.POST("/api/worlds/{worldId}/archive", { params: { path: { worldId: 
 
 The `/_worlds/*` routes act inside a world, on its own hosts: post as a Slack user, share files, create and change Jira issues. Point a client at the world's host:
 
+A world has only the services it was created with; the others are `null` on the world.
+
 ```ts
+if (!world.slack || !world.jira) throw new Error("This world needs Slack and Jira.");
+
 const slack = createClient({ apiKey: process.env.WORLDS_API_KEY, baseUrl: world.slack.ui_url });
 const general = world.slack.spec.channels[0].id;
 await slack.POST("/_worlds/slack/act", {
@@ -67,7 +72,7 @@ await jira.POST("/_worlds/jira/issues", { body: { user: "alice", summary: "Check
 
 ## Types
 
-Every schema in the API has a type: `WorldCreate` (the `POST /api/worlds` body), `SlackSpec`, `SlackUserSpec`, `SlackChannelSpec`, `SlackMessageSpec`, `SlackAppSpec`, `SlackInstallSpec`, `SlackCredentials`, `SlackState` (a spec with everything generated filled in), `JiraSpec`, `JiraState`, `JiraIssue`, `SlackWorldState`, `World`, `WorldCreated`, `WorldSpec`, `Team`, `TeamDetail`, `Member`, `ApiKey`, `ApiKeyCreated` and `ApiError`. `paths` and `components` are exported for anything else.
+Every schema in the API has a type: `WorldCreate` (the `POST /api/worlds` body), `SlackSpec`, `SlackUserSpec`, `SlackChannelSpec`, `SlackMessageSpec`, `SlackAppSpec`, `SlackInstallSpec`, `SlackCredentials`, `SlackState` (a spec with everything generated filled in), `JiraSpec`, `JiraState`, `JiraIssue`, `SlackWorldState`, `World`, `WorldService`, `WorldCreated`, `WorldSpec`, `Team`, `TeamDetail`, `Member`, `ApiKey`, `ApiKeyCreated` and `ApiError`. `paths` and `components` are exported for anything else.
 
 The OpenAPI document is included as `makeworlds/openapi.json`.
 

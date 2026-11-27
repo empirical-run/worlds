@@ -66,12 +66,13 @@ export class World extends DurableObject<Env> {
     await this.ctx.storage.deleteAlarm();
   }
 
-  private setupService<Name extends ServiceName>(
+  private async setupService<Name extends ServiceName>(
     name: Name,
     specs: WorldSpecs,
     world: WorldContext,
-  ): Promise<ServiceState<Name>> {
-    return this.services()[name].setup(specs[name], world);
+  ): Promise<ServiceState<Name> | null> {
+    const spec = specs[name];
+    return spec === undefined ? null : this.services()[name].setup(spec, world);
   }
 
   private world(worldId: string): WorldContext {

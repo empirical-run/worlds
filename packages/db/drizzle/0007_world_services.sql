@@ -1,0 +1,1 @@
+ALTER TABLE `worlds` ADD `services` text DEFAULT '["slack","jira"]' NOT NULL;

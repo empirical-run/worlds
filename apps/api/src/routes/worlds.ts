@@ -8,7 +8,14 @@ import {
   worldHost,
   type World,
 } from "@worlds/db";
-import { serviceTitles, specProblems, withSpecs, worldUiUrl, worldUrls } from "@worlds/services";
+import {
+  serviceTitles,
+  specifiedServices,
+  specProblems,
+  withSpecs,
+  worldServices,
+  worldUrls,
+} from "@worlds/services";
 
 import type { AppEnv } from "../context";
 import {
@@ -39,17 +46,17 @@ const createWorldRoute = createRoute({
   path: "/api/worlds",
   tags: ["Worlds"],
   summary: "Create a world",
-  description: `A new world with its own ${serviceTitles("and")}. Point your app at the returned URLs.`,
+  description: `A new world with a spec for each service it should have (${serviceTitles("and")}). Point your app at the returned URLs.`,
   security,
   request: {
-    body: { required: false, content: { "application/json": { schema: WorldCreateSchema } } },
+    body: { required: true, content: { "application/json": { schema: WorldCreateSchema } } },
   },
   responses: {
     201: jsonResponse(
       "The new world, with each service's effective spec (generated ids, credentials and tokens filled in)",
       WorldCreatedSchema,
     ),
-    400: errorResponse(`Invalid name, or an invalid ${serviceTitles("or")} spec`),
+    400: errorResponse(`Invalid name, no service spec, or an invalid ${serviceTitles("or")} spec`),
     401: errorResponse("Missing or invalid credentials"),
     404: errorResponse("You are not in any team"),
   },
@@ -102,13 +109,17 @@ const archiveWorldRoute = createRoute({
 });
 
 function worldJson(world: World, domain: string) {
+  const services = worldServices(origins(world, domain), world.services);
+  const [mainUi] = services;
+  if (!mainUi) throw new Error(`world ${world.id} has no services`);
   return {
     id: world.id,
     name: world.name,
     team_id: world.teamId,
     created_by: world.createdBy,
-    ui_url: worldUiUrl(origins(world, domain)),
-    ...worldUrls(origins(world, domain)),
+    ui_url: mainUi.ui_url,
+    services,
+    ...worldUrls(origins(world, domain), world.services),
     created_at: world.createdAt.toISOString(),
     updated_at: world.updatedAt.toISOString(),
   };
@@ -119,6 +130,8 @@ function origins(world: World, domain: string) {
 }
 
 const NOT_VISIBLE = "No world with that id is visible to you.";
+
+const NO_SERVICE = `A world needs a ${serviceTitles("or")} spec.`;
 
 export const worlds = new OpenAPIHono<AppEnv>()
   .openapi(listWorldsRoute, async (c) => {
@@ -131,16 +144,24 @@ export const worlds = new OpenAPIHono<AppEnv>()
   })
   .openapi(createWorldRoute, async (c) => {
     const { caller, db } = c.var;
-    const body = c.req.valid("json") ?? {};
+    const body = c.req.valid("json");
     const [target] = await accessibleTeams(db, caller);
     if (!target) return c.json(apiError("not_found", "You are not in any team."), 404);
     const { name, ...specs } = body;
+    const services = specifiedServices(specs);
+    if (!services.length) return c.json(apiError("invalid_request", NO_SERVICE), 400);
     const problem = specProblems(specs)[0];
     if (problem) return c.json(apiError("invalid_request", problem), 400);
     const createdBy = caller.kind === "user" ? caller.user.id : null;
-    const world = await createWorld(db, target.team.id, createdBy, name ?? "Untitled world");
+    const world = await createWorld(
+      db,
+      target.team.id,
+      createdBy,
+      name ?? "Untitled world",
+      services,
+    );
     const states = await c.env.WORLDS.setup(world.id, specs);
-    const urls = worldUrls(origins(world, c.env.WORLDS_DOMAIN));
+    const urls = worldUrls(origins(world, c.env.WORLDS_DOMAIN), world.services);
     return c.json({ ...worldJson(world, c.env.WORLDS_DOMAIN), ...withSpecs(urls, states) }, 201);
   })
   .openapi(getWorldRoute, async (c) => {

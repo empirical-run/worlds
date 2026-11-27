@@ -44,7 +44,7 @@ const JiraProjectSpecSchema = z
         error: "project keys are 2-10 uppercase letters and digits, starting with a letter",
       })
       .openapi({ example: "WRLD" }),
-    name: z.string().max(80).optional().openapi({ example: "Worlds" }),
+    name: z.string().trim().min(1).max(80).openapi({ example: "Worlds" }),
   })
   .openapi("JiraProjectSpec");
 
@@ -68,7 +68,7 @@ const JiraIssueSpecSchema = z
     description: z.string().max(32_000).optional(),
     labels: labels.optional(),
     status: status.optional(),
-    reporter: userRef.optional(),
+    reporter: userRef,
     assignee: userRef.optional(),
     comments: z
       .array(z.object({ author: userRef, body: z.string().min(1).max(32_000) }))
@@ -93,10 +93,13 @@ const JiraAppSpecSchema = z
           "OAuth 2.0 (3LO) callback URLs. redirect_uri must equal one of them; a * in the host matches one label.",
         example: ["https://example.com/jira/callback"],
       }),
-    scopes: z.array(z.enum(JIRA_SCOPES)).min(1).optional().openapi({
-      description:
-        "Scopes the app may request (offline_access is always allowed). Defaults to read:jira-work write:jira-work read:jira-user manage:jira-webhook.",
-    }),
+    scopes: z
+      .array(z.enum(JIRA_SCOPES))
+      .min(1)
+      .openapi({
+        description: "Scopes the app may request (offline_access is always allowed).",
+        example: ["read:jira-work", "write:jira-work", "read:jira-user", "manage:jira-webhook"],
+      }),
     credentials: JiraCredentialsSchema.partial().optional().openapi({
       description: "Pin the client id and secret, e.g. to match ones your app already has.",
     }),
@@ -105,15 +108,16 @@ const JiraAppSpecSchema = z
 
 export const JiraSpecSchema = z
   .object({
-    site: z
-      .object({
-        cloud_id: z.uuid().optional(),
-        name: z
-          .string()
-          .regex(/^[a-z0-9-]{1,40}$/)
-          .optional(),
-      })
-      .optional(),
+    site: z.object({
+      cloud_id: z.uuid().optional(),
+      name: z
+        .string()
+        .regex(/^[a-z0-9-]{1,40}$/)
+        .openapi({
+          description: "The site's subdomain. Users without an email get <name>@<site name>.test.",
+          example: "acme",
+        }),
+    }),
     users: z.array(JiraUserSpecSchema).max(200).optional(),
     projects: z.array(JiraProjectSpecSchema).max(50).optional(),
     issues: z.array(JiraIssueSpecSchema).max(500).optional().openapi({
@@ -123,7 +127,7 @@ export const JiraSpecSchema = z
   })
   .openapi("JiraSpec", {
     description:
-      "Everything in the world's Jira site. Omitted ids and credentials are generated. Without a spec the site has one user (alice) and project WRLD.",
+      "Everything in the world's Jira site. Omitted ids and credentials are generated. Leave it out to create the world without Jira.",
   });
 
 export const JiraStateSchema = z
@@ -389,6 +393,11 @@ export const jira = defineService({
   state: JiraStateSchema,
   urls: JiraUrlsSchema,
   specProblems: jiraSpecProblems,
+  starter: {
+    site: { name: "acme" },
+    users: [{ name: "alice", display_name: "Alice Tester" }],
+    projects: [{ key: "ACME", name: "Acme" }],
+  },
   uiUrl: (origin) => origin("jira"),
   urlsFor: (origin) => ({
     site_url: origin("jira"),

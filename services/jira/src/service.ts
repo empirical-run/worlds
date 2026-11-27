@@ -13,13 +13,7 @@ import { JiraDelivery } from "./delivery";
 import { findUser, isAdf, type AccessToken, type Adf, type JiraData, type Origins } from "./model";
 import { consentPage, errorPage, issueListPage, issuePage } from "./pages";
 import { JiraSite, randomToken, textOrAdf, type IssuePatch } from "./site";
-import {
-  DEFAULT_JIRA_SPEC,
-  OFFLINE_ACCESS,
-  type IssueStatus,
-  type JiraSpec,
-  type JiraState,
-} from "./spec";
+import { OFFLINE_ACCESS, type IssueStatus, type JiraSpec, type JiraState } from "./spec";
 
 const STATE_KEY = "jira";
 const AUDIENCE = "api.atlassian.com";
@@ -32,6 +26,12 @@ const ISSUE_NOT_FOUND = {
 };
 
 type Env = { Variables: { site: JiraSite; token: AccessToken } };
+
+export class JiraNotSetUp extends Error {
+  constructor() {
+    super("jira_not_set_up");
+  }
+}
 
 export class JiraService {
   private site: JiraSite | null = null;
@@ -46,7 +46,7 @@ export class JiraService {
     this.apps = { jira: siteRoutes(), "jira-auth": authRoutes(), "jira-api": apiRoutes() };
   }
 
-  async setup(spec: JiraSpec | undefined, origins: Origins): Promise<JiraState> {
+  async setup(spec: JiraSpec, origins: Origins): Promise<JiraState> {
     return (await this.load(origins, spec)).state;
   }
 
@@ -79,15 +79,14 @@ export class JiraService {
   private async load(origins: Origins, spec?: JiraSpec): Promise<JiraSite> {
     if (this.site) return this.site;
     const saved = await this.storage.get<JiraData>(STATE_KEY);
-    this.site = new JiraSite(
-      saved ?? emptyData(spec ?? DEFAULT_JIRA_SPEC, origins),
-      origins,
-      this.delivery,
-    );
-    if (!saved) {
-      seedIssues(this.site, spec ?? DEFAULT_JIRA_SPEC);
-      await this.save();
+    if (saved) {
+      this.site = new JiraSite(saved, origins, this.delivery);
+      return this.site;
     }
+    if (!spec) throw new JiraNotSetUp();
+    this.site = new JiraSite(emptyData(spec, origins), origins, this.delivery);
+    seedIssues(this.site, spec);
+    await this.save();
     return this.site;
   }
 
@@ -101,32 +100,27 @@ function emptyData(spec: JiraSpec, origins: Origins): JiraData {
     account_id: user.account_id ?? `712020:${crypto.randomUUID()}`,
     name: user.name,
     display_name: user.display_name ?? user.name,
-    email: user.email ?? `${user.name}@${spec.site?.name ?? "worlds"}.test`,
+    email: user.email ?? `${user.name}@${spec.site.name}.test`,
     hide_email: user.hide_email ?? false,
   }));
   return {
     state: {
       site: {
-        cloud_id: spec.site?.cloud_id ?? crypto.randomUUID(),
-        name: spec.site?.name ?? "worlds",
+        cloud_id: spec.site.cloud_id ?? crypto.randomUUID(),
+        name: spec.site.name,
         url: origins.site,
       },
       users,
       projects: (spec.projects ?? []).map((project, index) => ({
         id: project.id ?? String(10000 + index),
         key: project.key,
-        name: project.name ?? project.key,
+        name: project.name,
       })),
       issues: [],
       apps: (spec.apps ?? []).map((app) => ({
         name: app.name,
         callback_urls: app.callback_urls,
-        scopes: app.scopes ?? [
-          "read:jira-work",
-          "write:jira-work",
-          "read:jira-user",
-          "manage:jira-webhook",
-        ],
+        scopes: app.scopes,
         credentials: {
           client_id: app.credentials?.client_id ?? randomToken(16),
           client_secret: app.credentials?.client_secret ?? randomToken(32),
@@ -143,24 +137,24 @@ function emptyData(spec: JiraSpec, origins: Origins): JiraData {
 }
 
 function seedIssues(site: JiraSite, spec: JiraSpec): void {
-  const accountId = (ref: string | undefined) =>
-    ref ? (findUser(site.state, ref)?.account_id ?? null) : null;
+  const accountId = (ref: string) => {
+    const user = findUser(site.state, ref);
+    if (!user) throw new Error(`jira spec: unknown user ${ref}`);
+    return user.account_id;
+  };
   for (const issueSpec of spec.issues ?? []) {
-    const issue = site.seedIssue(
-      accountId(issueSpec.reporter) ?? site.state.users[0]?.account_id ?? "",
-      {
-        project: issueSpec.project,
-        summary: issueSpec.summary,
-        description: textOrAdf(issueSpec.description),
-        labels: issueSpec.labels,
-        status: issueSpec.status,
-        assignee: accountId(issueSpec.assignee),
-      },
-    );
+    const issue = site.seedIssue(accountId(issueSpec.reporter), {
+      project: issueSpec.project,
+      summary: issueSpec.summary,
+      description: textOrAdf(issueSpec.description),
+      labels: issueSpec.labels,
+      status: issueSpec.status,
+      assignee: issueSpec.assignee ? accountId(issueSpec.assignee) : null,
+    });
     for (const comment of issueSpec.comments ?? [])
       site.seedComment(
         issue,
-        accountId(comment.author) ?? "",
+        accountId(comment.author),
         textOrAdf(comment.body) ?? { type: "doc", version: 1, content: [] },
       );
     site.state.issues.push({ ...issueSpec, key: issue.key });

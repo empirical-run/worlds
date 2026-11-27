@@ -24,9 +24,9 @@ export function seedWorkspace(store: Store, spec: SlackSpec): Omit<SlackState, "
   const slack = getSlackStore(store);
   const now = Math.floor(Date.now() / 1000);
   const team = {
-    id: spec.team?.id ?? slackId("T"),
-    name: spec.team?.name ?? "Worlds",
-    domain: spec.team?.domain ?? "worlds",
+    id: spec.team.id ?? slackId("T"),
+    name: spec.team.name,
+    domain: spec.team.domain,
   };
   slack.teams.insert({ team_id: team.id, name: team.name, domain: team.domain });
 
@@ -76,19 +76,17 @@ export function seedWorkspace(store: Store, spec: SlackSpec): Omit<SlackState, "
     }
   }
 
-  const userIdFor = (ref: string) => users.find((user) => user.name === ref || user.id === ref)?.id;
-  const creator = users[0]?.id ?? "";
   const channels = (spec.channels ?? []).map((channel) => ({
     id: channel.id ?? slackId(channel.private ? "G" : "C"),
     name: channel.name,
     private: channel.private ?? false,
     topic: channel.topic ?? "",
-    members: (channel.members ?? [])
-      .map((member) => userIdFor(member))
-      .filter((id): id is string => Boolean(id)),
+    members: channel.members.map((member) => seededUserId(users, member)),
     messages: channel.messages ?? [],
   }));
   for (const channel of channels) {
+    const creator = channel.members[0];
+    if (!creator) throw new Error(`slack spec: channel ${channel.name} has no members`);
     slack.channels.insert({
       channel_id: channel.id,
       team_id: team.id,
@@ -104,4 +102,10 @@ export function seedWorkspace(store: Store, spec: SlackSpec): Omit<SlackState, "
     });
   }
   return { team, users, channels };
+}
+
+export function seededUserId(users: { id: string; name: string }[], ref: string): string {
+  const user = users.find((candidate) => candidate.name === ref || candidate.id === ref);
+  if (!user) throw new Error(`slack spec: unknown user ${ref}`);
+  return user.id;
 }

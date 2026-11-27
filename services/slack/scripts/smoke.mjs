@@ -33,7 +33,7 @@ const apiKey = process.env.WORLDS_API_KEY ?? "wk_live_smoke0smoke0smoke0smoke0sm
 const userToken = `xoxp-smoke-alice-${run}`;
 const pinnedBotToken = `xoxb-smoke-pinned-${run}`;
 const spec = {
-  team: { name: "Smoke" },
+  team: { name: "Smoke", domain: "smoke" },
   users: [{ name: "alice", real_name: "Alice Tester", token: userToken }, { name: "bob" }],
   channels: [
     {
@@ -56,7 +56,12 @@ const spec = {
         oauth_config: { scopes: { bot: ["chat:write", "channels:read"] } },
       },
       credentials: { client_id: `pinned-${run}` },
-      install: { bot_user_id: "U0PINNED0001", bot_token: pinnedBotToken, channels: ["general"] },
+      install: {
+        installer: "alice",
+        bot_user_id: "U0PINNED0001",
+        bot_token: pinnedBotToken,
+        channels: ["general"],
+      },
     },
     {
       manifest: {
@@ -162,10 +167,26 @@ try {
     method: "POST",
     headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
     body: JSON.stringify({
-      slack: { users: [{ name: "alice" }], channels: [{ name: "general", members: ["nobody"] }] },
+      slack: {
+        team: { name: "Smoke", domain: "smoke" },
+        users: [{ name: "alice" }],
+        channels: [{ name: "general", members: ["nobody"] }],
+      },
     }),
   });
   assert(invalid.status === 400, "a spec that names an unknown user is refused");
+  const noTeam = await fetch(`${apiUrl}/api/worlds`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+    body: JSON.stringify({ slack: { users: [{ name: "alice" }] } }),
+  });
+  assert(noTeam.status === 400, "a Slack spec without a team is refused");
+  const noService = await fetch(`${apiUrl}/api/worlds`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+    body: JSON.stringify({ name: "Nothing" }),
+  });
+  assert(noService.status === 400, "a world without any service spec is refused");
   const createdWorld = await fetch(`${apiUrl}/api/worlds`, {
     method: "POST",
     headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },

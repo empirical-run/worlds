@@ -77,6 +77,9 @@ importers:
       '@worlds/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@worlds/services':
+        specifier: workspace:*
+        version: link:../../packages/services
       isbot:
         specifier: ^5.2.4
         version: 5.2.4

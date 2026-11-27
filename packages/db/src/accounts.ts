@@ -215,8 +215,9 @@ export async function createWorld(
   teamId: string,
   createdBy: string | null,
   name: string,
+  services: string[],
 ): Promise<World> {
-  const [world] = await db.insert(worlds).values({ teamId, createdBy, name }).returning();
+  const [world] = await db.insert(worlds).values({ teamId, createdBy, name, services }).returning();
   if (!world) throw new Error("world insert returned no row");
   return world;
 }

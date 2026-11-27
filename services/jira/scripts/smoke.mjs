@@ -23,10 +23,18 @@ const spec = {
       summary: "A seeded issue",
       description: "Seeded before any app",
       labels: ["seed"],
+      reporter: "alice",
       comments: [{ author: "bob", body: "first!" }],
     },
   ],
-  apps: [{ name: "Smoke", callback_urls: ["http://localhost:8789/jira/callback"], credentials }],
+  apps: [
+    {
+      name: "Smoke",
+      callback_urls: ["http://localhost:8789/jira/callback"],
+      scopes: ["read:jira-work", "write:jira-work", "read:jira-user", "manage:jira-webhook"],
+      credentials,
+    },
+  ],
 };
 
 const deliveries = [];
@@ -94,7 +102,12 @@ try {
   const invalid = await fetch(
     `${apiUrl}/api/worlds`,
     control("POST", {
-      jira: { projects: [{ key: "WRLD" }], issues: [{ project: "NOPE", summary: "x" }] },
+      jira: {
+        site: { name: "smoke" },
+        users: [{ name: "alice" }],
+        projects: [{ key: "WRLD", name: "Worlds" }],
+        issues: [{ project: "NOPE", summary: "x", reporter: "alice" }],
+      },
     }),
   );
   assert(invalid.status === 400, "a Jira spec that names an unknown project is refused");
@@ -117,6 +130,17 @@ try {
     world.jira.spec.issues[0].key === "WRLD-1" &&
       world.jira.spec.apps[0].credentials.client_id === credentials.client_id,
     "the effective Jira spec has seeded issue keys and pinned credentials",
+  );
+  assert(
+    world.slack === null &&
+      world.services.map((service) => service.name).join() === "jira" &&
+      world.ui_url === world.jira.site_url,
+    "a world created with only a Jira spec has no Slack, and its UI is the Jira site",
+  );
+  const noSlack = await fetch(`${origin(worldId, "slack")}/api/auth.test`, { method: "POST" });
+  assert(
+    noSlack.status === 404 && (await noSlack.json()).error === "world_not_found",
+    "the Slack host of a world without Slack answers world_not_found",
   );
   const exported = await (
     await fetch(`${apiUrl}/api/worlds/${worldId}/spec`, control("GET"))

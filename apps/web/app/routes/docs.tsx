@@ -31,6 +31,9 @@ const createExample = `curl -X POST https://makeworlds.dev/api/worlds \\
   -d '{
     "name": "My first world",
     "slack": {
+      "team": { "name": "Acme", "domain": "acme" },
+      "users": [{ "name": "alice" }],
+      "channels": [{ "name": "general", "members": ["alice"] }],
       "apps": [{
         "manifest": {
           "display_information": { "name": "My app" },
@@ -42,7 +45,7 @@ const createExample = `curl -X POST https://makeworlds.dev/api/worlds \\
             }
           }
         },
-        "install": true
+        "install": { "installer": "alice", "channels": ["general"] }
       }]
     }
   }'`;
@@ -59,6 +62,7 @@ const clientExample = `import { createClient, type SlackSpec } from "makeworlds"
 const worlds = createClient({ apiKey: process.env.WORLDS_API_KEY });
 
 const slack: SlackSpec = {
+  team: { name: "Acme", domain: "acme" },
   users: [{ name: "alice" }, { name: "bob" }],
   channels: [{ name: "general", members: ["alice", "bob"] }],
 };
@@ -67,7 +71,9 @@ const { data: world, error } = await worlds.POST("/api/worlds", {
   body: { name: "My first world", slack },
 });`;
 
-const controlExample = `const jira = createClient({
+const controlExample = `if (!world.jira) throw new Error("This world has no Jira.");
+
+const jira = createClient({
   apiKey: process.env.WORLDS_API_KEY,
   baseUrl: world.jira.site_url,
 });
@@ -107,11 +113,13 @@ export default function Docs({ loaderData: { examples } }: Route.ComponentProps)
         </p>
         <CodeBlock lines={examples.create} />
         <p>
-          The <code>slack</code> spec describes everything in the workspace: the team, users,
-          channels with their members and messages, and apps defined by standard Slack app
+          A world has the services you give a spec for, and at least one. The <code>slack</code>{" "}
+          spec describes everything in the workspace: the team (its name and domain are required),
+          users, channels with their members and messages, and apps defined by standard Slack app
           manifests. Ids, credentials and tokens you leave out are generated; pin them (a team id, a
           user token, an app's client secret or a bot token) to match what your app already stores.
-          Without a spec the world gets one user, alice, and #general.
+          Nothing else is filled in for you: a world without a <code>slack</code> spec has no Slack,
+          and its Slack URLs are <code>null</code>.
         </p>
         <p>
           The response has the world's Slack URLs (<code>slack.api_url</code>,{" "}
@@ -134,11 +142,12 @@ export default function Docs({ loaderData: { examples } }: Route.ComponentProps)
       <section className="section" id="install">
         <h2>Install your app</h2>
         <p>
-          Apps with <code>install: true</code> are installed already. Otherwise send users to the
-          world's <code>slack.oauth_authorize_url</code> instead of slack.com. Redirect URIs match
-          the manifest's <code>redirect_urls</code> the way Slack matches them (same scheme, host
-          and port; the path equal or below). Worlds also accepts a <code>*</code> in the host, such
-          as <code>https://*-preview.example.com/oauth/callback</code>, for preview deployments.{" "}
+          Apps with an <code>install</code> (naming the <code>installer</code>) are installed
+          already. Otherwise send users to the world's <code>slack.oauth_authorize_url</code>{" "}
+          instead of slack.com. Redirect URIs match the manifest's <code>redirect_urls</code> the
+          way Slack matches them (same scheme, host and port; the path equal or below). Worlds also
+          accepts a <code>*</code> in the host, such as{" "}
+          <code>https://*-preview.example.com/oauth/callback</code>, for preview deployments.{" "}
           <code>oauth.v2.access</code> exchanges the code for a bot token as usual.
         </p>
         <p>
@@ -162,13 +171,13 @@ export default function Docs({ loaderData: { examples } }: Route.ComponentProps)
       <section className="section" id="jira">
         <h2>Jira</h2>
         <p>
-          Every world also has a Jira Cloud site. The <code>jira</code> spec describes its users,
-          projects, issues and OAuth 2.0 (3LO) apps (name, <code>callback_urls</code>,{" "}
-          <code>scopes</code>, optional pinned <code>credentials</code>). Like Atlassian, the site
-          answers on three hosts, returned as <code>jira.auth_url</code> (in place of
-          auth.atlassian.com), <code>jira.api_url</code> (api.atlassian.com) and{" "}
-          <code>jira.site_url</code> (your-site.atlassian.net). Point your app's two Atlassian base
-          URLs at the first two; it learns the site URL and cloud id from{" "}
+          A world with a <code>jira</code> spec has a Jira Cloud site. The spec names the site and
+          describes its users, projects, issues (each with a <code>reporter</code>) and OAuth 2.0
+          (3LO) apps (name, <code>callback_urls</code>, <code>scopes</code>, optional pinned{" "}
+          <code>credentials</code>). Like Atlassian, the site answers on three hosts, returned as{" "}
+          <code>jira.auth_url</code> (in place of auth.atlassian.com), <code>jira.api_url</code>{" "}
+          (api.atlassian.com) and <code>jira.site_url</code> (your-site.atlassian.net). Point your
+          app's two Atlassian base URLs at the first two; it learns the site URL and cloud id from{" "}
           <code>/oauth/token/accessible-resources</code>, as it would in production.
         </p>
         <p>

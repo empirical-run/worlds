@@ -64,7 +64,9 @@ const SlackChannelSpecSchema = z
       .openapi({ example: "general" }),
     private: z.boolean().optional(),
     topic: z.string().max(250).optional(),
-    members: z.array(z.string()).max(500).optional().openapi({ description: "User names or ids." }),
+    members: z.array(z.string()).min(1).max(500).openapi({
+      description: "User names or ids. The first member created the channel.",
+    }),
     messages: z.array(SlackMessageSpecSchema).max(500).optional().openapi({
       description: "Posted in order before any app is installed, so they send no events.",
     }),
@@ -73,10 +75,7 @@ const SlackChannelSpecSchema = z
 
 const SlackInstallSpecSchema = z
   .object({
-    installer: z
-      .string()
-      .optional()
-      .openapi({ description: "The user who installs the app. Defaults to the first user." }),
+    installer: z.string().openapi({ description: "The user (name or id) who installs the app." }),
     bot_user_id: slackId("U", "U0EMPIRICAL1").optional(),
     bot_token: z.string().startsWith("xoxb-").optional().openapi({
       description:
@@ -97,32 +96,32 @@ const SlackAppSpecSchema = z
       description:
         "Pin some or all credentials, e.g. to match secrets your app already has. Real Slack generates them; worlds lets you choose.",
     }),
-    install: z
-      .union([z.boolean(), SlackInstallSpecSchema])
-      .optional()
-      .openapi({ description: "Install the app into the world's workspace. true uses defaults." }),
+    install: SlackInstallSpecSchema.optional().openapi({
+      description: "Install the app into the world's workspace.",
+    }),
   })
   .openapi("SlackAppSpec");
 
 export const SlackSpecSchema = z
   .object({
-    team: z
-      .object({
-        id: slackId("T", "T0WORLDS0001").optional(),
-        name: z.string().max(80).optional(),
-        domain: z
-          .string()
-          .regex(/^[a-z0-9-]{1,40}$/)
-          .optional(),
-      })
-      .optional(),
+    team: z.object({
+      id: slackId("T", "T0WORLDS0001").optional(),
+      name: z.string().trim().min(1).max(80).openapi({ example: "Acme" }),
+      domain: z
+        .string()
+        .regex(/^[a-z0-9-]{1,40}$/)
+        .openapi({
+          description: "The workspace subdomain. Users without an email get <name>@<domain>.test.",
+          example: "acme",
+        }),
+    }),
     users: z.array(SlackUserSpecSchema).max(200).optional(),
     channels: z.array(SlackChannelSpecSchema).max(200).optional(),
     apps: z.array(SlackAppSpecSchema).max(10).optional(),
   })
   .openapi("SlackSpec", {
     description:
-      "Everything in the world's Slack workspace. Omitted ids, credentials and tokens are generated. Without a spec the world gets one user (alice) and #general.",
+      "Everything in the world's Slack workspace. Omitted ids, credentials and tokens are generated. Leave it out to create the world without Slack.",
   });
 
 export const SlackStateSchema = z
@@ -398,6 +397,11 @@ export const slack = defineService({
   state: SlackStateSchema,
   urls: SlackUrlsSchema,
   specProblems: slackSpecProblems,
+  starter: {
+    team: { name: "Acme", domain: "acme" },
+    users: [{ name: "alice", real_name: "Alice Tester" }],
+    channels: [{ name: "general", topic: "General discussion", members: ["alice"] }],
+  },
   uiUrl: (origin) => `${origin("slack")}/`,
   urlsFor: (origin) => ({
     api_url: `${origin("slack")}/api/`,

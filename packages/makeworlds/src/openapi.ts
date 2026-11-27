@@ -410,7 +410,7 @@ export interface paths {
         put?: never;
         /**
          * Create a world
-         * @description A new world with its own Slack and Jira. Point your app at the returned URLs.
+         * @description A new world with a spec for each service it should have (Slack and Jira). Point your app at the returned URLs.
          */
         post: {
             parameters: {
@@ -419,7 +419,7 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: {
+            requestBody: {
                 content: {
                     "application/json": components["schemas"]["WorldCreate"];
                 };
@@ -434,7 +434,7 @@ export interface paths {
                         "application/json": components["schemas"]["WorldCreated"];
                     };
                 };
-                /** @description Invalid name, or an invalid Slack or Jira spec */
+                /** @description Invalid name, no service spec, or an invalid Slack or Jira spec */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1339,10 +1339,13 @@ export interface components {
             created_by: string | null;
             /**
              * Format: uri
-             * @description The world's main page: Slack's UI. Each service's own URLs are under its name.
+             * @description The world's main page: the UI of its first service. Each service's own URLs are under its name.
              * @example https://k2v9x0q1m4-slack.makeworlds.dev/
              */
             ui_url: string;
+            /** @description The services in this world, each with its UI. */
+            services: components["schemas"]["WorldService"][];
+            /** @description null when the world has no Slack. */
             slack: {
                 /**
                  * Format: uri
@@ -1362,7 +1365,8 @@ export interface components {
                  * @example https://k2v9x0q1m4-slack.makeworlds.dev/
                  */
                 ui_url: string;
-            };
+            } | null;
+            /** @description null when the world has no Jira. */
             jira: {
                 /**
                  * Format: uri
@@ -1382,13 +1386,25 @@ export interface components {
                  * @example https://k2v9x0q1m4-jira-api.makeworlds.dev
                  */
                 api_url: string;
-            };
+            } | null;
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
             updated_at: string;
         };
+        WorldService: {
+            /** @enum {string} */
+            name: "slack" | "jira";
+            /** @example Slack */
+            title: string;
+            /**
+             * Format: uri
+             * @description The service's UI in this world.
+             */
+            ui_url: string;
+        };
         WorldCreated: components["schemas"]["World"] & {
+            /** @description null when the world has no Slack. */
             slack?: {
                 /**
                  * Format: uri
@@ -1409,7 +1425,8 @@ export interface components {
                  */
                 ui_url: string;
                 spec: components["schemas"]["SlackState"];
-            };
+            } | null;
+            /** @description null when the world has no Jira. */
             jira?: {
                 /**
                  * Format: uri
@@ -1430,7 +1447,7 @@ export interface components {
                  */
                 api_url: string;
                 spec: components["schemas"]["JiraState"];
-            };
+            } | null;
         };
         /** @description The world's spec with every generated id, credential and token filled in. Create a world from it to get an identical one. */
         SlackState: {
@@ -1610,7 +1627,7 @@ export interface components {
              * @description A user's name or id.
              * @example alice
              */
-            reporter?: string;
+            reporter: string;
             /**
              * @description A user's name or id.
              * @example alice
@@ -1638,13 +1655,18 @@ export interface components {
             slack?: components["schemas"]["SlackSpec"];
             jira?: components["schemas"]["JiraSpec"];
         };
-        /** @description Everything in the world's Slack workspace. Omitted ids, credentials and tokens are generated. Without a spec the world gets one user (alice) and #general. */
+        /** @description Everything in the world's Slack workspace. Omitted ids, credentials and tokens are generated. Leave it out to create the world without Slack. */
         SlackSpec: {
-            team?: {
+            team: {
                 /** @example T0WORLDS0001 */
                 id?: string;
-                name?: string;
-                domain?: string;
+                /** @example Acme */
+                name: string;
+                /**
+                 * @description The workspace subdomain. Users without an email get <name>@<domain>.test.
+                 * @example acme
+                 */
+                domain: string;
             };
             users?: components["schemas"]["SlackUserSpec"][];
             channels?: components["schemas"]["SlackChannelSpec"][];
@@ -1669,8 +1691,8 @@ export interface components {
             name: string;
             private?: boolean;
             topic?: string;
-            /** @description User names or ids. */
-            members?: string[];
+            /** @description User names or ids. The first member created the channel. */
+            members: string[];
             /** @description Posted in order before any app is installed, so they send no events. */
             messages?: components["schemas"]["SlackMessageSpec"][];
         };
@@ -1683,12 +1705,12 @@ export interface components {
                 signing_secret?: string;
                 verification_token?: string;
             };
-            /** @description Install the app into the world's workspace. true uses defaults. */
-            install?: boolean | components["schemas"]["SlackInstallSpec"];
+            install?: components["schemas"]["SlackInstallSpec"];
         };
+        /** @description Install the app into the world's workspace. */
         SlackInstallSpec: {
-            /** @description The user who installs the app. Defaults to the first user. */
-            installer?: string;
+            /** @description The user (name or id) who installs the app. */
+            installer: string;
             /** @example U0EMPIRICAL1 */
             bot_user_id?: string;
             /** @description Pin the bot token, so a recreated world matches tokens your app already stored. */
@@ -1696,12 +1718,16 @@ export interface components {
             /** @description Channel names the bot is a member of. */
             channels?: string[];
         };
-        /** @description Everything in the world's Jira site. Omitted ids and credentials are generated. Without a spec the site has one user (alice) and project WRLD. */
+        /** @description Everything in the world's Jira site. Omitted ids and credentials are generated. Leave it out to create the world without Jira. */
         JiraSpec: {
-            site?: {
+            site: {
                 /** Format: uuid */
                 cloud_id?: string;
-                name?: string;
+                /**
+                 * @description The site's subdomain. Users without an email get <name>@<site name>.test.
+                 * @example acme
+                 */
+                name: string;
             };
             users?: components["schemas"]["JiraUserSpec"][];
             projects?: components["schemas"]["JiraProjectSpec"][];
@@ -1726,7 +1752,7 @@ export interface components {
             /** @example WRLD */
             key: string;
             /** @example Worlds */
-            name?: string;
+            name: string;
         };
         JiraAppSpec: {
             /** @example My app */
@@ -1738,8 +1764,16 @@ export interface components {
              *     ]
              */
             callback_urls: string[];
-            /** @description Scopes the app may request (offline_access is always allowed). Defaults to read:jira-work write:jira-work read:jira-user manage:jira-webhook. */
-            scopes?: ("read:jira-work" | "write:jira-work" | "read:jira-user" | "manage:jira-webhook" | "manage:jira-project" | "manage:jira-configuration" | "read:me")[];
+            /**
+             * @description Scopes the app may request (offline_access is always allowed).
+             * @example [
+             *       "read:jira-work",
+             *       "write:jira-work",
+             *       "read:jira-user",
+             *       "manage:jira-webhook"
+             *     ]
+             */
+            scopes: ("read:jira-work" | "write:jira-work" | "read:jira-user" | "manage:jira-webhook" | "manage:jira-project" | "manage:jira-configuration" | "read:me")[];
             /** @description Pin the client id and secret, e.g. to match ones your app already has. */
             credentials?: {
                 client_id?: string;
@@ -2023,6 +2057,7 @@ export type ApiKeyCreated = components['schemas']['ApiKeyCreated'];
 export type ApiKeyCreate = components['schemas']['ApiKeyCreate'];
 export type WorldList = components['schemas']['WorldList'];
 export type World = components['schemas']['World'];
+export type WorldService = components['schemas']['WorldService'];
 export type WorldCreated = components['schemas']['WorldCreated'];
 export type SlackState = components['schemas']['SlackState'];
 export type SlackMessageSpec = components['schemas']['SlackMessageSpec'];

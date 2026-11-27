@@ -6,6 +6,7 @@ import {
   stateShape,
   urlsShape,
   worldUiDescription,
+  WorldServiceSchema,
 } from "@worlds/services";
 
 const Role = z.enum(["owner", "member"]);
@@ -92,6 +93,9 @@ export const WorldSchema = z
     ui_url: z.url().openapi({
       description: worldUiDescription,
       example: "https://k2v9x0q1m4-slack.makeworlds.dev/",
+    }),
+    services: z.array(WorldServiceSchema).openapi({
+      description: "The services in this world, each with its UI.",
     }),
     ...urlsShape,
     created_at: z.iso.datetime(),

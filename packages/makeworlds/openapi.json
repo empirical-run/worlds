@@ -306,11 +306,21 @@
           "ui_url": {
             "type": "string",
             "format": "uri",
-            "description": "The world's main page: Slack's UI. Each service's own URLs are under its name.",
+            "description": "The world's main page: the UI of its first service. Each service's own URLs are under its name.",
             "example": "https://k2v9x0q1m4-slack.makeworlds.dev/"
           },
+          "services": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorldService"
+            },
+            "description": "The services in this world, each with its UI."
+          },
           "slack": {
-            "type": "object",
+            "type": [
+              "object",
+              "null"
+            ],
             "properties": {
               "api_url": {
                 "type": "string",
@@ -335,10 +345,14 @@
               "api_url",
               "oauth_authorize_url",
               "ui_url"
-            ]
+            ],
+            "description": "null when the world has no Slack."
           },
           "jira": {
-            "type": "object",
+            "type": [
+              "object",
+              "null"
+            ],
             "properties": {
               "site_url": {
                 "type": "string",
@@ -363,7 +377,8 @@
               "site_url",
               "auth_url",
               "api_url"
-            ]
+            ],
+            "description": "null when the world has no Jira."
           },
           "created_at": {
             "type": "string",
@@ -380,10 +395,37 @@
           "team_id",
           "created_by",
           "ui_url",
+          "services",
           "slack",
           "jira",
           "created_at",
           "updated_at"
+        ]
+      },
+      "WorldService": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "slack",
+              "jira"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "example": "Slack"
+          },
+          "ui_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The service's UI in this world."
+          }
+        },
+        "required": [
+          "name",
+          "title",
+          "ui_url"
         ]
       },
       "WorldCreated": {
@@ -395,7 +437,10 @@
             "type": "object",
             "properties": {
               "slack": {
-                "type": "object",
+                "type": [
+                  "object",
+                  "null"
+                ],
                 "properties": {
                   "api_url": {
                     "type": "string",
@@ -424,10 +469,14 @@
                   "oauth_authorize_url",
                   "ui_url",
                   "spec"
-                ]
+                ],
+                "description": "null when the world has no Slack."
               },
               "jira": {
-                "type": "object",
+                "type": [
+                  "object",
+                  "null"
+                ],
                 "properties": {
                   "site_url": {
                     "type": "string",
@@ -456,7 +505,8 @@
                   "auth_url",
                   "api_url",
                   "spec"
-                ]
+                ],
+                "description": "null when the world has no Jira."
               }
             }
           }
@@ -1038,7 +1088,8 @@
         },
         "required": [
           "project",
-          "summary"
+          "summary",
+          "reporter"
         ]
       },
       "JiraCredentials": {
@@ -1091,13 +1142,21 @@
               },
               "name": {
                 "type": "string",
-                "maxLength": 80
+                "minLength": 1,
+                "maxLength": 80,
+                "example": "Acme"
               },
               "domain": {
                 "type": "string",
-                "pattern": "^[a-z0-9-]{1,40}$"
+                "pattern": "^[a-z0-9-]{1,40}$",
+                "description": "The workspace subdomain. Users without an email get <name>@<domain>.test.",
+                "example": "acme"
               }
-            }
+            },
+            "required": [
+              "name",
+              "domain"
+            ]
           },
           "users": {
             "type": "array",
@@ -1121,7 +1180,10 @@
             "maxItems": 10
           }
         },
-        "description": "Everything in the world's Slack workspace. Omitted ids, credentials and tokens are generated. Without a spec the world gets one user (alice) and #general."
+        "required": [
+          "team"
+        ],
+        "description": "Everything in the world's Slack workspace. Omitted ids, credentials and tokens are generated. Leave it out to create the world without Slack."
       },
       "SlackUserSpec": {
         "type": "object",
@@ -1179,8 +1241,9 @@
             "items": {
               "type": "string"
             },
+            "minItems": 1,
             "maxItems": 500,
-            "description": "User names or ids."
+            "description": "User names or ids. The first member created the channel."
           },
           "messages": {
             "type": "array",
@@ -1192,7 +1255,8 @@
           }
         },
         "required": [
-          "name"
+          "name",
+          "members"
         ]
       },
       "SlackAppSpec": {
@@ -1220,15 +1284,7 @@
             "description": "Pin some or all credentials, e.g. to match secrets your app already has. Real Slack generates them; worlds lets you choose."
           },
           "install": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "$ref": "#/components/schemas/SlackInstallSpec"
-              }
-            ],
-            "description": "Install the app into the world's workspace. true uses defaults."
+            "$ref": "#/components/schemas/SlackInstallSpec"
           }
         },
         "required": [
@@ -1240,7 +1296,7 @@
         "properties": {
           "installer": {
             "type": "string",
-            "description": "The user who installs the app. Defaults to the first user."
+            "description": "The user (name or id) who installs the app."
           },
           "bot_user_id": {
             "type": "string",
@@ -1259,7 +1315,11 @@
             "maxItems": 100,
             "description": "Channel names the bot is a member of."
           }
-        }
+        },
+        "required": [
+          "installer"
+        ],
+        "description": "Install the app into the world's workspace."
       },
       "JiraSpec": {
         "type": "object",
@@ -1273,9 +1333,14 @@
               },
               "name": {
                 "type": "string",
-                "pattern": "^[a-z0-9-]{1,40}$"
+                "pattern": "^[a-z0-9-]{1,40}$",
+                "description": "The site's subdomain. Users without an email get <name>@<site name>.test.",
+                "example": "acme"
               }
-            }
+            },
+            "required": [
+              "name"
+            ]
           },
           "users": {
             "type": "array",
@@ -1307,7 +1372,10 @@
             "maxItems": 10
           }
         },
-        "description": "Everything in the world's Jira site. Omitted ids and credentials are generated. Without a spec the site has one user (alice) and project WRLD."
+        "required": [
+          "site"
+        ],
+        "description": "Everything in the world's Jira site. Omitted ids and credentials are generated. Leave it out to create the world without Jira."
       },
       "JiraUserSpec": {
         "type": "object",
@@ -1354,12 +1422,14 @@
           },
           "name": {
             "type": "string",
+            "minLength": 1,
             "maxLength": 80,
             "example": "Worlds"
           }
         },
         "required": [
-          "key"
+          "key",
+          "name"
         ]
       },
       "JiraAppSpec": {
@@ -1399,7 +1469,13 @@
               ]
             },
             "minItems": 1,
-            "description": "Scopes the app may request (offline_access is always allowed). Defaults to read:jira-work write:jira-work read:jira-user manage:jira-webhook."
+            "description": "Scopes the app may request (offline_access is always allowed).",
+            "example": [
+              "read:jira-work",
+              "write:jira-work",
+              "read:jira-user",
+              "manage:jira-webhook"
+            ]
           },
           "credentials": {
             "type": "object",
@@ -1420,7 +1496,8 @@
         },
         "required": [
           "name",
-          "callback_urls"
+          "callback_urls",
+          "scopes"
         ]
       },
       "WorldSpec": {
@@ -2723,7 +2800,7 @@
           "Worlds"
         ],
         "summary": "Create a world",
-        "description": "A new world with its own Slack and Jira. Point your app at the returned URLs.",
+        "description": "A new world with a spec for each service it should have (Slack and Jira). Point your app at the returned URLs.",
         "security": [
           {
             "bearerAuth": []
@@ -2733,7 +2810,7 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -2754,7 +2831,7 @@
             }
           },
           "400": {
-            "description": "Invalid name, or an invalid Slack or Jira spec",
+            "description": "Invalid name, no service spec, or an invalid Slack or Jira spec",
             "content": {
               "application/json": {
                 "schema": {

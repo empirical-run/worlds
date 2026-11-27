@@ -16,12 +16,6 @@ export const ACTING_METHODS = [
   "reactions.remove",
 ] as const;
 
-export const DEFAULT_SLACK_SPEC: SlackSpec = {
-  team: { name: "Worlds", domain: "worlds" },
-  users: [{ name: "alice", real_name: "Alice Tester", email: "alice@worlds.test" }],
-  channels: [{ name: "general", topic: "General discussion", members: ["alice"] }],
-};
-
 export function slackSpecProblems(spec: SlackSpec): string[] {
   const duplicate = (values: string[]) =>
     values.find((value, index) => values.indexOf(value) !== index);
@@ -41,7 +35,7 @@ export function slackSpecProblems(spec: SlackSpec): string[] {
   );
   const channelNames = new Set((spec.channels ?? []).map((channel) => channel.name));
   for (const channel of spec.channels ?? []) {
-    for (const member of channel.members ?? [])
+    for (const member of channel.members)
       if (!names.has(member))
         problems.push(`channels.${channel.name}.members: unknown user ${member}`);
     for (const message of channel.messages ?? []) {
@@ -52,10 +46,9 @@ export function slackSpecProblems(spec: SlackSpec): string[] {
     }
   }
   for (const [index, app] of (spec.apps ?? []).entries()) {
-    const install = typeof app.install === "object" ? app.install : null;
-    if (install?.installer && !names.has(install.installer))
-      problems.push(`apps[${index}].install.installer: unknown user ${install.installer}`);
-    for (const channel of install?.channels ?? [])
+    if (app.install && !names.has(app.install.installer))
+      problems.push(`apps[${index}].install.installer: unknown user ${app.install.installer}`);
+    for (const channel of app.install?.channels ?? [])
       if (!channelNames.has(channel))
         problems.push(`apps[${index}].install.channels: unknown channel ${channel}`);
   }

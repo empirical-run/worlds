@@ -677,6 +677,37 @@ button {
   outline: 2px solid var(--accent);
   outline-offset: -1px;
 }
+.service-picker {
+  display: flex;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.service-picker label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 400;
+}
+.service-picker input {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.world-services {
+  display: inline-flex;
+  vertical-align: baseline;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.world-services li {
+  margin: 0;
+}
 .data-table {
   width: 100%;
   border-collapse: collapse;

@@ -109,6 +109,10 @@ export const worlds = sqliteTable(
       .references(() => teams.id, { onDelete: "cascade" }),
     createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
     name: text("name").notNull(),
+    services: text("services", { mode: "json" })
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'["slack","jira"]'`),
     archivedAt: integer("archived_at", { mode: "timestamp_ms" }),
     ...timestamps(),
   },

@@ -69,6 +69,7 @@ type ServiceDefinition<
   state: State;
   urls: Urls;
   specProblems(spec: z.output<Spec>): string[];
+  starter: z.input<Spec>;
   urlsFor(origin: (host: Host) => string): z.output<Urls>;
   uiUrl(origin: (host: Host) => string): string;
   routes: readonly RouteConfig[];

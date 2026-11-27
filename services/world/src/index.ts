@@ -48,6 +48,12 @@ export default {
     const db = database(env.DB);
     const world = await liveWorld(db, target.worldId);
     if (!world) return hosting.error(404, "world_not_found", "No such world, or it was archived.");
+    if (!world.services.includes(service.name))
+      return hosting.error(
+        404,
+        "world_not_found",
+        `This world was created without ${service.title}.`,
+      );
 
     const banner = (response: Response) =>
       withBanner(response, service.title, world, env.MAKEWORLDS_URL, hosting.bannerStyle);

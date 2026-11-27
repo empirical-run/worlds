@@ -25,11 +25,11 @@ import {
   type SlackWebApiResponse,
 } from "./contract";
 import { FileBlobs } from "./file-blobs";
-import { seedWorkspace } from "./seed";
+import { seededUserId, seedWorkspace } from "./seed";
 import { SlackDelivery } from "./slack-delivery";
 import { registerSlackExtensions } from "./slack-extensions";
 import { findHuman, fileContent, userToken, worldState } from "./slack-ui";
-import { DEFAULT_SLACK_SPEC, type SlackAppState, type SlackSpec, type SlackState } from "./spec";
+import type { SlackAppState, SlackSpec, SlackState } from "./spec";
 
 type Persisted = { store: StoreSnapshot; tokens: TokenEntry[] };
 
@@ -49,6 +49,12 @@ export class WorldAlreadySetUp extends Error {
   }
 }
 
+export class SlackNotSetUp extends Error {
+  constructor() {
+    super("slack_not_set_up");
+  }
+}
+
 export class SlackService {
   private server: SlackServer | null = null;
   private delivery: SlackDelivery;
@@ -62,7 +68,7 @@ export class SlackService {
     this.blobs = new FileBlobs(storage);
   }
 
-  async setup(spec: SlackSpec | undefined, baseUrl: string): Promise<SlackState> {
+  async setup(spec: SlackSpec, baseUrl: string): Promise<SlackState> {
     if (this.server || (await this.storage.get(STATE_KEY))) throw new WorldAlreadySetUp();
     await this.load(baseUrl, spec);
     return (await this.state()) as SlackState;
@@ -233,10 +239,8 @@ export class SlackService {
     this.server = slack;
     await this.storage.put(BASE_URL_KEY, baseUrl);
     if (!saved) {
-      await this.storage.put(
-        SPEC_STATE_KEY,
-        await seed(slack, spec ?? DEFAULT_SLACK_SPEC, baseUrl),
-      );
+      if (!spec) throw new SlackNotSetUp();
+      await this.storage.put(SPEC_STATE_KEY, await seed(slack, spec, baseUrl));
       await this.save();
     }
     return slack;
@@ -253,41 +257,37 @@ export class SlackService {
 
 async function seed(slack: SlackServer, spec: SlackSpec, baseUrl: string): Promise<SlackState> {
   const workspace = seedWorkspace(slack.store, spec);
-  const userId = (ref: string) =>
-    workspace.users.find((user) => user.name === ref || user.id === ref)?.id ?? "";
+  const userId = (ref: string) => seededUserId(workspace.users, ref);
+  const authorToken = (ref: string) => {
+    const token = userToken(slack, userId(ref));
+    if (!token) throw new Error(`slack spec: ${ref} can't post messages`);
+    return token;
+  };
   for (const channel of workspace.channels) {
     for (const message of channel.messages) {
       const posted = await callSlack(
         slack,
         baseUrl,
-        userToken(slack, userId(message.user)) ?? "",
+        authorToken(message.user),
         "chat.postMessage",
         { channel: channel.id, text: message.text },
       );
       for (const reply of message.replies ?? []) {
-        await callSlack(
-          slack,
-          baseUrl,
-          userToken(slack, userId(reply.user)) ?? "",
-          "chat.postMessage",
-          {
-            channel: channel.id,
-            text: reply.text,
-            thread_ts: posted.ts,
-          },
-        );
+        await callSlack(slack, baseUrl, authorToken(reply.user), "chat.postMessage", {
+          channel: channel.id,
+          text: reply.text,
+          thread_ts: posted.ts,
+        });
       }
     }
   }
   const apps: SlackAppState[] = [];
   for (const appSpec of spec.apps ?? []) {
     const app = createApp(slack.store, appSpec.manifest, appSpec.credentials);
-    const installSpec = appSpec.install === true ? {} : appSpec.install || null;
+    const installSpec = appSpec.install;
     let install: SlackAppState["install"] = null;
     if (installSpec) {
-      const installer = installSpec.installer
-        ? userId(installSpec.installer)
-        : (workspace.users[0]?.id ?? "");
+      const installer = userId(installSpec.installer);
       if (installSpec.bot_user_id) pinBotUser(slack, app.app_id, installSpec.bot_user_id);
       const installed = await installApp(slack, app, baseUrl, installer);
       const botToken = installSpec.bot_token

@@ -30,12 +30,6 @@ export type JiraUserState = JiraState["users"][number];
 
 export type JiraAppState = JiraState["apps"][number];
 
-export const DEFAULT_JIRA_SPEC: JiraSpec = {
-  site: { name: "worlds" },
-  users: [{ name: "alice", display_name: "Alice Tester" }],
-  projects: [{ key: "WRLD", name: "Worlds" }],
-};
-
 export function jiraSpecProblems(spec: JiraSpec): string[] {
   const problems: string[] = [];
   const users = spec.users ?? [];
@@ -70,7 +64,5 @@ export function jiraSpecProblems(spec: JiraSpec): string[] {
         problems.push(`issues[${index}].comments: unknown user ${comment.author}`);
     }
   }
-  if ((spec.issues ?? []).length > 0 && users.length === 0)
-    problems.push("issues: the world has no user to report them");
   return problems;
 }
