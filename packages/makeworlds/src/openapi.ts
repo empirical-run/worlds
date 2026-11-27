@@ -641,6 +641,611 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/_worlds/slack/tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get a user token
+         * @description A user token to act as the user with any Slack client. Minted on first use, then the same token.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SlackTokenRequest"];
+                };
+            };
+            responses: {
+                /** @description The user's token */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SlackToken"];
+                    };
+                };
+                /** @description Unknown user, or a bot */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Missing or invalid credentials, or not your team's world */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/_worlds/slack/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the workspace's state
+         * @description Users, channels and, with channel, that channel's messages.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description A channel id. */
+                    channel?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The workspace */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SlackWorldState"];
+                    };
+                };
+                /** @description Missing or invalid credentials, or not your team's world */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/_worlds/slack/act": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Call a Web API method as a user
+         * @description Calls method as the user, minting their token if needed, and sends the events Slack would, e.g. app_mention for a message that mentions your app.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SlackActRequest"];
+                };
+            };
+            responses: {
+                /** @description The method's response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SlackWebApiResponse"];
+                    };
+                };
+                /** @description A method that can't be called this way, or an unknown user */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Missing or invalid credentials, or not your team's world */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/_worlds/slack/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Share a file as a user
+         * @description Uploads the file and shares it in the channel, as files.uploadV2 does.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": components["schemas"]["SlackUploadRequest"];
+                };
+            };
+            responses: {
+                /** @description files.completeUploadExternal's response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SlackWebApiResponse"];
+                    };
+                };
+                /** @description Missing fields or an unknown user */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Missing or invalid credentials, or not your team's world */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description The upload failed */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/_worlds/slack/files/{fileId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download a file */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fileId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The file's bytes, with its mimetype as content-type */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/octet-stream": string;
+                    };
+                };
+                /** @description Missing or invalid credentials, or not your team's world */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description No file with that id */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/_worlds/jira/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the Jira site's state
+         * @description The spec with generated ids filled in, every issue and the registered webhooks.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The site's state */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JiraWorldState"];
+                    };
+                };
+                /** @description Missing or invalid credentials, or not your team's world */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/_worlds/jira/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create an issue
+         * @description Creates the issue as user and sends jira:issue_created to matching webhooks.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["JiraIssueCreate"];
+                };
+            };
+            responses: {
+                /** @description The new issue */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JiraIssue"];
+                    };
+                };
+                /** @description Invalid fields, or an unknown user, assignee or project */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Missing or invalid credentials, or not your team's world */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/_worlds/jira/issues/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete an issue
+         * @description Deletes the issue as user and sends jira:issue_deleted to matching webhooks.
+         */
+        delete: {
+            parameters: {
+                query: {
+                    /** @description The user who acts: their name or account id. Webhooks name them as the actor. */
+                    user: string;
+                };
+                header?: never;
+                path: {
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Deleted */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Unknown user */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Missing or invalid credentials, or not your team's world */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description No issue with that key or id */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * Update an issue
+         * @description Changes the given fields as user and sends jira:issue_updated with the changelog to matching webhooks.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["JiraIssueUpdate"];
+                };
+            };
+            responses: {
+                /** @description The issue and what changed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JiraIssueUpdated"];
+                    };
+                };
+                /** @description Invalid fields, or an unknown user or assignee */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Missing or invalid credentials, or not your team's world */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description No issue with that key or id */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/_worlds/jira/issues/{key}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Comment on an issue
+         * @description Adds the comment as user and sends comment_created to matching webhooks.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["JiraCommentCreate"];
+                };
+            };
+            responses: {
+                /** @description The new comment */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JiraComment"];
+                    };
+                };
+                /** @description Empty body or unknown user */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Missing or invalid credentials, or not your team's world */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description No issue with that key or id */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -845,9 +1450,7 @@ export interface components {
             }[];
             apps: {
                 app_id: string;
-                manifest: {
-                    [key: string]: unknown;
-                };
+                manifest: components["schemas"]["SlackManifest"];
                 credentials: components["schemas"]["SlackCredentials"];
                 install: {
                     installer: string;
@@ -866,9 +1469,92 @@ export interface components {
             /** @example Deploy failed on main, can someone look? */
             text: string;
             replies?: {
+                /**
+                 * @description A user's name or id.
+                 * @example alice
+                 */
                 user: string;
                 text: string;
             }[];
+        };
+        /**
+         * @description A Slack app manifest (JSON). Its redirect_urls, scopes, event_subscriptions and interactivity apply in this world.
+         * @example {
+         *       "display_information": {
+         *         "name": "My app"
+         *       },
+         *       "features": {
+         *         "bot_user": {
+         *           "display_name": "my-app"
+         *         }
+         *       },
+         *       "oauth_config": {
+         *         "scopes": {
+         *           "bot": [
+         *             "app_mentions:read",
+         *             "chat:write",
+         *             "channels:history"
+         *           ]
+         *         }
+         *       },
+         *       "settings": {
+         *         "event_subscriptions": {
+         *           "request_url": "https://example.com/slack/events",
+         *           "bot_events": [
+         *             "app_mention"
+         *           ]
+         *         }
+         *       }
+         *     }
+         */
+        SlackManifest: {
+            display_information: {
+                name: string;
+                description?: string;
+            } & {
+                [key: string]: unknown;
+            };
+            features?: {
+                bot_user?: {
+                    display_name?: string;
+                    always_online?: boolean;
+                } & {
+                    [key: string]: unknown;
+                };
+            } & {
+                [key: string]: unknown;
+            };
+            oauth_config?: {
+                redirect_urls?: string[];
+                scopes?: {
+                    bot?: string[];
+                    user?: string[];
+                } & {
+                    [key: string]: unknown;
+                };
+            } & {
+                [key: string]: unknown;
+            };
+            settings?: {
+                event_subscriptions?: {
+                    /** Format: uri */
+                    request_url?: string;
+                    bot_events?: string[];
+                } & {
+                    [key: string]: unknown;
+                };
+                interactivity?: {
+                    is_enabled?: boolean;
+                    /** Format: uri */
+                    request_url?: string;
+                } & {
+                    [key: string]: unknown;
+                };
+            } & {
+                [key: string]: unknown;
+            };
+        } & {
+            [key: string]: unknown;
         };
         SlackCredentials: {
             client_id: string;
@@ -901,7 +1587,7 @@ export interface components {
             apps: {
                 name: string;
                 callback_urls: string[];
-                scopes: string[];
+                scopes: ("read:jira-work" | "write:jira-work" | "read:jira-user" | "manage:jira-webhook" | "manage:jira-project" | "manage:jira-configuration" | "read:me")[];
                 credentials: components["schemas"]["JiraCredentials"];
             }[];
         };
@@ -915,18 +1601,18 @@ export interface components {
             /** @enum {string} */
             status?: "To Do" | "In Progress" | "Done";
             /**
-             * @description A user's name or account id.
+             * @description A user's name or id.
              * @example alice
              */
             reporter?: string;
             /**
-             * @description A user's name or account id.
+             * @description A user's name or id.
              * @example alice
              */
             assignee?: string;
             comments?: {
                 /**
-                 * @description A user's name or account id.
+                 * @description A user's name or id.
                  * @example alice
                  */
                 author: string;
@@ -983,39 +1669,7 @@ export interface components {
             messages?: components["schemas"]["SlackMessageSpec"][];
         };
         SlackAppSpec: {
-            /**
-             * @description A Slack app manifest (JSON). Its redirect_urls, scopes, event_subscriptions and interactivity apply in this world.
-             * @example {
-             *       "display_information": {
-             *         "name": "My app"
-             *       },
-             *       "features": {
-             *         "bot_user": {
-             *           "display_name": "my-app"
-             *         }
-             *       },
-             *       "oauth_config": {
-             *         "scopes": {
-             *           "bot": [
-             *             "app_mentions:read",
-             *             "chat:write",
-             *             "channels:history"
-             *           ]
-             *         }
-             *       },
-             *       "settings": {
-             *         "event_subscriptions": {
-             *           "request_url": "https://example.com/slack/events",
-             *           "bot_events": [
-             *             "app_mention"
-             *           ]
-             *         }
-             *       }
-             *     }
-             */
-            manifest: {
-                [key: string]: unknown;
-            };
+            manifest: components["schemas"]["SlackManifest"];
             /** @description Pin some or all credentials, e.g. to match secrets your app already has. Real Slack generates them; worlds lets you choose. */
             credentials?: {
                 client_id?: string;
@@ -1086,9 +1740,263 @@ export interface components {
                 client_secret?: string;
             };
         };
+        /** @description Each service's spec, or null for a service the world was created without. */
         WorldSpec: {
-            slack: components["schemas"]["SlackState"];
+            slack: components["schemas"]["SlackState"] & (Record<string, never> | null);
             jira: components["schemas"]["JiraState"] & (Record<string, never> | null);
+        };
+        SlackToken: {
+            /** @example U0ALICE00001 */
+            user_id: string;
+            /** @example xoxp-worlds-0b6c… */
+            token: string;
+        };
+        SlackTokenRequest: {
+            /**
+             * @description The user who acts: their name or id. Bots can't be acted as.
+             * @example alice
+             */
+            user: string;
+        };
+        SlackWorldState: {
+            team: {
+                id: string;
+                name: string;
+            } | null;
+            users: {
+                id: string;
+                name: string;
+                real_name: string;
+                is_bot: boolean;
+                has_token: boolean;
+            }[];
+            channels: {
+                id: string;
+                name: string;
+                is_private: boolean;
+                topic: string;
+                members: string[];
+            }[];
+            /** @description The channel's messages, oldest first. Empty without channel. */
+            messages: components["schemas"]["SlackMessage"][];
+        };
+        SlackMessage: {
+            ts: string;
+            thread_ts?: string;
+            user: string;
+            text: string;
+            reply_count: number;
+            reply_users: string[];
+            reactions: {
+                name: string;
+                users: string[];
+                count: number;
+            }[];
+            bot_name?: string;
+            edited: boolean;
+            files: components["schemas"]["SlackFileRef"][];
+            images: {
+                file_id?: string;
+                url?: string;
+                alt: string;
+            }[];
+        };
+        SlackFileRef: {
+            id: string;
+            name: string;
+            mimetype: string;
+            size: number;
+        };
+        /** @description The Slack Web API's response, as is: ok false with an error is a Slack error, not a failed request. */
+        SlackWebApiResponse: {
+            ok: boolean;
+            error?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        SlackActRequest: {
+            /**
+             * @description The user who acts: their name or id. Bots can't be acted as.
+             * @example alice
+             */
+            user: string;
+            /**
+             * @example chat.postMessage
+             * @enum {string}
+             */
+            method: "chat.postMessage" | "conversations.create" | "conversations.invite" | "reactions.add" | "reactions.remove";
+            /**
+             * @description The method's arguments, as the Web API takes them.
+             * @example {
+             *       "channel": "C0GENERAL001",
+             *       "text": "Hey <@U0EMPIRICAL1>, can you take a look?"
+             *     }
+             */
+            args?: {
+                [key: string]: unknown;
+            };
+        };
+        SlackUploadRequest: {
+            /**
+             * @description The user who acts: their name or id. Bots can't be acted as.
+             * @example alice
+             */
+            user: string;
+            /**
+             * @description A channel id.
+             * @example C0GENERAL001
+             */
+            channel: string;
+            /** Format: binary */
+            file: string;
+            /** @description A message to share the file with. */
+            text?: string;
+            /** @description Share it in this thread. */
+            thread_ts?: string;
+        };
+        JiraWorldState: {
+            spec: components["schemas"]["JiraState"];
+            issues: components["schemas"]["JiraIssue"][];
+            webhooks: {
+                id: number;
+                client_id: string;
+                account_id: string;
+                url: string;
+                jql: string;
+                events: string[];
+                /** @description Milliseconds since the epoch. */
+                expires_at: number;
+            }[];
+        };
+        /** @description The issue as the Jira REST API returns it. */
+        JiraIssue: {
+            id: string;
+            /** @example WRLD-1 */
+            key: string;
+            /** Format: uri */
+            self: string;
+            fields: {
+                summary: string;
+                description: components["schemas"]["JiraAdf"];
+                labels: string[];
+                status: {
+                    /** @enum {string} */
+                    name: "To Do" | "In Progress" | "Done";
+                } & {
+                    [key: string]: unknown;
+                };
+                reporter: ({
+                    accountId: string;
+                    displayName: string;
+                    emailAddress?: string;
+                } & {
+                    [key: string]: unknown;
+                }) | null;
+                assignee: ({
+                    accountId: string;
+                    displayName: string;
+                    emailAddress?: string;
+                } & {
+                    [key: string]: unknown;
+                }) | null;
+                created: string;
+                updated: string;
+            } & {
+                [key: string]: unknown;
+            };
+        } & {
+            [key: string]: unknown;
+        };
+        /** @description An Atlassian Document Format document. */
+        JiraAdf: ({
+            /** @enum {string} */
+            type: "doc";
+            /** @enum {number} */
+            version: 1;
+            content: unknown[];
+        } & {
+            [key: string]: unknown;
+        }) | null;
+        JiraIssueCreate: {
+            /**
+             * @description The user who acts: their name or account id. Webhooks name them as the actor.
+             * @example alice
+             */
+            user: string;
+            /** @description A project key. Defaults to the first project. */
+            project?: string;
+            /** @example Checkout fails for guest users */
+            summary: string;
+            /** @description Plain text, or an Atlassian Document Format document. */
+            description?: string | components["schemas"]["JiraAdf"];
+            labels?: string[];
+            /** @enum {string} */
+            status?: "To Do" | "In Progress" | "Done";
+            /**
+             * @description A user's name or id.
+             * @example alice
+             */
+            assignee?: string;
+        };
+        JiraIssueUpdated: {
+            issue: components["schemas"]["JiraIssue"];
+            changelog: components["schemas"]["JiraChangeItem"][];
+        };
+        JiraChangeItem: {
+            field: string;
+            /** @enum {string} */
+            fieldtype: "jira";
+            fieldId: string;
+            from: string | null;
+            fromString: string | null;
+            to: string | null;
+            toString: string | null;
+        };
+        JiraIssueUpdate: {
+            /**
+             * @description The user who acts: their name or account id. Webhooks name them as the actor.
+             * @example alice
+             */
+            user: string;
+            /** @example Checkout fails for guest users */
+            summary?: string;
+            /** @description Plain text, or an Atlassian Document Format document. */
+            description?: string | components["schemas"]["JiraAdf"] | null;
+            labels?: string[];
+            /** @enum {string} */
+            status?: "To Do" | "In Progress" | "Done";
+            /**
+             * @description null unassigns the issue.
+             * @example alice
+             */
+            assignee?: string | null;
+        };
+        /** @description The comment as the Jira REST API returns it. */
+        JiraComment: {
+            id: string;
+            /** Format: uri */
+            self: string;
+            author: ({
+                accountId: string;
+                displayName: string;
+                emailAddress?: string;
+            } & {
+                [key: string]: unknown;
+            }) | null;
+            body: components["schemas"]["JiraAdf"];
+            created: string;
+            updated: string;
+        } & {
+            [key: string]: unknown;
+        };
+        JiraCommentCreate: {
+            /**
+             * @description The user who acts: their name or account id. Webhooks name them as the actor.
+             * @example alice
+             */
+            user: string;
+            /** @description Plain text, or an Atlassian Document Format document. */
+            body: string | components["schemas"]["JiraAdf"];
         };
     };
     responses: never;
@@ -1112,6 +2020,7 @@ export type World = components['schemas']['World'];
 export type WorldCreated = components['schemas']['WorldCreated'];
 export type SlackState = components['schemas']['SlackState'];
 export type SlackMessageSpec = components['schemas']['SlackMessageSpec'];
+export type SlackManifest = components['schemas']['SlackManifest'];
 export type SlackCredentials = components['schemas']['SlackCredentials'];
 export type JiraState = components['schemas']['JiraState'];
 export type JiraIssueSpec = components['schemas']['JiraIssueSpec'];
@@ -1127,5 +2036,22 @@ export type JiraUserSpec = components['schemas']['JiraUserSpec'];
 export type JiraProjectSpec = components['schemas']['JiraProjectSpec'];
 export type JiraAppSpec = components['schemas']['JiraAppSpec'];
 export type WorldSpec = components['schemas']['WorldSpec'];
+export type SlackToken = components['schemas']['SlackToken'];
+export type SlackTokenRequest = components['schemas']['SlackTokenRequest'];
+export type SlackWorldState = components['schemas']['SlackWorldState'];
+export type SlackMessage = components['schemas']['SlackMessage'];
+export type SlackFileRef = components['schemas']['SlackFileRef'];
+export type SlackWebApiResponse = components['schemas']['SlackWebApiResponse'];
+export type SlackActRequest = components['schemas']['SlackActRequest'];
+export type SlackUploadRequest = components['schemas']['SlackUploadRequest'];
+export type JiraWorldState = components['schemas']['JiraWorldState'];
+export type JiraIssue = components['schemas']['JiraIssue'];
+export type JiraAdf = components['schemas']['JiraAdf'];
+export type JiraIssueCreate = components['schemas']['JiraIssueCreate'];
+export type JiraIssueUpdated = components['schemas']['JiraIssueUpdated'];
+export type JiraChangeItem = components['schemas']['JiraChangeItem'];
+export type JiraIssueUpdate = components['schemas']['JiraIssueUpdate'];
+export type JiraComment = components['schemas']['JiraComment'];
+export type JiraCommentCreate = components['schemas']['JiraCommentCreate'];
 export type $defs = Record<string, never>;
 export type operations = Record<string, never>;

@@ -5,7 +5,7 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
   "workers_dev": false,
-  "services": [{ "binding": "SLACK", "service": "worlds", "entrypoint": "WorldsControl" }],
+  "services": [{ "binding": "WORLDS", "service": "worlds", "entrypoint": "WorldsControl" }],
   "vars": { "WORLDS_DOMAIN": "makeworlds.dev" },
   "d1_databases": [
     {

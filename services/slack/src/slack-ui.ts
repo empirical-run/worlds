@@ -6,6 +6,8 @@ import {
   type SlackStore,
 } from "@emulators/slack";
 
+import type { SlackWorldState } from "./contract";
+
 type SlackServer = ReturnType<typeof createServer>;
 
 const USER_SCOPES = [
@@ -22,33 +24,13 @@ const USER_SCOPES = [
   "files:write",
 ];
 
-export const ACTING_METHODS = new Set([
-  "chat.postMessage",
-  "conversations.create",
-  "conversations.invite",
-  "reactions.add",
-  "reactions.remove",
-]);
-
 const VISIBLE_SUBTYPES = new Set(["file_share", "bot_message", "thread_broadcast", "me_message"]);
 
-export type UiFile = { id: string; name: string; mimetype: string; size: number };
+type UiMessage = SlackWorldState["messages"][number];
 
-export type UiImage = { file_id?: string; url?: string; alt: string };
+type UiFile = UiMessage["files"][number];
 
-export type UiMessage = {
-  ts: string;
-  thread_ts?: string;
-  user: string;
-  text: string;
-  reply_count: number;
-  reply_users: string[];
-  reactions: SlackMessage["reactions"];
-  bot_name?: string;
-  edited: boolean;
-  files: UiFile[];
-  images: UiImage[];
-};
+type UiImage = UiMessage["images"][number];
 
 function toUiFile(file: Pick<SlackFile, "file_id" | "name" | "mimetype" | "size">): UiFile {
   return { id: file.file_id, name: file.name, mimetype: file.mimetype, size: file.size };
@@ -81,7 +63,7 @@ function toUiMessage(message: SlackMessage): UiMessage {
   };
 }
 
-export function worldState(slack: SlackServer, channelId: string | null) {
+export function worldState(slack: SlackServer, channelId: string | null): SlackWorldState {
   const store = getSlackStore(slack.store);
   const team = store.teams.all()[0];
   const users = store.users
@@ -119,6 +101,13 @@ export function worldState(slack: SlackServer, channelId: string | null) {
         .map(toUiMessage)
     : [];
   return { team: team ? { id: team.team_id, name: team.name } : null, users, channels, messages };
+}
+
+export function findHuman(slack: SlackServer, ref: string): string | null {
+  const user = getSlackStore(slack.store)
+    .users.all()
+    .find((candidate) => candidate.user_id === ref || candidate.name === ref);
+  return user && !user.is_bot && !user.deleted ? user.user_id : null;
 }
 
 export function userToken(slack: SlackServer, userId: string): string | null {

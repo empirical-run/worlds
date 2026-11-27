@@ -1,6 +1,7 @@
 import { workerContext } from "../../worker/context";
 import { type RailHandle } from "../components/Rail";
 import {
+  contentSchema,
   endpointsByTag,
   fieldDescription,
   fieldsOf,
@@ -62,7 +63,8 @@ export default function ApiReference({ loaderData: { spec } }: Route.ComponentPr
           <a href="/api/openapi.json">
             <code>/api/openapi.json</code>
           </a>
-          . Base URL <code>{spec.servers?.[0]?.url}</code>.
+          . Base URL <code>{spec.servers?.[0]?.url}</code>; routes that act inside a world run on
+          that world's hosts.
         </p>
       </header>
 
@@ -107,9 +109,10 @@ function EndpointSection({
   const params = (operation.parameters ?? []).filter(
     (param) => param.in === "path" || param.in === "query",
   );
-  const requestSchema = operation.requestBody?.content?.["application/json"]?.schema;
+  const requestSchema = contentSchema(operation.requestBody?.content);
   const success = Object.entries(operation.responses).find(([status]) => status.startsWith("2"));
-  const successSchema = success?.[1].content?.["application/json"]?.schema;
+  const successSchema = contentSchema(success?.[1].content);
+  const server = operation.servers?.[0];
   return (
     <section className="section" id={anchor}>
       <h2>{operation.summary ?? path}</h2>
@@ -117,6 +120,11 @@ function EndpointSection({
         <span className={`method method-${method}`}>{method.toUpperCase()}</span>
         <code>{path}</code>
       </p>
+      {server && (
+        <p className="endpoint-host">
+          Host <code>{server.url}</code>. {server.description}
+        </p>
+      )}
       {operation.description && <p>{operation.description}</p>}
       {params.length > 0 && (
         <>

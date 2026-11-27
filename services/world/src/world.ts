@@ -1,61 +1,63 @@
-import { JiraService, type JiraHost } from "@worlds/jira/service";
-import type { JiraSpec, JiraState } from "@worlds/jira/spec";
-import { SlackService } from "@worlds/slack/service";
-import type { SlackSpec, SlackState } from "@worlds/slack/spec";
+import {
+  SERVICES,
+  resolveHost,
+  type ServiceName,
+  type ServiceState,
+  type WorldSpecs,
+  type WorldStates,
+} from "@worlds/services";
 import { DurableObject } from "cloudflare:workers";
 
 import type { Env } from "./env";
-import { jiraOrigins } from "./origins";
+import { serviceOrigin } from "./origins";
+import { serviceRuntimes, type ServiceRuntimes, type WorldContext } from "./services";
 
-export const SERVICE_HEADER = "x-worlds-service";
-export const BASE_URL_HEADER = "x-worlds-base-url";
+export const HOST_HEADER = "x-worlds-host";
 export const WORLD_ID_HEADER = "x-worlds-world-id";
 
 const ARCHIVED_KEY = "world:archived";
 const WORLD_ID_KEY = "world:id";
 
 export class World extends DurableObject<Env> {
-  private slackService: SlackService | null = null;
-  private jiraService: JiraService | null = null;
+  private runtimes: ServiceRuntimes | null = null;
 
   async fetch(request: Request): Promise<Response> {
-    const service = request.headers.get(SERVICE_HEADER);
-    const baseUrl = request.headers.get(BASE_URL_HEADER);
+    const target = resolveHost(request.headers.get(HOST_HEADER) ?? "");
     const worldId = request.headers.get(WORLD_ID_HEADER);
-    if (service === "slack" && baseUrl) return this.slack().fetch(request, baseUrl);
-    if (isJiraHost(service) && worldId) {
-      await this.rememberWorldId(worldId);
-      return this.jira().fetch(request, service, jiraOrigins(this.env, worldId));
-    }
-    return Response.json({ ok: false, error: "unknown_service" }, { status: 404 });
+    if (!target || !worldId)
+      return Response.json({ ok: false, error: "unknown_service" }, { status: 404 });
+    await this.rememberWorldId(worldId);
+    const runtime = this.services()[target.service.name];
+    return runtime.fetch(request, target.host, this.world(worldId));
   }
 
   async alarm(): Promise<void> {
     if (await this.ctx.storage.get<boolean>(ARCHIVED_KEY)) return;
     const worldId = await this.ctx.storage.get<string>(WORLD_ID_KEY);
-    await this.slack().alarm();
-    await this.jira().alarm(worldId ? jiraOrigins(this.env, worldId) : null);
-    const due = [await this.slack().nextDue(), await this.jira().nextDue()].filter(
-      (value): value is number => value !== null,
-    );
+    const world = worldId ? this.world(worldId) : null;
+    const due: number[] = [];
+    for (const { name } of SERVICES) {
+      const runtime = this.services()[name];
+      await runtime.alarm(world);
+      const next = await runtime.nextDue();
+      if (next !== null) due.push(next);
+    }
     if (due.length) await this.ctx.storage.setAlarm(Math.min(...due));
   }
 
-  async setupSlack(spec: SlackSpec, baseUrl: string): Promise<SlackState> {
-    return this.slack().setup(spec, baseUrl);
-  }
-
-  async slackState(): Promise<SlackState | null> {
-    return this.slack().state();
-  }
-
-  async setupJira(worldId: string, spec: JiraSpec): Promise<JiraState> {
+  async setup(worldId: string, specs: WorldSpecs): Promise<WorldStates> {
     await this.rememberWorldId(worldId);
-    return this.jira().setup(spec, jiraOrigins(this.env, worldId));
+    const world = this.world(worldId);
+    const states: [ServiceName, unknown][] = [];
+    for (const { name } of SERVICES)
+      states.push([name, await this.setupService(name, specs, world)]);
+    return Object.fromEntries(states) as WorldStates;
   }
 
-  async jiraState(): Promise<JiraState | null> {
-    return this.jira().state();
+  async states(): Promise<WorldStates> {
+    const states: [ServiceName, unknown][] = [];
+    for (const { name } of SERVICES) states.push([name, await this.services()[name].state()]);
+    return Object.fromEntries(states) as WorldStates;
   }
 
   async archive(): Promise<void> {
@@ -63,22 +65,25 @@ export class World extends DurableObject<Env> {
     await this.ctx.storage.deleteAlarm();
   }
 
+  private setupService<Name extends ServiceName>(
+    name: Name,
+    specs: WorldSpecs,
+    world: WorldContext,
+  ): Promise<ServiceState<Name>> {
+    return this.services()[name].setup(specs[name], world);
+  }
+
+  private world(worldId: string): WorldContext {
+    return { worldId, origin: (host) => serviceOrigin(this.env, worldId, host) };
+  }
+
   private async rememberWorldId(worldId: string): Promise<void> {
     if ((await this.ctx.storage.get<string>(WORLD_ID_KEY)) !== worldId)
       await this.ctx.storage.put(WORLD_ID_KEY, worldId);
   }
 
-  private slack(): SlackService {
-    this.slackService ??= new SlackService(this.ctx.storage);
-    return this.slackService;
+  private services(): ServiceRuntimes {
+    this.runtimes ??= serviceRuntimes(this.ctx.storage);
+    return this.runtimes;
   }
-
-  private jira(): JiraService {
-    this.jiraService ??= new JiraService(this.ctx.storage);
-    return this.jiraService;
-  }
-}
-
-function isJiraHost(value: string | null): value is JiraHost {
-  return value === "jira" || value === "jira-auth" || value === "jira-api";
 }

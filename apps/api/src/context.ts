@@ -1,24 +1,17 @@
 import type { ApiKey, Db, Membership, Team, User } from "@worlds/db";
-import type { JiraSpec, JiraState } from "@worlds/jira/spec";
-import type { SlackSpec, SlackState } from "@worlds/slack/spec";
+import type { WorldSpecs, WorldStates } from "@worlds/services";
 
 export type WorldsControl = {
   archive(worldId: string): Promise<void>;
-  setupSlack(worldId: string, spec: SlackSpec): Promise<SlackState>;
-  slackState(worldId: string): Promise<SlackState | null>;
-  setupJira(worldId: string, spec: JiraSpec): Promise<JiraState>;
-  jiraState(worldId: string): Promise<JiraState | null>;
+  setup(worldId: string, specs: WorldSpecs): Promise<WorldStates>;
+  states(worldId: string): Promise<WorldStates>;
 };
 
 export type Caller = { kind: "key"; key: ApiKey } | { kind: "user"; user: User };
 
 export type AppEnv = {
-  Bindings: { DB: D1Database; SLACK: WorldsControl; WORLDS_DOMAIN: string };
+  Bindings: { DB: D1Database; WORLDS: WorldsControl; WORLDS_DOMAIN: string };
   Variables: { db: Db; caller: Caller };
 };
 
 export type TeamAccess = { team: Team; role: Membership["role"] | null };
-
-export function apiError(code: string, message: string) {
-  return { error: { code, message } };
-}

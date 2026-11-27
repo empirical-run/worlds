@@ -50,9 +50,24 @@ await worlds.POST("/api/worlds/{worldId}/archive", { params: { path: { worldId: 
 
 `createClient` returns an [openapi-fetch](https://openapi-ts.dev/openapi-fetch/) client. Create an API key in Settings on makeworlds.dev. Options: `apiKey`, `baseUrl` (defaults to `https://makeworlds.dev`) and any openapi-fetch client option, such as `fetch` or `headers`.
 
+## World controls
+
+The `/_worlds/*` routes act inside a world, on its own hosts: post as a Slack user, share files, create and change Jira issues. Point a client at the world's host:
+
+```ts
+const slack = createClient({ apiKey: process.env.WORLDS_API_KEY, baseUrl: world.slack.ui_url });
+const general = world.slack.spec.channels[0].id;
+await slack.POST("/_worlds/slack/act", {
+  body: { user: "alice", method: "chat.postMessage", args: { channel: general, text: "hi" } },
+});
+
+const jira = createClient({ apiKey: process.env.WORLDS_API_KEY, baseUrl: world.jira.site_url });
+await jira.POST("/_worlds/jira/issues", { body: { user: "alice", summary: "Checkout fails" } });
+```
+
 ## Types
 
-Every schema in the API has a type: `WorldCreate` (the `POST /api/worlds` body), `SlackSpec`, `SlackUserSpec`, `SlackChannelSpec`, `SlackMessageSpec`, `SlackAppSpec`, `SlackInstallSpec`, `SlackCredentials`, `SlackState` (a spec with everything generated filled in), `World`, `WorldCreated`, `WorldSpec`, `Team`, `TeamDetail`, `Member`, `ApiKey`, `ApiKeyCreated` and `ApiError`. `paths` and `components` are exported for anything else.
+Every schema in the API has a type: `WorldCreate` (the `POST /api/worlds` body), `SlackSpec`, `SlackUserSpec`, `SlackChannelSpec`, `SlackMessageSpec`, `SlackAppSpec`, `SlackInstallSpec`, `SlackCredentials`, `SlackState` (a spec with everything generated filled in), `JiraSpec`, `JiraState`, `JiraIssue`, `SlackWorldState`, `World`, `WorldCreated`, `WorldSpec`, `Team`, `TeamDetail`, `Member`, `ApiKey`, `ApiKeyCreated` and `ApiError`. `paths` and `components` are exported for anything else.
 
 The OpenAPI document is included as `makeworlds/openapi.json`.
 

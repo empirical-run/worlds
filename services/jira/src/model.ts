@@ -47,6 +47,8 @@ export type JiraData = {
   webhooks: Webhook[];
 };
 
+type Via = "api" | "site";
+
 export type Origins = { site: string; auth: string; api: string };
 
 const STATUS_DETAILS: Record<
@@ -122,7 +124,7 @@ export class JiraJson {
     return `${this.origins.site}/rest/api/${version}`;
   }
 
-  user(accountId: string | null, via: "api" | "site", withEmail = true) {
+  user(accountId: string | null, via: Via, withEmail = true) {
     const user = accountId
       ? this.state.users.find((candidate) => candidate.account_id === accountId)
       : undefined;
@@ -167,14 +169,30 @@ export class JiraJson {
     };
   }
 
-  comment(issue: Issue, comment: Comment, via: "api" | "site") {
+  apiComment(issue: Issue, comment: Comment) {
+    return this.comment(issue, comment, "api", (adf) => adf);
+  }
+
+  siteComment(issue: Issue, comment: Comment) {
+    return this.comment(issue, comment, "site", adfToText);
+  }
+
+  apiIssue(issue: Issue) {
+    return this.issue(issue, "api", (adf) => adf);
+  }
+
+  siteIssue(issue: Issue) {
+    return this.issue(issue, "site", adfToText);
+  }
+
+  private comment<Text>(issue: Issue, comment: Comment, via: Via, render: (adf: Adf) => Text) {
     const base = via === "api" ? this.restBase : this.siteBase(2);
     const author = this.user(comment.author, via, via === "api");
     return {
       self: `${base}/issue/${issue.id}/comment/${comment.id}`,
       id: comment.id,
       author,
-      body: via === "api" ? comment.body : adfToText(comment.body),
+      body: render(comment.body),
       updateAuthor: author,
       created: jiraDate(comment.created),
       updated: jiraDate(comment.updated),
@@ -182,10 +200,10 @@ export class JiraJson {
     };
   }
 
-  issue(issue: Issue, via: "api" | "site") {
+  private issue<Text>(issue: Issue, via: Via, render: (adf: Adf) => Text) {
     const base = via === "api" ? this.restBase : this.siteBase(2);
     const withEmail = via === "api";
-    const comments = issue.comments.map((comment) => this.comment(issue, comment, via));
+    const comments = issue.comments.map((comment) => this.comment(issue, comment, via, render));
     return {
       expand: "renderedFields,names,schema,operations,editmeta,changelog,versionedRepresentations",
       id: issue.id,
@@ -193,12 +211,7 @@ export class JiraJson {
       key: issue.key,
       fields: {
         summary: issue.summary,
-        description:
-          via === "api"
-            ? issue.description
-            : issue.description
-              ? adfToText(issue.description)
-              : null,
+        description: issue.description ? render(issue.description) : null,
         labels: issue.labels,
         status: this.status(issue.status, base),
         issuetype: {

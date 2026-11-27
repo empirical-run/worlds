@@ -197,6 +197,32 @@ try {
     headers: { authorization: `Bearer ${apiKey}` },
   });
   assert(state.ok, "the team's API key opens the world's control routes");
+  assert(
+    (await anonymous.json()).error?.code === "unauthorized",
+    "control routes answer with the API's error shape",
+  );
+  const control = (path, body) =>
+    fetch(`${base}${path}`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  const minted = await (await control("/_worlds/slack/tokens", { user: "alice" })).json();
+  assert(minted.token === userToken, "POST /_worlds/slack/tokens takes a user's name");
+  const refused = await control("/_worlds/slack/act", { user: "alice", method: "chat.delete" });
+  assert(
+    refused.status === 400 && (await refused.json()).error.code === "invalid_request",
+    "act refuses methods outside its list",
+  );
+  const unknownActor = await control("/_worlds/slack/act", {
+    user: "nobody",
+    method: "chat.postMessage",
+    args: { channel: "general", text: "hi" },
+  });
+  assert(
+    unknownActor.status === 400 && (await unknownActor.json()).error.code === "user_not_found",
+    "act refuses an unknown user",
+  );
   const missing = await fetch(`${worldsOrigin("world_doesnotexist0")}/api/auth.test`, {
     method: "POST",
   });

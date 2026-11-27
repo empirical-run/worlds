@@ -24,8 +24,11 @@ type Parameter = {
 
 type Content = Record<string, { schema?: Schema }>;
 
+export type Server = { url: string; description?: string };
+
 export type Operation = {
   tags?: string[];
+  servers?: Server[];
   summary?: string;
   description?: string;
   parameters?: Parameter[];
@@ -35,7 +38,7 @@ export type Operation = {
 
 export type OpenApiDocument = {
   info: { title: string };
-  servers?: { url: string }[];
+  servers?: Server[];
   paths: Record<string, Record<string, Operation>>;
   components?: {
     schemas?: Record<string, Schema>;
@@ -66,6 +69,10 @@ export function endpointsByTag(spec: OpenApiDocument): [string, Endpoint[]][] {
     }
   }
   return [...groups];
+}
+
+export function contentSchema(content: Content | undefined): Schema | undefined {
+  return Object.values(content ?? {})[0]?.schema;
 }
 
 export function resolve(schema: Schema, spec: OpenApiDocument): Schema {

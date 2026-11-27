@@ -67,15 +67,25 @@ const { data: world, error } = await worlds.POST("/api/worlds", {
   body: { name: "My first world", slack },
 });`;
 
+const controlExample = `const jira = createClient({
+  apiKey: process.env.WORLDS_API_KEY,
+  baseUrl: world.jira.site_url,
+});
+
+await jira.POST("/_worlds/jira/issues", {
+  body: { user: "alice", summary: "Checkout fails", labels: ["triage"] },
+});`;
+
 export async function loader() {
-  const [create, webClient, curl, install, client] = await Promise.all([
+  const [create, webClient, curl, install, client, control] = await Promise.all([
     highlight(createExample, "bash"),
     highlight(webClientExample, "ts"),
     highlight(curlExample, "bash"),
     highlight("npm install makeworlds", "bash"),
     highlight(clientExample, "ts"),
+    highlight(controlExample, "ts"),
   ]);
-  return { examples: { create, webClient, curl, install, client } };
+  return { examples: { create, webClient, curl, install, client, control } };
 }
 
 export default function Docs({ loaderData: { examples } }: Route.ComponentProps) {
@@ -203,31 +213,19 @@ export default function Docs({ loaderData: { examples } }: Route.ComponentProps)
       <section className="section" id="control">
         <h2>World controls</h2>
         <p>
-          These routes live under the world's URL and take your team's API key as{" "}
-          <code>Authorization: Bearer &lt;key&gt;</code>, or your makeworlds.dev session.
+          Routes on a world's own hosts drive it from outside, the way its users would: get a user's
+          Slack token, call Slack methods as a user (an @mention of your app sends the event), share
+          files, and create, change, comment on and delete Jira issues, which sends the webhooks
+          Jira would.
         </p>
-        <ul>
-          <li>
-            <code>POST /_worlds/slack/tokens</code> returns a user token for{" "}
-            <code>{'{"user_id"}'}</code>, to act as that user with any Slack client.
-          </li>
-          <li>
-            <code>GET /_worlds/slack/state</code> returns users, channels and messages.
-          </li>
-          <li>
-            <code>POST /_worlds/slack/act</code> calls a Web API method as a user, e.g. to post an
-            @mention.
-          </li>
-          <li>
-            On the Jira site host, <code>POST /_worlds/jira/issues</code> creates an issue as a user
-            (<code>{'{"user", "summary", "description", "labels", "status", "assignee"}'}</code>),{" "}
-            <code>PATCH /_worlds/jira/issues/:key</code> changes it, <code>DELETE</code> removes it
-            and <code>POST /_worlds/jira/issues/:key/comments</code> comments. Each sends the
-            webhooks Jira would. <code>GET /_worlds/jira/state</code> returns the spec, issues and
-            webhooks; the site's <code>/</code> and <code>/browse/:key</code> show issues and
-            comments.
-          </li>
-        </ul>
+        <p>
+          They take your team's API key as <code>Authorization: Bearer &lt;key&gt;</code>, or your
+          makeworlds.dev session. <code>user</code> names who acts, by name or id. Errors have the
+          same shape as the Worlds API. Every route is in the <a href="/docs/api">API reference</a>,
+          under Slack world and Jira world, and in the <code>makeworlds</code> types: point a client
+          at the world's host.
+        </p>
+        <CodeBlock lines={examples.control} />
         <p>
           Archive a world with <code>POST /api/worlds/:id/archive</code>. Archiving takes it offline
           for good.

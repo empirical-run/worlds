@@ -1,4 +1,5 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
+import { apiError, errorResponse, jsonResponse, security } from "@worlds/contract";
 import {
   archiveWorld,
   createWorld,
@@ -7,15 +8,10 @@ import {
   worldHost,
   type World,
 } from "@worlds/db";
-import { DEFAULT_JIRA_SPEC, jiraSpecProblems, type JiraSpec } from "@worlds/jira/spec";
-import { validateManifest } from "@worlds/slack/manifest";
-import { DEFAULT_SLACK_SPEC, unknownReferences, type SlackSpec } from "@worlds/slack/spec";
+import { specProblems, withSpecs, worldUrls } from "@worlds/services";
 
-import { apiError, type AppEnv } from "../context";
+import type { AppEnv } from "../context";
 import {
-  errorResponse,
-  jsonResponse,
-  security,
   WorldCreatedSchema,
   WorldCreateSchema,
   WorldListSchema,
@@ -107,26 +103,19 @@ const archiveWorldRoute = createRoute({
 });
 
 function worldJson(world: World, domain: string) {
-  const base = `https://${worldHost(world.id, "slack", domain)}`;
-  const jiraOrigin = (service: string) => `https://${worldHost(world.id, service, domain)}`;
   return {
     id: world.id,
     name: world.name,
     team_id: world.teamId,
     created_by: world.createdBy,
-    slack: {
-      api_url: `${base}/api/`,
-      oauth_authorize_url: `${base}/oauth/v2/authorize`,
-      ui_url: `${base}/`,
-    },
-    jira: {
-      site_url: jiraOrigin("jira"),
-      auth_url: jiraOrigin("jira-auth"),
-      api_url: jiraOrigin("jira-api"),
-    },
+    ...worldUrls(origins(world, domain)),
     created_at: world.createdAt.toISOString(),
     updated_at: world.updatedAt.toISOString(),
   };
+}
+
+function origins(world: World, domain: string) {
+  return (host: string) => `https://${worldHost(world.id, host, domain)}`;
 }
 
 const NOT_VISIBLE = "No world with that id is visible to you.";
@@ -145,25 +134,14 @@ export const worlds = new OpenAPIHono<AppEnv>()
     const body = c.req.valid("json") ?? {};
     const [target] = await accessibleTeams(db, caller);
     if (!target) return c.json(apiError("not_found", "You are not in any team."), 404);
-    const problem = slackSpecProblem(body.slack);
+    const { name, ...specs } = body;
+    const problem = specProblems(specs)[0];
     if (problem) return c.json(apiError("invalid_request", problem), 400);
-    const jiraProblem = body.jira ? jiraSpecProblems(body.jira as JiraSpec)[0] : undefined;
-    if (jiraProblem) return c.json(apiError("invalid_request", `jira.${jiraProblem}`), 400);
     const createdBy = caller.kind === "user" ? caller.user.id : null;
-    const world = await createWorld(db, target.team.id, createdBy, body.name ?? "Untitled world");
-    const spec = await c.env.SLACK.setupSlack(
-      world.id,
-      (body.slack as SlackSpec | undefined) ?? DEFAULT_SLACK_SPEC,
-    );
-    const jira = await c.env.SLACK.setupJira(
-      world.id,
-      (body.jira as JiraSpec | undefined) ?? DEFAULT_JIRA_SPEC,
-    );
-    const json = worldJson(world, c.env.WORLDS_DOMAIN);
-    return c.json(
-      { ...json, slack: { ...json.slack, spec }, jira: { ...json.jira, spec: jira } },
-      201,
-    );
+    const world = await createWorld(db, target.team.id, createdBy, name ?? "Untitled world");
+    const states = await c.env.WORLDS.setup(world.id, specs);
+    const urls = worldUrls(origins(world, c.env.WORLDS_DOMAIN));
+    return c.json({ ...worldJson(world, c.env.WORLDS_DOMAIN), ...withSpecs(urls, states) }, 201);
   })
   .openapi(getWorldRoute, async (c) => {
     const world = await visibleWorld(c, c.req.valid("param").worldId);
@@ -172,15 +150,16 @@ export const worlds = new OpenAPIHono<AppEnv>()
   })
   .openapi(getWorldSpecRoute, async (c) => {
     const world = await visibleWorld(c, c.req.valid("param").worldId);
-    const spec = world ? await c.env.SLACK.slackState(world.id) : null;
-    if (!world || !spec) return c.json(apiError("not_found", NOT_VISIBLE), 404);
-    return c.json({ slack: spec, jira: await c.env.SLACK.jiraState(world.id) }, 200);
+    const states = world ? await c.env.WORLDS.states(world.id) : null;
+    if (!states || Object.values(states).every((state) => state === null))
+      return c.json(apiError("not_found", NOT_VISIBLE), 404);
+    return c.json(states, 200);
   })
   .openapi(archiveWorldRoute, async (c) => {
     const world = await visibleWorld(c, c.req.valid("param").worldId);
     if (!world) return c.json(apiError("not_found", NOT_VISIBLE), 404);
     await archiveWorld(c.var.db, world.id);
-    await c.env.SLACK.archive(world.id);
+    await c.env.WORLDS.archive(world.id);
     return c.body(null, 204);
   });
 
@@ -191,35 +170,4 @@ async function visibleWorld(
   const world = await liveWorld(c.var.db, worldId);
   if (!world) return null;
   return (await accessibleTeam(c.var.db, c.var.caller, world.teamId)) ? world : null;
-}
-
-function slackSpecProblem(
-  spec:
-    | {
-        users?: { name: string }[];
-        channels?: { name: string }[];
-        apps?: { manifest: unknown; credentials?: { client_id?: string } }[];
-      }
-    | undefined,
-): string | null {
-  if (!spec) return null;
-  for (const [index, app] of (spec.apps ?? []).entries()) {
-    const checked = validateManifest(app.manifest);
-    if ("problems" in checked)
-      return `slack.apps[${index}].manifest${checked.problems[0]?.pointer ?? ""}: ${checked.problems[0]?.message}`;
-  }
-  const duplicate = (values: string[]) =>
-    values.find((value, index) => values.indexOf(value) !== index);
-  const user = duplicate((spec.users ?? []).map((entry) => entry.name));
-  if (user) return `slack.users: duplicate name ${user}`;
-  const channel = duplicate((spec.channels ?? []).map((entry) => entry.name));
-  if (channel) return `slack.channels: duplicate name ${channel}`;
-  const clientId = duplicate(
-    (spec.apps ?? []).flatMap((app) =>
-      app.credentials?.client_id ? [app.credentials.client_id] : [],
-    ),
-  );
-  if (clientId) return `slack.apps: duplicate client_id ${clientId}`;
-  const unknown = unknownReferences(spec as SlackSpec)[0];
-  return unknown ? `slack.${unknown}` : null;
 }
