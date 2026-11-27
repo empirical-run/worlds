@@ -662,7 +662,8 @@ button {
   border-radius: 6px;
 }
 
-.login-card button {
+.login-card button,
+.login-card .login-button {
   border: 0;
   border-radius: 6px;
   background: var(--accent);

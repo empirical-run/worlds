@@ -31,8 +31,8 @@ export default function Home() {
           <a className="button primary" href="/docs">
             Read the docs
           </a>
-          <a className="button" href="https://slack.makeworlds.dev">
-            Open Slack in Worlds
+          <a className="button" href="/account">
+            Create a world
           </a>
         </div>
       </section>

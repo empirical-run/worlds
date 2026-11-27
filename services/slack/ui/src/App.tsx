@@ -1,7 +1,5 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -19,6 +17,7 @@ import {
   fileObjectUrl,
   uploadAs,
   Unauthorized,
+  WORLD_BASE,
   type Channel,
   type FileRef,
   type ImageRef,
@@ -28,7 +27,6 @@ import {
 } from "./api";
 import { Mrkdwn, type Lookup } from "./mrkdwn";
 
-const TOKEN_KEY = "worlds-admin-token";
 const ACTOR_KEY = "worlds-acting-user";
 const POLL_MS = 2000;
 const GROUP_WINDOW_SECONDS = 300;
@@ -36,8 +34,6 @@ const GROUP_WINDOW_SECONDS = 300;
 type Route = { channel: string | null; thread: string | null };
 
 type Upload = (channel: string, threadTs: string | undefined, text: string, file: File) => Promise<void>;
-
-const TokenContext = createContext("");
 
 function readRoute(): Route {
   const params = new URLSearchParams(location.search);
@@ -49,7 +45,7 @@ function writeRoute(route: Route) {
   if (route.channel) params.set("channel", route.channel);
   if (route.thread) params.set("thread", route.thread);
   const query = params.toString();
-  history.replaceState(null, "", query ? `/?${query}` : "/");
+  history.replaceState(null, "", `${WORLD_BASE}/${query ? `?${query}` : ""}`);
 }
 
 function hue(id: string): number {
@@ -79,57 +75,26 @@ function encodeMentions(text: string, users: User[]): string {
 }
 
 export function App() {
-  const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
   const [authError, setAuthError] = useState<string | null>(null);
-
-  if (!token) {
-    return (
-      <Login
-        error={authError}
-        onSubmit={(value) => {
-          localStorage.setItem(TOKEN_KEY, value);
-          setAuthError(null);
-          setToken(value);
-        }}
-      />
-    );
-  }
-  return (
-    <World
-      token={token}
-      onUnauthorized={(message) => {
-        localStorage.removeItem(TOKEN_KEY);
-        setAuthError(message);
-        setToken(null);
-      }}
-    />
-  );
+  if (authError) return <SignInNeeded message={authError} />;
+  return <World onUnauthorized={setAuthError} />;
 }
 
-function Login({ error, onSubmit }: { error: string | null; onSubmit: (token: string) => void }) {
-  const [value, setValue] = useState("");
+function SignInNeeded({ message }: { message: string }) {
   return (
     <div className="login">
-      <form
-        className="login-card"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (value.trim()) onSubmit(value.trim());
-        }}
-      >
+      <div className="login-card">
         <h1>Worlds</h1>
-        <p>Slack in a world you can drive. Enter the world's admin token to open it.</p>
-        <input type="password" autoFocus placeholder="WORLDS_ADMIN_TOKEN" value={value} onChange={(event) => setValue(event.target.value)} />
-        {error && <p className="login-error">{error}</p>}
-        <button type="submit" disabled={!value.trim()}>
-          Open world
-        </button>
-      </form>
+        <p>{message}</p>
+        <a className="login-button" href={`https://makeworlds.dev/account?next=${encodeURIComponent(location.href)}`}>
+          Go to makeworlds.dev
+        </a>
+      </div>
     </div>
   );
 }
 
-function World({ token, onUnauthorized }: { token: string; onUnauthorized: (message: string) => void }) {
+function World({ onUnauthorized }: { onUnauthorized: (message: string) => void }) {
   const [route, setRoute] = useState(readRoute);
   const [state, setState] = useState<WorldState | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -142,14 +107,14 @@ function World({ token, onUnauthorized }: { token: string; onUnauthorized: (mess
 
   const load = useCallback(async () => {
     try {
-      const next = await fetchState(token, route.channel);
+      const next = await fetchState(route.channel);
       setState(next);
       setError(null);
     } catch (caught) {
       if (caught instanceof Unauthorized) onUnauthorized(caught.message);
       else setError(caught instanceof Error ? caught.message : String(caught));
     }
-  }, [token, route.channel, onUnauthorized]);
+  }, [route.channel, onUnauthorized]);
 
   useEffect(() => {
     load();
@@ -176,7 +141,7 @@ function World({ token, onUnauthorized }: { token: string; onUnauthorized: (mess
     async (method: string, args: Record<string, unknown>) => {
       if (!actor) throw new Error("No user to act as");
       try {
-        const result = await actAs(token, actor.id, method, args);
+        const result = await actAs(actor.id, method, args);
         await load();
         return result;
       } catch (caught) {
@@ -184,21 +149,21 @@ function World({ token, onUnauthorized }: { token: string; onUnauthorized: (mess
         throw caught;
       }
     },
-    [actor, token, load, onUnauthorized],
+    [actor, load, onUnauthorized],
   );
 
   const upload = useCallback<Upload>(
     async (channel, threadTs, text, file) => {
       if (!actor) throw new Error("No user to act as");
       try {
-        await uploadAs(token, { userId: actor.id, channel, threadTs, text, file });
+        await uploadAs({ userId: actor.id, channel, threadTs, text, file });
         await load();
       } catch (caught) {
         if (caught instanceof Unauthorized) onUnauthorized(caught.message);
         throw caught;
       }
     },
-    [actor, token, load, onUnauthorized],
+    [actor, load, onUnauthorized],
   );
 
   if (!state) {
@@ -210,7 +175,7 @@ function World({ token, onUnauthorized }: { token: string; onUnauthorized: (mess
   const parent = route.thread ? channelMessages.find((message) => message.ts === route.thread) ?? null : null;
 
   return (
-    <TokenContext.Provider value={token}>
+    <>
       <div className={parent ? "app with-thread" : "app"}>
         <Sidebar
           state={state}
@@ -227,7 +192,6 @@ function World({ token, onUnauthorized }: { token: string; onUnauthorized: (mess
             const created = (result as { channel?: { id: string } }).channel;
             if (created) navigate({ channel: created.id, thread: null });
           }}
-          onSignOut={() => onUnauthorized("Signed out.")}
         />
         <main className="channel">
           {error && <div className="banner">Live updates failed: {error}. Retrying every few seconds.</div>}
@@ -263,7 +227,7 @@ function World({ token, onUnauthorized }: { token: string; onUnauthorized: (mess
           />
         )}
       </div>
-    </TokenContext.Provider>
+    </>
   );
 }
 
@@ -275,7 +239,6 @@ function Sidebar(props: {
   onSelect: (id: string) => void;
   onActorChange: (id: string) => void;
   onCreateChannel: (name: string) => Promise<void>;
-  onSignOut: () => void;
 }) {
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
@@ -347,10 +310,8 @@ function Sidebar(props: {
           </select>
         </label>
         <div className="footer-links">
-          <a href="/_inspector">Inspector</a>
-          <button className="link-button" onClick={props.onSignOut}>
-            Sign out
-          </button>
+          <a href={`${WORLD_BASE}/_inspector`}>Inspector</a>
+          <a href="https://makeworlds.dev/account">Account</a>
         </div>
       </footer>
     </nav>
@@ -597,19 +558,18 @@ function formatSize(bytes: number): string {
 }
 
 function useFileUrl(fileId: string | undefined) {
-  const token = useContext(TokenContext);
   const [state, setState] = useState<{ url: string } | { error: string } | null>(null);
   useEffect(() => {
     if (!fileId) return;
     let live = true;
-    fileObjectUrl(token, fileId).then(
+    fileObjectUrl(fileId).then(
       (url) => live && setState({ url }),
       (caught: unknown) => live && setState({ error: caught instanceof Error ? caught.message : String(caught) }),
     );
     return () => {
       live = false;
     };
-  }, [token, fileId]);
+  }, [fileId]);
   return state;
 }
 
@@ -628,14 +588,13 @@ function SlackImage({ fileId, url, alt, file }: { fileId?: string; url?: string;
 }
 
 function FileChip({ file }: { file: FileRef }) {
-  const token = useContext(TokenContext);
   const [error, setError] = useState<string | null>(null);
   return (
     <button
       className="file-chip"
       onClick={async () => {
         try {
-          window.open(await fileObjectUrl(token, file.id), "_blank");
+          window.open(await fileObjectUrl(file.id), "_blank");
           setError(null);
         } catch (caught) {
           setError(caught instanceof Error ? caught.message : String(caught));

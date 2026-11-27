@@ -1,5 +1,5 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
+  "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "worlds",
   "account_id": "6f3f2ef0dbeefd01119c8818ed8e3dfe",
   "main": "src/index.ts",
@@ -13,14 +13,23 @@
   },
   "workers_dev": true,
   "routes": [{ "pattern": "slack.makeworlds.dev", "custom_domain": true }],
-  "assets": { "directory": "./ui/dist", "binding": "ASSETS", "run_worker_first": true },
-  "build": { "command": "pnpm build", "watch_dir": "ui/src" },
+  "assets": { "directory": "../slack/ui/dist", "binding": "ASSETS", "run_worker_first": true },
+  "build": { "command": "pnpm --filter @worlds/slack build", "watch_dir": "../slack/ui/src" },
   "durable_objects": { "bindings": [{ "name": "WORLD", "class_name": "World" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["World"] }],
   "observability": { "enabled": true },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "worlds-db",
+      "database_id": "829a6cb6-49e1-470c-a7f5-f151014f9ad6",
+      "migrations_dir": "../../packages/db/drizzle"
+    }
+  ],
   "vars": {
-    "SLACK_EVENTS_URL": "https://api-preview.empirical.run/api/slack/events",
+    "SLACK_EVENTS_URL": "",
     "SLACK_REDIRECT_URIS": "",
-    "WORLDS_SLACK_URL": "https://slack.makeworlds.dev"
+    "WORLDS_SLACK_URL": "https://slack.makeworlds.dev",
+    "MAKEWORLDS_URL": "https://makeworlds.dev"
   }
 }

@@ -4,10 +4,10 @@
   "type": "module",
   "packageManager": "pnpm@11.20.0",
   "scripts": {
-    "dev": "pnpm --filter @worlds/slack dev",
+    "dev": "pnpm --filter @worlds/world dev",
     "dev:site": "wrangler d1 migrations apply worlds-db --local -c apps/web/wrangler.jsonc --persist-to apps/web/.wrangler/state && pnpm --filter @worlds/web dev",
     "typecheck": "pnpm -r typecheck",
-    "smoke": "pnpm --filter @worlds/slack smoke",
+    "smoke": "pnpm --filter @worlds/world smoke",
     "db:generate": "pnpm --filter @worlds/db generate"
   },
   "devDependencies": {

@@ -23,7 +23,9 @@ jobs:
       - run: pnpm typecheck
       - name: Smoke test against wrangler dev
         run: |
-          cp services/slack/.dev.vars.example services/slack/.dev.vars
+          cp services/world/.dev.vars.example services/world/.dev.vars
+          pnpm --filter @worlds/world exec wrangler d1 migrations apply worlds-db --local
+          pnpm --filter @worlds/world exec wrangler d1 execute worlds-db --local --file scripts/seed-smoke.sql
           pnpm dev > wrangler-dev.log 2>&1 &
           for attempt in $(seq 1 60); do
             curl -s -o /dev/null http://localhost:8787/ && break
@@ -48,10 +50,10 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @worlds/slack exec wrangler deploy --message "${{ github.sha }}"
+      - run: pnpm exec wrangler d1 migrations apply worlds-db --remote -c apps/web/wrangler.jsonc
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      - run: pnpm exec wrangler d1 migrations apply worlds-db --remote -c apps/web/wrangler.jsonc
+      - run: pnpm --filter @worlds/world exec wrangler deploy --message "${{ github.sha }}"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       - run: pnpm exec wrangler deploy -c apps/api/wrangler.jsonc --message "${{ github.sha }}"

@@ -2,13 +2,13 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { createServer } from "node:http";
 import { WebClient } from "@slack/web-api";
 
-const base = process.env.WORLDS_URL ?? "http://localhost:8787";
+const base = process.env.WORLDS_URL ?? "http://localhost:8787/w/world_smoketest0000000000";
 const signingSecret = process.env.SLACK_SIGNING_SECRET ?? "worlds-signing-secret";
 const clientId = process.env.SLACK_CLIENT_ID ?? "worlds-client-id";
 const clientSecret = process.env.SLACK_CLIENT_SECRET ?? "worlds-client-secret";
 const redirectUri = "http://localhost:8788/oauth/callback";
 const userToken = process.env.SLACK_USER_TOKEN ?? "xoxp-alice";
-const adminToken = process.env.WORLDS_ADMIN_TOKEN ?? "worlds-admin-token";
+const apiKey = process.env.WORLDS_API_KEY ?? "wk_live_smoke0smoke0smoke0smoke0smoke0smoke00";
 const slackApiUrl = `${base}/api/`;
 
 const events = [];
@@ -83,8 +83,12 @@ async function install() {
 }
 
 try {
-  const reset = await fetch(`${base}/_worlds/reset`, { method: "POST", headers: { authorization: `Bearer ${adminToken}` } });
-  assert(reset.ok, "admin reset succeeds");
+  const anonymous = await fetch(`${base}/_worlds/slack/state`);
+  assert(anonymous.status === 401, "control routes refuse requests without the team's key");
+  const state = await fetch(`${base}/_worlds/slack/state`, { headers: { authorization: `Bearer ${apiKey}` } });
+  assert(state.ok, "the team's API key opens the world's control routes");
+  const missing = await fetch(`${base.replace(/world_[a-z0-9]+/, "world_doesnotexist00000000")}/api/auth.test`, { method: "POST" });
+  assert(missing.status === 404, "an unknown world answers world_not_found");
   const access = await install();
   assert(access.ok && access.access_token.startsWith("xoxb-"), "OAuth install returns a bot token");
 

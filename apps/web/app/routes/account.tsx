@@ -1,5 +1,5 @@
-import type { ApiKeyCreatedJson, ApiKeyJson, ApiKeyListJson, TeamJson } from "@worlds/api/schemas";
-import { API_KEY_NAME_MAX, providersFor, TEAM_NAME_MAX, type Provider } from "@worlds/db";
+import type { ApiKeyCreatedJson, ApiKeyJson, ApiKeyListJson, TeamJson, WorldJson, WorldListJson } from "@worlds/api/schemas";
+import { API_KEY_NAME_MAX, providersFor, TEAM_NAME_MAX, WORLD_NAME_MAX, type Provider } from "@worlds/db";
 import { data, Form, useNavigation } from "react-router";
 import { workerContext } from "../../worker/context";
 import { callApi, requireApi } from "../api.server";
@@ -22,7 +22,10 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     const reason = new URL(request.url).searchParams.get("sign_in");
     return { signedIn: false as const, signInError: reason ? (SIGN_IN_ERRORS[reason] ?? null) : null };
   }
-  const { api_keys: keys } = await requireApi<ApiKeyListJson>(context, request, `/api/teams/${account.team.id}/api-keys`);
+  const [{ api_keys: keys }, { worlds }] = await Promise.all([
+    requireApi<ApiKeyListJson>(context, request, `/api/teams/${account.team.id}/api-keys`),
+    requireApi<WorldListJson>(context, request, "/api/worlds"),
+  ]);
   return {
     signedIn: true as const,
     email: account.user.email,
@@ -30,10 +33,11 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     team: { id: account.team.id, name: account.team.name },
     role: account.role,
     keys,
+    worlds: worlds.filter((world) => world.team_id === account.team.id),
   };
 }
 
-type ActionResult = { intent: string; error?: string; secret?: string; saved?: boolean };
+type ActionResult = { intent: string; error?: string; secret?: string; saved?: boolean; createdWorld?: string };
 
 export async function action({ request, context }: Route.ActionArgs) {
   const { account } = context.get(workerContext);
@@ -53,6 +57,18 @@ export async function action({ request, context }: Route.ActionArgs) {
     });
     return data<ActionResult>(result.ok ? { intent, secret: result.data.secret } : { intent, error: result.error.message }, result.ok ? 200 : result.status);
   }
+  if (intent === "create-world") {
+    const name = String(form.get("name") ?? "").trim();
+    const result = await callApi<WorldJson>(context, request, "/api/worlds", {
+      method: "POST",
+      body: { team_id: account.team.id, ...(name ? { name } : {}) },
+    });
+    return data<ActionResult>(result.ok ? { intent, createdWorld: result.data.id } : { intent, error: result.error.message }, result.ok ? 200 : result.status);
+  }
+  if (intent === "delete-world") {
+    const result = await callApi<void>(context, request, `/api/worlds/${String(form.get("worldId"))}`, { method: "DELETE" });
+    return data<ActionResult>(result.ok ? { intent } : { intent, error: result.error.message }, result.ok ? 200 : result.status);
+  }
   if (intent === "revoke-key") {
     const result = await callApi<void>(context, request, `${teamPath}/api-keys/${String(form.get("keyId"))}`, { method: "DELETE" });
     return data<ActionResult>(result.ok ? { intent } : { intent, error: result.error.message }, result.ok ? 200 : result.status);
@@ -62,7 +78,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 export default function Account({ loaderData, actionData }: Route.ComponentProps) {
   if (!loaderData.signedIn) return <SignIn error={loaderData.signInError} />;
-  const { email, providers, team, role, keys } = loaderData;
+  const { email, providers, team, role, keys, worlds } = loaderData;
   return (
     <article>
       <header className="section hero">
@@ -95,6 +111,18 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
             <strong>{team.name}</strong>. Only owners can rename the team.
           </p>
         )}
+      </section>
+
+      <section className="section" id="worlds">
+        <h2>Worlds</h2>
+        <p>Each world is a separate Slack workspace your app can talk to. It keeps its state until you delete it.</p>
+        <CreateWorldForm key={actionData?.createdWorld} error={actionData?.intent === "create-world" ? actionData.error : undefined} />
+        {actionData?.intent === "delete-world" && actionData.error && (
+          <p className="form-status error" role="alert">
+            {actionData.error}
+          </p>
+        )}
+        {worlds.length ? <WorldTable worlds={worlds} /> : <p className="empty">No worlds yet.</p>}
       </section>
 
       <section className="section" id="keys">
@@ -190,6 +218,66 @@ function CreateKeyForm({ error }: { error?: string }) {
         </p>
       )}
     </Form>
+  );
+}
+
+function CreateWorldForm({ error }: { error?: string }) {
+  const submitting = useSubmitting("create-world");
+  return (
+    <Form className="inline-form" method="post">
+      <input type="hidden" name="intent" value="create-world" />
+      <label htmlFor="world-name">Name</label>
+      <input id="world-name" name="name" maxLength={WORLD_NAME_MAX} placeholder="Untitled world" autoComplete="off" />
+      <button className="button primary" type="submit" disabled={submitting}>
+        Create world
+      </button>
+      {!submitting && error && (
+        <p className="form-status error" role="alert">
+          {error}
+        </p>
+      )}
+    </Form>
+  );
+}
+
+function WorldTable({ worlds }: { worlds: WorldJson[] }) {
+  const navigation = useNavigation();
+  const deleting = navigation.formData?.get("intent") === "delete-world" ? navigation.formData.get("worldId") : null;
+  return (
+    <table className="keys">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Id</th>
+          <th>Created</th>
+          <th>
+            <span className="visually-hidden">Actions</span>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {worlds.map((world) => (
+          <tr key={world.id}>
+            <td>
+              <a href={world.slack.ui_url}>{world.name}</a>
+            </td>
+            <td>
+              <code>{world.id}</code>
+            </td>
+            <td>{dateFormat.format(new Date(world.created_at))}</td>
+            <td>
+              <Form method="post">
+                <input type="hidden" name="intent" value="delete-world" />
+                <input type="hidden" name="worldId" value={world.id} />
+                <button className="link-button" type="submit" disabled={deleting === world.id}>
+                  Delete
+                </button>
+              </Form>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 

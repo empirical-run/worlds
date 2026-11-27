@@ -31,39 +31,42 @@ export type WorldState = {
 
 export class Unauthorized extends Error {}
 
-async function call<T>(token: string, path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
+export const WORLD_BASE = location.pathname.match(/^\/w\/[^/]+/)?.[0] ?? "";
+
+const NOT_SIGNED_IN = "Sign in at makeworlds.dev with an account in this world's team.";
+
+async function call<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${WORLD_BASE}${path}`, {
     ...init,
-    headers: { authorization: `Bearer ${token}`, "content-type": "application/json", ...init?.headers },
+    headers: { "content-type": "application/json", ...init?.headers },
   });
-  if (response.status === 401) throw new Unauthorized("The admin token was rejected.");
+  if (response.status === 401) throw new Unauthorized(NOT_SIGNED_IN);
   const body = (await response.json()) as T & { ok: boolean; error?: string };
   if (!body.ok) throw new Error(body.error ?? `HTTP ${response.status}`);
   return body;
 }
 
-export function fetchState(token: string, channelId: string | null): Promise<WorldState> {
+export function fetchState(channelId: string | null): Promise<WorldState> {
   const query = channelId ? `?channel=${encodeURIComponent(channelId)}` : "";
-  return call<WorldState>(token, `/_worlds/slack/state${query}`);
+  return call<WorldState>(`/_worlds/slack/state${query}`);
 }
 
 export function actAs<T = Record<string, unknown>>(
-  token: string,
   userId: string,
   method: string,
   args: Record<string, unknown>,
 ): Promise<T> {
-  return call<T>(token, "/_worlds/slack/act", { method: "POST", body: JSON.stringify({ user_id: userId, method, args }) });
+  return call<T>("/_worlds/slack/act", { method: "POST", body: JSON.stringify({ user_id: userId, method, args }) });
 }
 
 const fileUrls = new Map<string, Promise<string>>();
 
-export function fileObjectUrl(token: string, fileId: string): Promise<string> {
+export function fileObjectUrl(fileId: string): Promise<string> {
   const cached = fileUrls.get(fileId);
   if (cached) return cached;
-  const pending = fetch(`/_worlds/slack/files/${encodeURIComponent(fileId)}`, { headers: { authorization: `Bearer ${token}` } }).then(
+  const pending = fetch(`${WORLD_BASE}/_worlds/slack/files/${encodeURIComponent(fileId)}`).then(
     async (response) => {
-      if (response.status === 401) throw new Unauthorized("The admin token was rejected.");
+      if (response.status === 401) throw new Unauthorized(NOT_SIGNED_IN);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return URL.createObjectURL(await response.blob());
     },
@@ -74,7 +77,6 @@ export function fileObjectUrl(token: string, fileId: string): Promise<string> {
 }
 
 export async function uploadAs(
-  token: string,
   upload: { userId: string; channel: string; threadTs?: string; text: string; file: File },
 ): Promise<void> {
   const form = new FormData();
@@ -83,8 +85,8 @@ export async function uploadAs(
   if (upload.threadTs) form.set("thread_ts", upload.threadTs);
   if (upload.text) form.set("text", upload.text);
   form.set("file", upload.file, upload.file.name);
-  const response = await fetch("/_worlds/slack/upload", { method: "POST", headers: { authorization: `Bearer ${token}` }, body: form });
-  if (response.status === 401) throw new Unauthorized("The admin token was rejected.");
+  const response = await fetch(`${WORLD_BASE}/_worlds/slack/upload`, { method: "POST", body: form });
+  if (response.status === 401) throw new Unauthorized(NOT_SIGNED_IN);
   const body = (await response.json()) as { ok: boolean; error?: string };
   if (!body.ok) throw new Error(body.error ?? `HTTP ${response.status}`);
 }

@@ -4,5 +4,5 @@ SLACK_CLIENT_ID=worlds-client-id
 SLACK_SIGNING_SECRET=worlds-signing-secret
 SLACK_CLIENT_SECRET=worlds-client-secret
 SLACK_USER_TOKEN=xoxp-alice
-WORLDS_ADMIN_TOKEN=worlds-admin-token
 WORLDS_SLACK_URL=
+MAKEWORLDS_URL=http://localhost:8790
