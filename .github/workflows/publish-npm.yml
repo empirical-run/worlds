@@ -37,7 +37,10 @@ jobs:
             echo "version=$version" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          npm pack "makeworlds@$version" --pack-destination "$RUNNER_TEMP" --silent > /dev/null
+          if ! npm pack "makeworlds@$version" --pack-destination "$RUNNER_TEMP" --silent > /dev/null 2>&1; then
+            echo "::notice::makeworlds@$version is not downloadable yet, skipping the API change check."
+            exit 0
+          fi
           tar -xzf "$RUNNER_TEMP/makeworlds-$version.tgz" -C "$RUNNER_TEMP" package/openapi.json
           if ! cmp -s openapi.json "$RUNNER_TEMP/package/openapi.json"; then
             echo "::warning file=packages/makeworlds/package.json::The API changed since makeworlds@$version. Bump the version to publish it."
