@@ -4,7 +4,7 @@ import { highlight } from "../highlight.server";
 import type { Route } from "./+types/docs";
 
 export const headers: Route.HeadersFunction = () => ({
-  "Cache-Control": "private, max-age=300",
+  "Cache-Control": "private, max-age=10",
   Vary: "Cookie",
 });
 
