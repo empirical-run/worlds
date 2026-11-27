@@ -6,11 +6,13 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  type ShouldRevalidateFunction,
   useRouteLoaderData,
 } from "react-router";
 
 import { workerContext } from "../worker/context";
 import type { Route } from "./+types/root";
+import { NavProgress } from "./components/NavProgress";
 import { Rail } from "./components/Rail";
 
 export const links: Route.LinksFunction = () => [
@@ -34,6 +36,11 @@ export async function loader({ context }: Route.LoaderArgs) {
   };
 }
 
+export const shouldRevalidate: ShouldRevalidateFunction = ({
+  formMethod,
+  defaultShouldRevalidate,
+}) => (formMethod ? defaultShouldRevalidate : false);
+
 export type RootData = Awaited<ReturnType<typeof loader>>;
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -47,6 +54,7 @@ export function Layout({ children }: { children: ReactNode }) {
         <Links />
       </head>
       <body>
+        <NavProgress />
         <div className="page">
           <Rail account={data?.account ?? null} />
           <main className="content">{children}</main>

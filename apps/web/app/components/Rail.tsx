@@ -23,18 +23,18 @@ export function Rail({ account }: { account: RootData["account"] }) {
         Worlds
       </a>
       <nav aria-label="Main">
-        <NavLink className="rail-link rail-home" to="/" end>
+        <NavLink prefetch="intent" className="rail-link rail-home" to="/" end>
           Home
         </NavLink>
-        <NavLink className="rail-link" to="/docs">
+        <NavLink prefetch="intent" className="rail-link" to="/docs">
           Docs
         </NavLink>
         {pathname.startsWith("/docs") && (
           <>
-            <NavLink className="rail-link rail-sublink" to="/docs" end>
+            <NavLink prefetch="intent" className="rail-link rail-sublink" to="/docs" end>
               Getting started
             </NavLink>
-            <NavLink className="rail-link rail-sublink" to="/docs/api">
+            <NavLink prefetch="intent" className="rail-link rail-sublink" to="/docs/api">
               API reference
             </NavLink>
           </>

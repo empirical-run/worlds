@@ -813,3 +813,30 @@ button:disabled {
     display: none;
   }
 }
+
+.nav-progress {
+  position: fixed;
+  inset: 0 auto auto 0;
+  z-index: 100;
+  width: 0;
+  height: 2px;
+  background: var(--accent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.nav-progress[data-phase="loading"] {
+  width: 85%;
+  opacity: 1;
+  transition:
+    width 10s cubic-bezier(0.05, 0.8, 0.2, 1) 150ms,
+    opacity 0s 150ms;
+}
+
+.nav-progress[data-phase="done"] {
+  width: 100%;
+  opacity: 0;
+  transition:
+    width 200ms ease-out,
+    opacity 300ms ease 200ms;
+}

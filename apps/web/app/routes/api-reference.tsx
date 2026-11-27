@@ -14,6 +14,11 @@ import {
 } from "../openapi";
 import type { Route } from "./+types/api-reference";
 
+export const headers: Route.HeadersFunction = () => ({
+  "Cache-Control": "private, max-age=300",
+  Vary: "Cookie",
+});
+
 export const meta = () => [{ title: "API reference · Worlds" }];
 
 export async function loader({ request, context }: Route.LoaderArgs) {

@@ -3,6 +3,11 @@ import { type RailHandle } from "../components/Rail";
 import { highlight } from "../highlight.server";
 import type { Route } from "./+types/docs";
 
+export const headers: Route.HeadersFunction = () => ({
+  "Cache-Control": "private, max-age=300",
+  Vary: "Cookie",
+});
+
 export const meta = () => [{ title: "Docs · Worlds" }];
 
 export const handle: RailHandle = {
