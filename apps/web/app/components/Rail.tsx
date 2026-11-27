@@ -12,16 +12,40 @@ export type RailHandle = {
 
 export function Rail({ account }: { account: RootData["account"] }) {
   const matches = useMatches();
-  const { pathname } = useLocation();
+  const { pathname, key: locationKey } = useLocation();
   const leaf = matches[matches.length - 1];
   const handle = leaf?.handle as RailHandle | undefined;
   const railIndex = handle?.railIndex?.(leaf?.loaderData);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  useEffect(() => setSheetOpen(false), [locationKey]);
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSheetOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [sheetOpen]);
   return (
-    <aside className="rail">
-      <a className="brand" href="/">
-        <img src="/favicon.svg" alt="" width="18" height="18" />
-        Worlds
-      </a>
+    <aside id="rail" className="rail" data-sheet={sheetOpen ? "open" : undefined}>
+      <div className="rail-top">
+        <a className="brand" href="/">
+          <img src="/favicon.svg" alt="" width="18" height="18" />
+          Worlds
+        </a>
+        <button
+          className="rail-toggle"
+          type="button"
+          aria-expanded={sheetOpen}
+          aria-controls="rail"
+          aria-label={sheetOpen ? "Close menu" : "Open menu"}
+          onClick={() => setSheetOpen((open) => !open)}
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+            {sheetOpen ? <path d="M5 5l10 10M15 5L5 15" /> : <path d="M3 6h14M3 10h14M3 14h14" />}
+          </svg>
+        </button>
+      </div>
       <nav aria-label="Main">
         <NavLink prefetch="intent" className="rail-link rail-home" to="/" end>
           Home
@@ -57,7 +81,13 @@ export function Rail({ account }: { account: RootData["account"] }) {
           </NavLink>
         )}
       </nav>
-      {railIndex && <RailIndex groups={railIndex} numbered={handle?.numberedRailIndex ?? false} />}
+      {railIndex && (
+        <RailIndex
+          groups={railIndex}
+          numbered={handle?.numberedRailIndex ?? false}
+          onNavigate={() => setSheetOpen(false)}
+        />
+      )}
       {account ? (
         <RailAccountMenu account={account} />
       ) : (
@@ -148,7 +178,15 @@ function RailAccountMenu({ account }: { account: NonNullable<RootData["account"]
   );
 }
 
-function RailIndex({ groups, numbered }: { groups: RailIndexGroup[]; numbered: boolean }) {
+function RailIndex({
+  groups,
+  numbered,
+  onNavigate,
+}: {
+  groups: RailIndexGroup[];
+  numbered: boolean;
+  onNavigate: () => void;
+}) {
   const ids = groups.flatMap((group) => group.links.map((link) => link.id));
   const active = useActiveSection(ids);
   return (
@@ -162,6 +200,7 @@ function RailIndex({ groups, numbered }: { groups: RailIndexGroup[]; numbered: b
               key={link.id}
               href={`#${link.id}`}
               aria-current={link.id === active ? "location" : undefined}
+              onClick={onNavigate}
             >
               {numbered && (
                 <span className="num">{String(ids.indexOf(link.id) + 1).padStart(2, "0")}</span>

@@ -89,13 +89,40 @@ pre {
   border-bottom: 1px solid var(--rule);
 }
 
+.rail-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+}
 .brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 64px;
   font-weight: 600;
   text-decoration: none;
+}
+.rail-toggle {
+  display: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-right: -8px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+}
+.rail-toggle:hover {
+  background: var(--surface-2);
+}
+.rail-toggle svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
 }
 
 .rail nav {
@@ -739,61 +766,46 @@ button:disabled {
   }
   .rail {
     z-index: 10;
-    height: 56px;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
+    height: auto;
+    overflow: visible;
     border: 0;
     border-bottom: 1px solid var(--rule);
     background: var(--surface);
   }
   .rail > * {
-    padding: 0 16px;
-    border: 0;
+    padding-inline: 20px;
   }
-  .brand {
-    height: auto;
+  .rail-top {
+    height: 56px;
+    padding-block: 0;
+    border-bottom: 0;
   }
-  .rail nav {
-    flex-direction: row;
-    gap: 16px;
+  .rail-toggle {
+    display: grid;
   }
-  .rail-link {
-    padding-left: 0;
-    white-space: nowrap;
-  }
-  .rail-link::before,
-  .rail-sublink,
-  .rail-index,
-  .rail-foot:not(.rail-account),
-  .rail-user-text,
-  .rail-team-heading,
-  .rail-home {
+  .rail:not([data-sheet="open"]) > :not(.rail-top) {
     display: none;
   }
-  .rail nav {
-    margin-left: auto;
-  }
-  .rail {
-    overflow: visible;
-  }
-  .rail > .rail-foot {
-    margin-top: 0;
+  .rail[data-sheet="open"] {
+    position: fixed;
+    inset: 0;
+    height: 100dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     border: 0;
   }
-  .rail-account {
-    padding-block: 0;
+  .rail[data-sheet="open"] .rail-top {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    border-bottom: 1px solid var(--rule);
+    background: var(--surface);
   }
-  .rail-user {
-    margin: 0;
-    padding: 0;
-    border-radius: 50%;
+  .rail[data-sheet="open"] .rail-link {
+    font-size: 17px;
   }
-  .rail-menu {
-    inset-inline: auto 16px;
-    top: calc(100% + 10px);
-    bottom: auto;
-    width: 220px;
+  :root:has(.rail[data-sheet="open"]) {
+    overflow: hidden;
   }
   .content {
     border: 0;
