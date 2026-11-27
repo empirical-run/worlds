@@ -38,6 +38,16 @@ All paths below are on the world's Slack host, `https://{id}-slack.makeworlds.de
   - `GET /_worlds/slack/files/F…` returns a file's bytes; `POST /_worlds/slack/upload` (multipart `user_id`, `channel`, `file`, optional `text`, `thread_ts`) shares a file as that user.
   - `POST /_worlds/slack/act` with `{ "user_id", "method", "args" }` calls a Web API method as that user, minting a user token when the user has none. Allowed methods: `chat.postMessage`, `conversations.create`, `conversations.invite`, `reactions.add`, `reactions.remove`.
 
+## Specs
+
+`specs/*.json` are world specs (the `POST /api/worlds` body). Secrets are `${ENV}` placeholders. Create a world from one with:
+
+```bash
+WORLDS_API_KEY=wk_live_… node scripts/create-world.mjs specs/empirical-preview.json
+```
+
+`specs/empirical-preview.json` is the world api-preview talks to: the Empirical app with api-preview's credentials (`WORLDS_SLACK_CLIENT_ID`, `WORLDS_SLACK_CLIENT_SECRET`, `WORLDS_SLACK_SIGNING_SECRET`), events to api-preview, and redirect URLs for dashboard previews and localhost.
+
 ## Site
 
 The site at https://makeworlds.dev is `apps/web`: React Router 8 (framework mode, SSR) on the `worlds-site` Worker, with sign-in under `/auth/*`. It forwards `/api/*` over a service binding to `apps/api` (Hono + zod-openapi, Worker `worlds-api`), which serves `/api/openapi.json`; `/docs/api` renders the reference from it, and the account page reads and writes through the API. Schema and migrations live in `packages/db` (`pnpm db:generate`). `pnpm dev:site` runs the site with the API on :8790; CI applies migrations, then deploys the world Worker, the API and the site.
