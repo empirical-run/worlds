@@ -9,6 +9,7 @@
   "dependencies": {
     "@worlds/contract": "workspace:*",
     "@worlds/db": "workspace:*",
+    "@worlds/google": "workspace:*",
     "@worlds/jira": "workspace:*",
     "@worlds/linear": "workspace:*",
     "@worlds/services": "workspace:*",

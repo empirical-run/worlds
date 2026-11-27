@@ -23,7 +23,10 @@ export function withBanner(
   makeworldsUrl: string,
   serviceStyle = "",
 ): Response {
-  if (!response.headers.get("content-type")?.includes("text/html")) {
+  if (
+    !response.headers.get("content-type")?.includes("text/html") ||
+    response.headers.get("x-worlds-banner") === "off"
+  ) {
     return response;
   }
   const banner = bannerHtml(name, world, makeworldsUrl);

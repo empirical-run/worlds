@@ -180,6 +180,9 @@ importers:
       '@worlds/contract':
         specifier: workspace:*
         version: link:../contract
+      '@worlds/google':
+        specifier: workspace:*
+        version: link:../../services/google
       '@worlds/jira':
         specifier: workspace:*
         version: link:../../services/jira
@@ -189,6 +192,28 @@ importers:
       '@worlds/slack':
         specifier: workspace:*
         version: link:../../services/slack
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^5.20261125.1
+        version: 5.20261125.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  services/google:
+    dependencies:
+      '@hono/zod-openapi':
+        specifier: ^1.6.3
+        version: 1.6.3(hono@4.13.22)(zod@4.6.7)
+      '@worlds/contract':
+        specifier: workspace:*
+        version: link:../../packages/contract
+      hono:
+        specifier: ^4.13.22
+        version: 4.13.22
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -307,6 +332,9 @@ importers:
       '@worlds/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@worlds/google':
+        specifier: workspace:*
+        version: link:../google
       '@worlds/jira':
         specifier: workspace:*
         version: link:../jira

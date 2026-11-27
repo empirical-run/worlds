@@ -1,0 +1,25 @@
+{
+  "name": "@worlds/google",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./service": "./src/service.ts",
+    "./spec": "./src/spec.ts",
+    "./contract": "./src/contract.ts",
+    "./hosting": "./src/hosting.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "@hono/zod-openapi": "^1.6.3",
+    "@worlds/contract": "workspace:*",
+    "hono": "^4.13.22",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261125.1",
+    "typescript": "^5.9.3"
+  }
+}

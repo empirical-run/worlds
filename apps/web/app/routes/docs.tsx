@@ -229,6 +229,33 @@ export default function Docs({ loaderData: { examples } }: Route.ComponentProps)
         </p>
       </section>
 
+      <section className="section" id="google">
+        <h2>Google Drive</h2>
+        <p>
+          A world with a <code>google</code> spec has Google accounts, each with a My Drive. The
+          spec lists the users, OAuth web clients (<code>redirect_uris</code>, an optional{" "}
+          <code>project_number</code> and pinned <code>credentials</code> with the API key), files
+          and folders with an owner and optional <code>shared_with</code>, and drive.file{" "}
+          <code>grants</code>. It answers on two hosts, returned as <code>google.accounts_url</code>{" "}
+          (in place of accounts.google.com, apis.google.com and drive.google.com) and{" "}
+          <code>google.api_url</code> (oauth2.googleapis.com and www.googleapis.com).
+        </p>
+        <p>
+          Supported: the <code>drive.file</code> scope and the Google Picker. Load{" "}
+          <code>/js/api.js</code> from the accounts URL and build the Picker as usual; with{" "}
+          <code>setAppId</code> set to the app&apos;s project number, picks grant the app those
+          files. Drive v3 then sees only granted files (and files the app created), with
+          Google&apos;s <code>notFound</code>, <code>appNotAuthorizedToFile</code> and{" "}
+          <code>fileNotDownloadable</code> errors for the rest. Grants outlive token refresh and
+          revocation.
+        </p>
+        <p>
+          <a href="/docs/google-picker">Google Picker</a> walks through it end to end: the world
+          spec, loading the Picker, callback data, what the app can see, CSP and tests without a
+          browser.
+        </p>
+      </section>
+
       <section className="section" id="worlds-api">
         <h2>Worlds API</h2>
         <p>

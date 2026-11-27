@@ -1,9 +1,10 @@
 import { z } from "@hono/zod-openapi";
+import { google } from "@worlds/google/contract";
 import { jira } from "@worlds/jira/contract";
 import { linear } from "@worlds/linear/contract";
 import { slack } from "@worlds/slack/contract";
 
-export const SERVICES = [slack, jira, linear] as const;
+export const SERVICES = [slack, jira, linear, google] as const;
 
 type ServiceContract = (typeof SERVICES)[number];
 

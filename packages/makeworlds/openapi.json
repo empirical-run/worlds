@@ -27,6 +27,10 @@
       "description": "Act inside a world's Linear, on its own host."
     },
     {
+      "name": "Google Drive world",
+      "description": "Act inside a world's Google Drive, on its own host."
+    },
+    {
       "name": "Teams",
       "description": "Your teams and their members."
     },
@@ -368,6 +372,9 @@
           "linear": {
             "$ref": "#/components/schemas/LinearUrls"
           },
+          "google": {
+            "$ref": "#/components/schemas/GoogleUrls"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time"
@@ -387,6 +394,7 @@
           "slack",
           "jira",
           "linear",
+          "google",
           "created_at",
           "updated_at"
         ],
@@ -400,7 +408,8 @@
             "enum": [
               "slack",
               "jira",
-              "linear"
+              "linear",
+              "google"
             ]
           },
           "title": {
@@ -509,6 +518,31 @@
         ],
         "description": "null when the world has no Linear."
       },
+      "GoogleUrls": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "accounts_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "In place of https://accounts.google.com (/o/oauth2/v2/auth), https://apis.google.com (/js/api.js loads the Picker) and https://drive.google.com and https://docs.google.com (file pages).",
+            "example": "https://k2v9x0q1m4-google.makeworlds.dev"
+          },
+          "api_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "In place of https://oauth2.googleapis.com (/token, /revoke, /tokeninfo) and https://www.googleapis.com (/drive/v3, /upload/drive/v3, /oauth2/v3/userinfo).",
+            "example": "https://k2v9x0q1m4-google-api.makeworlds.dev"
+          }
+        },
+        "required": [
+          "accounts_url",
+          "api_url"
+        ],
+        "description": "null when the world has no Google Drive."
+      },
       "WorldCreated": {
         "allOf": [
           {
@@ -525,6 +559,9 @@
               },
               "linear": {
                 "$ref": "#/components/schemas/LinearCreated"
+              },
+              "google": {
+                "$ref": "#/components/schemas/Google DriveCreated"
               }
             }
           }
@@ -1569,6 +1606,241 @@
         ],
         "description": "The app's OAuth client credentials and webhook signing secret."
       },
+      "Google DriveCreated": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GoogleUrls"
+          },
+          {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "spec": {
+                "$ref": "#/components/schemas/GoogleState"
+              }
+            },
+            "required": [
+              "spec"
+            ]
+          }
+        ],
+        "description": "null when the world has no Google Drive."
+      },
+      "GoogleState": {
+        "type": "object",
+        "properties": {
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GoogleUserState"
+            }
+          },
+          "apps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GoogleAppState"
+            }
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GoogleFileState"
+            }
+          },
+          "grants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GoogleGrantSpec"
+            }
+          }
+        },
+        "required": [
+          "users",
+          "apps",
+          "files",
+          "grants"
+        ],
+        "description": "The world's Google spec with every generated id and credential filled in."
+      },
+      "GoogleUserState": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The user's permission id and OpenID sub."
+          },
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "root_folder_id": {
+            "type": "string",
+            "description": "The id of the user's My Drive."
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name",
+          "root_folder_id"
+        ],
+        "description": "A user, with its ids."
+      },
+      "GoogleAppState": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "project_number": {
+            "type": "string"
+          },
+          "redirect_uris": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "credentials": {
+            "$ref": "#/components/schemas/GoogleCredentials"
+          }
+        },
+        "required": [
+          "name",
+          "project_number",
+          "redirect_uris",
+          "credentials"
+        ],
+        "description": "An app, with its project number and credentials."
+      },
+      "GoogleCredentials": {
+        "type": "object",
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 200
+          },
+          "client_secret": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 256
+          },
+          "api_key": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 256,
+            "description": "The API key the app passes to the Picker as its developer key."
+          }
+        },
+        "required": [
+          "client_id",
+          "client_secret",
+          "api_key"
+        ],
+        "description": "The app's OAuth client id and secret, and its API key."
+      },
+      "GoogleFileState": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "example": "notes.txt"
+          },
+          "mime_type": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 200,
+            "description": "A MIME type; application/vnd.google-apps.folder for a folder, application/vnd.google-apps.document for a Google Doc.",
+            "example": "text/plain"
+          },
+          "owner": {
+            "type": "string",
+            "format": "email",
+            "example": "alice@acme.test",
+            "description": "A user's email address."
+          },
+          "parent": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{10,64}$",
+            "example": "1dwGSHHV1RDwiK_bqmhKntR3zEsUksqfP",
+            "description": "The id of a folder in this spec. Left out, the file is in the owner's My Drive."
+          },
+          "shared_with": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GoogleShareSpec"
+            },
+            "maxItems": 50
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "mime_type",
+          "owner"
+        ],
+        "description": "A file from the spec, with its id."
+      },
+      "GoogleShareSpec": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "string",
+            "format": "email",
+            "example": "alice@acme.test",
+            "description": "A user's email address."
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "reader",
+              "writer"
+            ]
+          }
+        },
+        "required": [
+          "user",
+          "role"
+        ],
+        "description": "Someone the file is shared with."
+      },
+      "GoogleGrantSpec": {
+        "type": "object",
+        "properties": {
+          "app": {
+            "type": "string",
+            "description": "An app's name."
+          },
+          "user": {
+            "type": "string",
+            "format": "email",
+            "example": "alice@acme.test",
+            "description": "A user's email address."
+          },
+          "file": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{10,64}$",
+            "example": "1dwGSHHV1RDwiK_bqmhKntR3zEsUksqfP",
+            "description": "A pinned file id from files."
+          }
+        },
+        "required": [
+          "app",
+          "user",
+          "file"
+        ],
+        "description": "A drive.file grant, as if the user had picked the file in the app's Picker."
+      },
       "WorldCreate": {
         "type": "object",
         "properties": {
@@ -1586,6 +1858,9 @@
           },
           "linear": {
             "$ref": "#/components/schemas/LinearSpec"
+          },
+          "google": {
+            "$ref": "#/components/schemas/GoogleSpec"
           }
         },
         "required": [
@@ -2205,6 +2480,179 @@
         },
         "description": "Pin the client id, secret and webhook secret, e.g. to match ones your app has."
       },
+      "GoogleSpec": {
+        "type": "object",
+        "properties": {
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GoogleUserSpec"
+            },
+            "minItems": 1,
+            "maxItems": 100
+          },
+          "apps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GoogleAppSpec"
+            },
+            "maxItems": 10
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GoogleFileSpec"
+            },
+            "maxItems": 1000
+          },
+          "grants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GoogleGrantSpec"
+            },
+            "maxItems": 1000
+          }
+        },
+        "required": [
+          "users"
+        ],
+        "description": "The world's Google accounts, Drive files, OAuth apps and drive.file grants. Omitted ids and credentials are generated. Leave it out to create the world without Google."
+      },
+      "GoogleUserSpec": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "alice@acme.test"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "example": "Alice Tester"
+          }
+        },
+        "required": [
+          "email",
+          "name"
+        ],
+        "description": "A Google account with its own My Drive."
+      },
+      "GoogleAppSpec": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "example": "My app"
+          },
+          "project_number": {
+            "type": "string",
+            "pattern": "^[0-9]{6,15}$",
+            "description": "The Cloud project number: the Picker's appId and the prefix of the client id. Generated if left out.",
+            "example": "622449777375"
+          },
+          "redirect_uris": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^https?:\\/\\/[^\\s*]+$"
+            },
+            "minItems": 1,
+            "maxItems": 100,
+            "description": "Authorized redirect URIs. redirect_uri must equal one of them exactly.",
+            "example": [
+              "http://localhost:5555/oauth/callback"
+            ]
+          },
+          "credentials": {
+            "$ref": "#/components/schemas/GoogleCredentialsSpec"
+          }
+        },
+        "required": [
+          "name",
+          "redirect_uris"
+        ],
+        "description": "An OAuth web client in a Cloud project, in Testing mode with every user a test user."
+      },
+      "GoogleCredentialsSpec": {
+        "type": "object",
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 200
+          },
+          "client_secret": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 256
+          },
+          "api_key": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 256,
+            "description": "The API key the app passes to the Picker as its developer key."
+          }
+        },
+        "description": "Pin the client id, secret and API key, e.g. to match ones your app has."
+      },
+      "GoogleFileSpec": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{10,64}$",
+            "example": "1dwGSHHV1RDwiK_bqmhKntR3zEsUksqfP",
+            "description": "Pin the file id, to put files in this folder or grant it. Generated if left out."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "example": "notes.txt"
+          },
+          "mime_type": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 200,
+            "description": "A MIME type; application/vnd.google-apps.folder for a folder, application/vnd.google-apps.document for a Google Doc.",
+            "example": "text/plain"
+          },
+          "owner": {
+            "type": "string",
+            "format": "email",
+            "example": "alice@acme.test",
+            "description": "A user's email address."
+          },
+          "parent": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{10,64}$",
+            "example": "1dwGSHHV1RDwiK_bqmhKntR3zEsUksqfP",
+            "description": "The id of a folder in this spec. Left out, the file is in the owner's My Drive."
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 1000000,
+            "description": "Text content; for a Google Doc, Sheet or Slides file the text that export returns."
+          },
+          "shared_with": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GoogleShareSpec"
+            },
+            "maxItems": 50
+          }
+        },
+        "required": [
+          "name",
+          "mime_type",
+          "owner"
+        ],
+        "description": "A file or folder in someone's Drive."
+      },
       "WorldSpec": {
         "type": "object",
         "properties": {
@@ -2246,12 +2694,26 @@
                 ]
               }
             ]
+          },
+          "google": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GoogleState"
+              },
+              {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              }
+            ]
           }
         },
         "required": [
           "slack",
           "jira",
-          "linear"
+          "linear",
+          "google"
         ],
         "description": "Each service's spec, or null for a service the world was created without."
       },
@@ -3413,6 +3875,160 @@
           "body"
         ],
         "description": "A comment to post as a member."
+      },
+      "GoogleWorldState": {
+        "type": "object",
+        "properties": {
+          "spec": {
+            "$ref": "#/components/schemas/GoogleState"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GoogleFile"
+            }
+          },
+          "grants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GoogleGrantSpec"
+            },
+            "description": "Every drive.file grant now: from the spec, Picker picks and files apps created."
+          }
+        },
+        "required": [
+          "spec",
+          "files",
+          "grants"
+        ],
+        "description": "The world's Google as it is now."
+      },
+      "GoogleFile": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "mime_type": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string",
+            "description": "The owner's email."
+          },
+          "parent": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The folder id; My Drive's id at the top."
+          },
+          "size": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Bytes; null for folders and Google Docs files."
+          },
+          "trashed": {
+            "type": "boolean"
+          },
+          "shared_with": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GoogleShareSpec"
+            }
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "modified_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "mime_type",
+          "owner",
+          "parent",
+          "size",
+          "trashed",
+          "shared_with",
+          "created_at",
+          "modified_at"
+        ],
+        "description": "A file as the world stores it."
+      },
+      "GoogleFileCreate": {
+        "type": "object",
+        "properties": {
+          "owner": {
+            "type": "string",
+            "format": "email",
+            "example": "alice@acme.test",
+            "description": "A user's email address."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "mime_type": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 200
+          },
+          "parent": {
+            "type": "string",
+            "description": "A folder id. Left out, My Drive."
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 1000000
+          },
+          "shared_with": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GoogleShareSpec"
+            },
+            "maxItems": 50
+          }
+        },
+        "required": [
+          "owner",
+          "name",
+          "mime_type"
+        ],
+        "description": "A file to add to someone's Drive, as that user."
+      },
+      "GoogleGrantCreate": {
+        "type": "object",
+        "properties": {
+          "app": {
+            "type": "string",
+            "description": "An app's name or client id."
+          },
+          "user": {
+            "type": "string",
+            "format": "email",
+            "example": "alice@acme.test",
+            "description": "A user's email address."
+          },
+          "file": {
+            "type": "string",
+            "description": "A file id the user can see."
+          }
+        },
+        "required": [
+          "app",
+          "user",
+          "file"
+        ],
+        "description": "A drive.file grant to add, as if the user had picked the file in the app's Picker."
       }
     },
     "parameters": {}
@@ -3868,7 +4484,7 @@
           "Worlds"
         ],
         "summary": "Create a world",
-        "description": "A new world with a spec for each service it should have (Slack, Jira and Linear). Point your app at the returned URLs.",
+        "description": "A new world with a spec for each service it should have (Slack, Jira, Linear and Google Drive). Point your app at the returned URLs.",
         "security": [
           {
             "bearerAuth": []
@@ -3899,7 +4515,7 @@
             }
           },
           "400": {
-            "description": "Invalid name, no service spec, or an invalid Slack, Jira or Linear spec",
+            "description": "Invalid name, no service spec, or an invalid Slack, Jira, Linear or Google Drive spec",
             "content": {
               "application/json": {
                 "schema": {
@@ -5212,6 +5828,199 @@
           },
           "404": {
             "description": "No app with that client id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_worlds/google/state": {
+      "get": {
+        "tags": [
+          "Google Drive world"
+        ],
+        "servers": [
+          {
+            "url": "https://{world}-google.makeworlds.dev",
+            "description": "{world} is the world id without its world_ prefix, as in the world's URLs.",
+            "variables": {
+              "world": {
+                "default": "k2v9x0q1m4",
+                "description": "The world id without its world_ prefix."
+              }
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Get the Google world's state",
+        "description": "The spec with generated ids filled in, every file and every drive.file grant.",
+        "responses": {
+          "200": {
+            "description": "The world's Google state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleWorldState"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials, or not your team's world",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_worlds/google/files": {
+      "post": {
+        "tags": [
+          "Google Drive world"
+        ],
+        "servers": [
+          {
+            "url": "https://{world}-google.makeworlds.dev",
+            "description": "{world} is the world id without its world_ prefix, as in the world's URLs.",
+            "variables": {
+              "world": {
+                "default": "k2v9x0q1m4",
+                "description": "The world id without its world_ prefix."
+              }
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Add a file",
+        "description": "Adds a file or folder to a user's Drive as that user. No app gets a grant for it, as when someone uploads in drive.google.com.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleFileCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleFile"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields, an unknown user or a parent that isn't their folder",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials, or not your team's world",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_worlds/google/grants": {
+      "post": {
+        "tags": [
+          "Google Drive world"
+        ],
+        "servers": [
+          {
+            "url": "https://{world}-google.makeworlds.dev",
+            "description": "{world} is the world id without its world_ prefix, as in the world's URLs.",
+            "variables": {
+              "world": {
+                "default": "k2v9x0q1m4",
+                "description": "The world id without its world_ prefix."
+              }
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Grant a file to an app",
+        "description": "Gives the app drive.file access to the file for the user, as picking it in the app's Picker does.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleGrantCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The grant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleGrantSpec"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An unknown app or user, or a file the user can't see",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials, or not your team's world",
             "content": {
               "application/json": {
                 "schema": {

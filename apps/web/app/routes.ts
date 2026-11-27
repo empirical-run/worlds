@@ -5,6 +5,7 @@ export default [
   route("docs", "routes/docs.tsx"),
   route("docs/api", "routes/api-reference.tsx"),
   route("docs/types", "routes/types.tsx"),
+  route("docs/google-picker", "routes/google-picker.tsx"),
   route("privacy", "routes/privacy.tsx"),
   route("account", "routes/account.tsx"),
   route("worlds", "routes/worlds.tsx"),

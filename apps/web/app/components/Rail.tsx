@@ -69,6 +69,9 @@ export function Rail({ account }: { account: RootData["account"] }) {
             <NavLink prefetch="intent" className="rail-link rail-sublink" to="/docs/types">
               Types
             </NavLink>
+            <NavLink prefetch="intent" className="rail-link rail-sublink" to="/docs/google-picker">
+              Google Picker
+            </NavLink>
           </>
         )}
         {account ? (

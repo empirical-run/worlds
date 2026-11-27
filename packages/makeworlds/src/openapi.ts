@@ -410,7 +410,7 @@ export interface paths {
         put?: never;
         /**
          * Create a world
-         * @description A new world with a spec for each service it should have (Slack, Jira and Linear). Point your app at the returned URLs.
+         * @description A new world with a spec for each service it should have (Slack, Jira, Linear and Google Drive). Point your app at the returned URLs.
          */
         post: {
             parameters: {
@@ -434,7 +434,7 @@ export interface paths {
                         "application/json": components["schemas"]["WorldCreated"];
                     };
                 };
-                /** @description Invalid name, no service spec, or an invalid Slack, Jira or Linear spec */
+                /** @description Invalid name, no service spec, or an invalid Slack, Jira, Linear or Google Drive spec */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1556,6 +1556,176 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/_worlds/google/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the Google world's state
+         * @description The spec with generated ids filled in, every file and every drive.file grant.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The world's Google state */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GoogleWorldState"];
+                    };
+                };
+                /** @description Missing or invalid credentials, or not your team's world */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/_worlds/google/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a file
+         * @description Adds a file or folder to a user's Drive as that user. No app gets a grant for it, as when someone uploads in drive.google.com.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GoogleFileCreate"];
+                };
+            };
+            responses: {
+                /** @description The new file */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GoogleFile"];
+                    };
+                };
+                /** @description Invalid fields, an unknown user or a parent that isn't their folder */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Missing or invalid credentials, or not your team's world */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/_worlds/google/grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Grant a file to an app
+         * @description Gives the app drive.file access to the file for the user, as picking it in the app's Picker does.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GoogleGrantCreate"];
+                };
+            };
+            responses: {
+                /** @description The grant */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GoogleGrantSpec"];
+                    };
+                };
+                /** @description An unknown app or user, or a file the user can't see */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Missing or invalid credentials, or not your team's world */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1678,6 +1848,7 @@ export interface components {
             slack: components["schemas"]["SlackUrls"];
             jira: components["schemas"]["JiraUrls"];
             linear: components["schemas"]["LinearUrls"];
+            google: components["schemas"]["GoogleUrls"];
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -1686,7 +1857,7 @@ export interface components {
         /** @description A service in a world. */
         WorldService: {
             /** @enum {string} */
-            name: "slack" | "jira" | "linear";
+            name: "slack" | "jira" | "linear" | "google";
             /** @example Slack */
             title: string;
             /**
@@ -1752,11 +1923,27 @@ export interface components {
              */
             api_url: string;
         } | null;
+        /** @description null when the world has no Google Drive. */
+        GoogleUrls: {
+            /**
+             * Format: uri
+             * @description In place of https://accounts.google.com (/o/oauth2/v2/auth), https://apis.google.com (/js/api.js loads the Picker) and https://drive.google.com and https://docs.google.com (file pages).
+             * @example https://k2v9x0q1m4-google.makeworlds.dev
+             */
+            accounts_url: string;
+            /**
+             * Format: uri
+             * @description In place of https://oauth2.googleapis.com (/token, /revoke, /tokeninfo) and https://www.googleapis.com (/drive/v3, /upload/drive/v3, /oauth2/v3/userinfo).
+             * @example https://k2v9x0q1m4-google-api.makeworlds.dev
+             */
+            api_url: string;
+        } | null;
         /** @description A new world, with each service's URLs and effective spec. */
         WorldCreated: components["schemas"]["World"] & {
             slack?: components["schemas"]["SlackCreated"];
             jira?: components["schemas"]["JiraCreated"];
             linear?: components["schemas"]["LinearCreated"];
+            google?: components["schemas"]["Google DriveCreated"];
         };
         /** @description null when the world has no Slack. */
         SlackCreated: components["schemas"]["SlackUrls"] & ({
@@ -2106,6 +2293,90 @@ export interface components {
             client_secret: string;
             webhook_secret: string;
         };
+        /** @description null when the world has no Google Drive. */
+        "Google DriveCreated": components["schemas"]["GoogleUrls"] & ({
+            spec: components["schemas"]["GoogleState"];
+        } | null);
+        /** @description The world's Google spec with every generated id and credential filled in. */
+        GoogleState: {
+            users: components["schemas"]["GoogleUserState"][];
+            apps: components["schemas"]["GoogleAppState"][];
+            files: components["schemas"]["GoogleFileState"][];
+            grants: components["schemas"]["GoogleGrantSpec"][];
+        };
+        /** @description A user, with its ids. */
+        GoogleUserState: {
+            /** @description The user's permission id and OpenID sub. */
+            id: string;
+            email: string;
+            name: string;
+            /** @description The id of the user's My Drive. */
+            root_folder_id: string;
+        };
+        /** @description An app, with its project number and credentials. */
+        GoogleAppState: {
+            name: string;
+            project_number: string;
+            redirect_uris: string[];
+            credentials: components["schemas"]["GoogleCredentials"];
+        };
+        /** @description The app's OAuth client id and secret, and its API key. */
+        GoogleCredentials: {
+            client_id: string;
+            client_secret: string;
+            /** @description The API key the app passes to the Picker as its developer key. */
+            api_key: string;
+        };
+        /** @description A file from the spec, with its id. */
+        GoogleFileState: {
+            id: string;
+            /** @example notes.txt */
+            name: string;
+            /**
+             * @description A MIME type; application/vnd.google-apps.folder for a folder, application/vnd.google-apps.document for a Google Doc.
+             * @example text/plain
+             */
+            mime_type: string;
+            /**
+             * Format: email
+             * @description A user's email address.
+             * @example alice@acme.test
+             */
+            owner: string;
+            /**
+             * @description The id of a folder in this spec. Left out, the file is in the owner's My Drive.
+             * @example 1dwGSHHV1RDwiK_bqmhKntR3zEsUksqfP
+             */
+            parent?: string;
+            shared_with?: components["schemas"]["GoogleShareSpec"][];
+        };
+        /** @description Someone the file is shared with. */
+        GoogleShareSpec: {
+            /**
+             * Format: email
+             * @description A user's email address.
+             * @example alice@acme.test
+             */
+            user: string;
+            /** @enum {string} */
+            role: "reader" | "writer";
+        };
+        /** @description A drive.file grant, as if the user had picked the file in the app's Picker. */
+        GoogleGrantSpec: {
+            /** @description An app's name. */
+            app: string;
+            /**
+             * Format: email
+             * @description A user's email address.
+             * @example alice@acme.test
+             */
+            user: string;
+            /**
+             * @description A pinned file id from files.
+             * @example 1dwGSHHV1RDwiK_bqmhKntR3zEsUksqfP
+             */
+            file: string;
+        };
         /** @description A new world. Give a spec for each service it should have. */
         WorldCreate: {
             /** @example Thread routing eval */
@@ -2113,6 +2384,7 @@ export interface components {
             slack?: components["schemas"]["SlackSpec"];
             jira?: components["schemas"]["JiraSpec"];
             linear?: components["schemas"]["LinearSpec"];
+            google?: components["schemas"]["GoogleSpec"];
         };
         /** @description Everything in the world's Slack workspace. Omitted ids, credentials and tokens are generated. Leave it out to create the world without Slack. */
         SlackSpec: {
@@ -2356,11 +2628,83 @@ export interface components {
             client_secret?: string;
             webhook_secret?: string;
         };
+        /** @description The world's Google accounts, Drive files, OAuth apps and drive.file grants. Omitted ids and credentials are generated. Leave it out to create the world without Google. */
+        GoogleSpec: {
+            users: components["schemas"]["GoogleUserSpec"][];
+            apps?: components["schemas"]["GoogleAppSpec"][];
+            files?: components["schemas"]["GoogleFileSpec"][];
+            grants?: components["schemas"]["GoogleGrantSpec"][];
+        };
+        /** @description A Google account with its own My Drive. */
+        GoogleUserSpec: {
+            /**
+             * Format: email
+             * @example alice@acme.test
+             */
+            email: string;
+            /** @example Alice Tester */
+            name: string;
+        };
+        /** @description An OAuth web client in a Cloud project, in Testing mode with every user a test user. */
+        GoogleAppSpec: {
+            /** @example My app */
+            name: string;
+            /**
+             * @description The Cloud project number: the Picker's appId and the prefix of the client id. Generated if left out.
+             * @example 622449777375
+             */
+            project_number?: string;
+            /**
+             * @description Authorized redirect URIs. redirect_uri must equal one of them exactly.
+             * @example [
+             *       "http://localhost:5555/oauth/callback"
+             *     ]
+             */
+            redirect_uris: string[];
+            credentials?: components["schemas"]["GoogleCredentialsSpec"];
+        };
+        /** @description Pin the client id, secret and API key, e.g. to match ones your app has. */
+        GoogleCredentialsSpec: {
+            client_id?: string;
+            client_secret?: string;
+            /** @description The API key the app passes to the Picker as its developer key. */
+            api_key?: string;
+        };
+        /** @description A file or folder in someone's Drive. */
+        GoogleFileSpec: {
+            /**
+             * @description Pin the file id, to put files in this folder or grant it. Generated if left out.
+             * @example 1dwGSHHV1RDwiK_bqmhKntR3zEsUksqfP
+             */
+            id?: string;
+            /** @example notes.txt */
+            name: string;
+            /**
+             * @description A MIME type; application/vnd.google-apps.folder for a folder, application/vnd.google-apps.document for a Google Doc.
+             * @example text/plain
+             */
+            mime_type: string;
+            /**
+             * Format: email
+             * @description A user's email address.
+             * @example alice@acme.test
+             */
+            owner: string;
+            /**
+             * @description The id of a folder in this spec. Left out, the file is in the owner's My Drive.
+             * @example 1dwGSHHV1RDwiK_bqmhKntR3zEsUksqfP
+             */
+            parent?: string;
+            /** @description Text content; for a Google Doc, Sheet or Slides file the text that export returns. */
+            content?: string;
+            shared_with?: components["schemas"]["GoogleShareSpec"][];
+        };
         /** @description Each service's spec, or null for a service the world was created without. */
         WorldSpec: {
             slack: components["schemas"]["SlackState"] & (Record<string, never> | null);
             jira: components["schemas"]["JiraState"] & (Record<string, never> | null);
             linear: components["schemas"]["LinearState"] & (Record<string, never> | null);
+            google: components["schemas"]["GoogleState"] & (Record<string, never> | null);
         };
         /** @description A user token, to call the Web API as that user. */
         SlackToken: {
@@ -2758,6 +3102,57 @@ export interface components {
             user: string;
             body: string;
         };
+        /** @description The world's Google as it is now. */
+        GoogleWorldState: {
+            spec: components["schemas"]["GoogleState"];
+            files: components["schemas"]["GoogleFile"][];
+            /** @description Every drive.file grant now: from the spec, Picker picks and files apps created. */
+            grants: components["schemas"]["GoogleGrantSpec"][];
+        };
+        /** @description A file as the world stores it. */
+        GoogleFile: {
+            id: string;
+            name: string;
+            mime_type: string;
+            /** @description The owner's email. */
+            owner: string;
+            /** @description The folder id; My Drive's id at the top. */
+            parent: string | null;
+            /** @description Bytes; null for folders and Google Docs files. */
+            size: number | null;
+            trashed: boolean;
+            shared_with: components["schemas"]["GoogleShareSpec"][];
+            created_at: string;
+            modified_at: string;
+        };
+        /** @description A file to add to someone's Drive, as that user. */
+        GoogleFileCreate: {
+            /**
+             * Format: email
+             * @description A user's email address.
+             * @example alice@acme.test
+             */
+            owner: string;
+            name: string;
+            mime_type: string;
+            /** @description A folder id. Left out, My Drive. */
+            parent?: string;
+            content?: string;
+            shared_with?: components["schemas"]["GoogleShareSpec"][];
+        };
+        /** @description A drive.file grant to add, as if the user had picked the file in the app's Picker. */
+        GoogleGrantCreate: {
+            /** @description An app's name or client id. */
+            app: string;
+            /**
+             * Format: email
+             * @description A user's email address.
+             * @example alice@acme.test
+             */
+            user: string;
+            /** @description A file id the user can see. */
+            file: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -2782,6 +3177,7 @@ export type WorldService = components['schemas']['WorldService'];
 export type SlackUrls = components['schemas']['SlackUrls'];
 export type JiraUrls = components['schemas']['JiraUrls'];
 export type LinearUrls = components['schemas']['LinearUrls'];
+export type GoogleUrls = components['schemas']['GoogleUrls'];
 export type WorldCreated = components['schemas']['WorldCreated'];
 export type SlackCreated = components['schemas']['SlackCreated'];
 export type SlackState = components['schemas']['SlackState'];
@@ -2822,6 +3218,14 @@ export type LinearCommentSpec = components['schemas']['LinearCommentSpec'];
 export type LinearIssueSpec = components['schemas']['LinearIssueSpec'];
 export type LinearAppState = components['schemas']['LinearAppState'];
 export type LinearCredentials = components['schemas']['LinearCredentials'];
+export type GoogleDriveCreated = components['schemas']['Google DriveCreated'];
+export type GoogleState = components['schemas']['GoogleState'];
+export type GoogleUserState = components['schemas']['GoogleUserState'];
+export type GoogleAppState = components['schemas']['GoogleAppState'];
+export type GoogleCredentials = components['schemas']['GoogleCredentials'];
+export type GoogleFileState = components['schemas']['GoogleFileState'];
+export type GoogleShareSpec = components['schemas']['GoogleShareSpec'];
+export type GoogleGrantSpec = components['schemas']['GoogleGrantSpec'];
 export type WorldCreate = components['schemas']['WorldCreate'];
 export type SlackSpec = components['schemas']['SlackSpec'];
 export type SlackTeamSpec = components['schemas']['SlackTeamSpec'];
@@ -2842,6 +3246,11 @@ export type LinearUserSpec = components['schemas']['LinearUserSpec'];
 export type LinearTeamSpec = components['schemas']['LinearTeamSpec'];
 export type LinearAppSpec = components['schemas']['LinearAppSpec'];
 export type LinearCredentialsSpec = components['schemas']['LinearCredentialsSpec'];
+export type GoogleSpec = components['schemas']['GoogleSpec'];
+export type GoogleUserSpec = components['schemas']['GoogleUserSpec'];
+export type GoogleAppSpec = components['schemas']['GoogleAppSpec'];
+export type GoogleCredentialsSpec = components['schemas']['GoogleCredentialsSpec'];
+export type GoogleFileSpec = components['schemas']['GoogleFileSpec'];
 export type WorldSpec = components['schemas']['WorldSpec'];
 export type SlackToken = components['schemas']['SlackToken'];
 export type SlackTokenRequest = components['schemas']['SlackTokenRequest'];
@@ -2878,5 +3287,9 @@ export type LinearAppUser = components['schemas']['LinearAppUser'];
 export type LinearIssueCreate = components['schemas']['LinearIssueCreate'];
 export type LinearIssueUpdate = components['schemas']['LinearIssueUpdate'];
 export type LinearCommentCreate = components['schemas']['LinearCommentCreate'];
+export type GoogleWorldState = components['schemas']['GoogleWorldState'];
+export type GoogleFile = components['schemas']['GoogleFile'];
+export type GoogleFileCreate = components['schemas']['GoogleFileCreate'];
+export type GoogleGrantCreate = components['schemas']['GoogleGrantCreate'];
 export type $defs = Record<string, never>;
 export type operations = Record<string, never>;

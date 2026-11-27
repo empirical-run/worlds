@@ -1,6 +1,6 @@
 # <img src="apps/web/public/logo.svg" alt="" height="22"> worlds
 
-Hosted, stateful worlds of the third-party services an app depends on, for testing apps and agents end to end. Slack, Jira and Linear; GitHub next.
+Hosted, stateful worlds of the third-party services an app depends on, for testing apps and agents end to end. Slack, Jira, Linear and Google Drive; GitHub next.
 
 A world is a Durable Object that holds the state of every service in it. Services in a world speak the real wire protocol (Web API, OAuth, signed event callbacks), so an app under test only needs its base URL pointed at the world.
 
@@ -76,9 +76,25 @@ A world with a `linear` spec has a Linear workspace, written for this repo in `s
 - Webhooks go to an installed app's `webhook_url`: `AppUserNotification` (`issueAssignedToYou`, `issueUnassignedFromYou`) when a member assigns an issue to or away from the app user, and `OAuthApp` `revoked` when the app is uninstalled. Payloads follow Linear's published `AppUserNotificationWebhookPayload` and `OAuthAppWebhookPayload` types; each delivery has `Linear-Delivery`, `Linear-Event`, `Linear-Timestamp` and `Linear-Signature` (hex HMAC-SHA256 of the body with the webhook secret), a fresh `webhookTimestamp`, and is retried after 1 minute, 1 hour and 6 hours unless the app answers 200 within 5 seconds.
 - Control routes on the app host (`/_worlds/linear/*`: create, change and comment on issues as a member, uninstall an app, workspace state) are in the [API reference](https://makeworlds.dev/docs/api) under Linear world.
 
+## Google Drive
+
+A world with a `google` spec has Google accounts with their own My Drive, written for this repo in `services/google` and modelled on a probe against real Google (wiki: `drive-file-picker-probe`). It covers the `drive.file` scope and the Google Picker only. It answers on two hosts:
+
+| Google                                                                          | World host                       | Serves                                                                                                                   |
+| ------------------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `accounts.google.com`, `apis.google.com`, `drive.google.com`, `docs.google.com` | `{id}-google.makeworlds.dev`     | `/o/oauth2/v2/auth` (account chooser + consent), `/js/api.js` (the Picker), `/picker`, file and folder pages             |
+| `oauth2.googleapis.com`, `www.googleapis.com`                                   | `{id}-google-api.makeworlds.dev` | `/token`, `/revoke`, `/tokeninfo`, `/oauth2/v3/userinfo`, `/drive/v3/files`, `/upload/drive/v3/files`, `/drive/v3/about` |
+
+- The spec (`POST /api/worlds` with `google: { users, apps, files, grants }`) seeds once. Apps are OAuth web clients in Testing mode: `name`, `redirect_uris` (exact match), optional `project_number` (the Picker's `appId`) and pinned `credentials` (client id, secret, API key). Files have an owner, an optional pinned id and parent folder, text `content` (for Google Docs files, what export returns) and `shared_with`. `grants` are drive.file grants as if the user had picked the file.
+- Scopes: `drive.file`, `email`, `profile`. Access tokens last 3599s; refresh tokens don't rotate and expire after 7 days, as in Testing mode. `revoke` drops every token of that app and user.
+- A grant belongs to the app and user, not to a token, so it outlives refresh, revoke and a new consent. Grants come from files the app creates, Picker picks when the Picker was built with `setAppId` equal to the app's project number (the callback then has `driveSuccess: true`), and the grants control route. Picking a folder grants only the folder.
+- Drive with a drive.file token: `files.list` and `q` (`'id' in parents`, `name =|!=|contains`, `mimeType =|!=`, `trashed`, `'email' in owners`, joined by `and`) see only granted files. `get` and `alt=media` on anything else are 404 `notFound`; `export` is 403 `appNotAuthorizedToFile`. `alt=media` on a Docs file is 403 `fileNotDownloadable`; `export` on other files is 403 `fileNotExportable`. Uploads (`media`, `multipart`) may go into any folder the user can write to. `fields` masks, `orderBy`, `pageSize`/`pageToken` work; unknown fields and unsupported `q` are 400 like Drive's.
+- The Picker shim implements `google.picker` (`PickerBuilder`, `DocsView`, `ViewId`, `Feature`, `Action`, `Response`, `Document`) and `gapi.load`. It opens an iframe from the world, sends `loaded`, then `picked` with Google's document shape, or `cancel`. Integration guide: [makeworlds.dev/docs/google-picker](https://makeworlds.dev/docs/google-picker).
+- Control routes on the browser host (`/_worlds/google/*`: add files, add grants, state) are in the [API reference](https://makeworlds.dev/docs/api) under Google Drive world.
+
 ## Services
 
-Each service (Slack, Jira, Linear) is a package in `services/<name>` with two entry points:
+Each service (Slack, Jira, Linear, Google Drive) is a package in `services/<name>` with two entry points:
 
 - `src/contract.ts`: zod-openapi schemas for its spec and state, the URLs a world gets, spec checks, a `starter` spec (what the makeworlds.dev create form sends), and the `/_worlds/<name>/*` control routes. A spec requires what a person would choose (a Slack team name, a Jira reporter); the service generates only ids, tokens and credentials, never other defaults. The service serves the same route objects with `OpenAPIHono`, so requests are validated against the published spec.
 - `src/hosting.ts`: its runtime in the world's Durable Object (setup, state, fetch, alarms), its page rules (sign-in gate, UI page and assets), its error shape for requests the world Worker answers itself (an unknown or archived world), and any banner CSS its pages need.
