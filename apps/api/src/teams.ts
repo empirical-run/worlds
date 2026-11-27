@@ -12,5 +12,11 @@ export async function accessibleTeam(db: Db, caller: Caller, teamId: string): Pr
 }
 
 export function teamJson({ team, role }: TeamAccess) {
-  return { id: team.id, name: team.name, role, created_at: team.createdAt.toISOString() };
+  return {
+    id: team.id,
+    name: team.name,
+    role,
+    created_at: team.createdAt.toISOString(),
+    updated_at: team.updatedAt.toISOString(),
+  };
 }

@@ -2,10 +2,15 @@ import { sql } from "drizzle-orm";
 import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { newId } from "./ids";
 
-const createdAt = () =>
-  integer("created_at", { mode: "timestamp_ms" })
+const timestamps = () => ({
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
     .notNull()
-    .default(sql`(unixepoch() * 1000)`);
+    .default(sql`(unixepoch() * 1000)`),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date())
+    .$onUpdate(() => new Date()),
+});
 
 export const users = sqliteTable("users", {
   id: text("id")
@@ -14,7 +19,7 @@ export const users = sqliteTable("users", {
   email: text("email").notNull(),
   name: text("name"),
   picture: text("picture"),
-  createdAt: createdAt(),
+  ...timestamps(),
 });
 
 export const identities = sqliteTable(
@@ -25,7 +30,7 @@ export const identities = sqliteTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    createdAt: createdAt(),
+    ...timestamps(),
   },
   (table) => [primaryKey({ columns: [table.provider, table.subject] }), index("identities_user_id_idx").on(table.userId)],
 );
@@ -35,7 +40,7 @@ export const teams = sqliteTable("teams", {
     .primaryKey()
     .$defaultFn(() => newId("team")),
   name: text("name").notNull(),
-  createdAt: createdAt(),
+  ...timestamps(),
 });
 
 export const memberships = sqliteTable(
@@ -48,7 +53,7 @@ export const memberships = sqliteTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     role: text("role", { enum: ["owner", "member"] }).notNull(),
-    createdAt: createdAt(),
+    ...timestamps(),
   },
   (table) => [primaryKey({ columns: [table.teamId, table.userId] }), index("memberships_user_id_idx").on(table.userId)],
 );
@@ -61,7 +66,7 @@ export const sessions = sqliteTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
-    createdAt: createdAt(),
+    ...timestamps(),
   },
   (table) => [index("sessions_user_id_idx").on(table.userId)],
 );
@@ -81,7 +86,7 @@ export const apiKeys = sqliteTable(
     prefix: text("prefix").notNull(),
     lastUsedAt: integer("last_used_at", { mode: "timestamp_ms" }),
     revokedAt: integer("revoked_at", { mode: "timestamp_ms" }),
-    createdAt: createdAt(),
+    ...timestamps(),
   },
   (table) => [index("api_keys_team_id_idx").on(table.teamId)],
 );

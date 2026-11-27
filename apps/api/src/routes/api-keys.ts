@@ -71,6 +71,7 @@ function apiKeyJson(key: ApiKey) {
     prefix: key.prefix,
     created_by: key.createdBy,
     created_at: key.createdAt.toISOString(),
+    updated_at: key.updatedAt.toISOString(),
     last_used_at: key.lastUsedAt?.toISOString() ?? null,
   };
 }

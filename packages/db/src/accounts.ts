@@ -120,8 +120,10 @@ export async function teamForUser(db: Db, userId: string): Promise<TeamMembershi
   return row;
 }
 
-export async function renameTeam(db: Db, teamId: string, name: string): Promise<void> {
-  await db.update(teams).set({ name }).where(eq(teams.id, teamId));
+export async function renameTeam(db: Db, teamId: string, name: string): Promise<Team> {
+  const [team] = await db.update(teams).set({ name }).where(eq(teams.id, teamId)).returning();
+  if (!team) throw new Error(`team ${teamId} not found`);
+  return team;
 }
 
 export async function createSession(db: Db, userId: string): Promise<string> {

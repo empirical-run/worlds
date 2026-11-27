@@ -28,6 +28,7 @@ export const TeamSchema = z
       description: "Your role in the team. null when the request is authenticated with an API key, which belongs to the team rather than a person.",
     }),
     created_at: z.iso.datetime(),
+    updated_at: z.iso.datetime(),
   })
   .openapi("Team");
 
@@ -55,6 +56,7 @@ export const ApiKeySchema = z
     prefix: z.string().openapi({ description: "The first characters of the secret, to tell keys apart.", example: "wk_live_4fQ9zT" }),
     created_by: z.string().nullable().openapi({ description: "Id of the user who created the key." }),
     created_at: z.iso.datetime(),
+    updated_at: z.iso.datetime(),
     last_used_at: z.iso.datetime().nullable(),
   })
   .openapi("ApiKey");

@@ -84,6 +84,6 @@ export const teams = new OpenAPIHono<AppEnv>()
     if (c.var.caller.kind === "key") return c.json(apiError("forbidden", "API keys cannot change teams. Sign in as a team owner."), 403);
     if (access.role !== "owner") return c.json(apiError("forbidden", "Only team owners can change the team."), 403);
     const { name } = c.req.valid("json");
-    await renameTeam(c.var.db, access.team.id, name);
-    return c.json(teamJson({ ...access, team: { ...access.team, name } }), 200);
+    const team = await renameTeam(c.var.db, access.team.id, name);
+    return c.json(teamJson({ ...access, team }), 200);
   });

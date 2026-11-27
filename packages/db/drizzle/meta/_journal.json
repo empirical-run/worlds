@@ -29,6 +29,13 @@
       "when": 1795714692881,
       "tag": "0003_reset_uuid_rows",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1795746201422,
+      "tag": "0004_updated_at",
+      "breakpoints": true
     }
   ]
 }
