@@ -1,10 +1,10 @@
 import { WORLD_NAME_MAX } from "@worlds/db";
 import type { World } from "makeworlds";
-import { Form, useNavigation } from "react-router";
 
 import { requireAccount } from "../account.server";
 import { actionData, api, formText, orThrow } from "../api.server";
-import { ActionError, dateFormat, useSubmitting } from "../components/forms";
+import { DataTable } from "../components/DataTable";
+import { ActionError, dateFormat, InlineTextForm, RowAction } from "../components/forms";
 import type { Route } from "./+types/worlds";
 
 export const meta = () => [{ title: "Worlds · Worlds" }, { name: "robots", content: "noindex" }];
@@ -47,9 +47,19 @@ export default function Worlds({ loaderData: { worlds }, actionData }: Route.Com
         </p>
       </header>
       <section className="section">
-        <CreateWorldForm
+        <InlineTextForm
           key={actionData?.createdWorld}
-          error={actionData?.intent === "create-world" ? actionData.error : undefined}
+          intent="create-world"
+          label="Name"
+          input={{
+            id: "world-name",
+            name: "name",
+            maxLength: WORLD_NAME_MAX,
+            placeholder: "Untitled world",
+          }}
+          submitLabel="Create world"
+          variant="primary"
+          result={actionData}
         />
         <ActionError result={actionData} intent="archive-world" />
         {worlds.length ? <WorldTable worlds={worlds} /> : <p className="empty">No worlds yet.</p>}
@@ -58,71 +68,25 @@ export default function Worlds({ loaderData: { worlds }, actionData }: Route.Com
   );
 }
 
-function CreateWorldForm({ error }: { error?: string }) {
-  const submitting = useSubmitting("create-world");
-  return (
-    <Form className="inline-form" method="post">
-      <input type="hidden" name="intent" value="create-world" />
-      <label htmlFor="world-name">Name</label>
-      <input
-        id="world-name"
-        name="name"
-        maxLength={WORLD_NAME_MAX}
-        placeholder="Untitled world"
-        autoComplete="off"
-      />
-      <button className="button primary" type="submit" disabled={submitting}>
-        Create world
-      </button>
-      {!submitting && error && (
-        <p className="form-status error" role="alert">
-          {error}
-        </p>
-      )}
-    </Form>
-  );
-}
-
 function WorldTable({ worlds }: { worlds: World[] }) {
-  const navigation = useNavigation();
-  const archiving =
-    navigation.formData?.get("intent") === "archive-world"
-      ? navigation.formData.get("worldId")
-      : null;
   return (
-    <table className="keys">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Id</th>
-          <th>Created</th>
-          <th>
-            <span className="visually-hidden">Actions</span>
-          </th>
+    <DataTable columns={["Name", "Id", "Created"]}>
+      {worlds.map((world) => (
+        <tr key={world.id}>
+          <td>
+            <a href={world.ui_url}>{world.name}</a>
+          </td>
+          <td>
+            <code>{world.id}</code>
+          </td>
+          <td>{dateFormat.format(new Date(world.created_at))}</td>
+          <td>
+            <RowAction intent="archive-world" name="worldId" value={world.id}>
+              Archive
+            </RowAction>
+          </td>
         </tr>
-      </thead>
-      <tbody>
-        {worlds.map((world) => (
-          <tr key={world.id}>
-            <td>
-              <a href={world.ui_url}>{world.name}</a>
-            </td>
-            <td>
-              <code>{world.id}</code>
-            </td>
-            <td>{dateFormat.format(new Date(world.created_at))}</td>
-            <td>
-              <Form method="post">
-                <input type="hidden" name="intent" value="archive-world" />
-                <input type="hidden" name="worldId" value={world.id} />
-                <button className="link-button" type="submit" disabled={archiving === world.id}>
-                  Archive
-                </button>
-              </Form>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+      ))}
+    </DataTable>
   );
 }

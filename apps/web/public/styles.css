@@ -9,6 +9,9 @@
   --accent: #3b4fd8;
   --accent-ink: #ffffff;
   --accent-wash: #eef0fd;
+  --accent-hover: #3243c0;
+  --accent-active: #2a39a8;
+  --danger: #d4524d;
   --rail-width: 272px;
   --frame-width: 1240px;
   --gutter: clamp(32px, 4vw, 64px);
@@ -27,6 +30,8 @@
     --accent: #8d9bff;
     --accent-ink: #0c0d10;
     --accent-wash: #191d33;
+    --accent-hover: #a3aeff;
+    --accent-active: #b8c1ff;
   }
 }
 
@@ -55,6 +60,10 @@ a {
 }
 main a:not(.button) {
   color: var(--accent);
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 ::selection {
   background: var(--accent-wash);
@@ -119,6 +128,7 @@ pre {
   background: none;
   color: var(--ink);
   cursor: pointer;
+  transition: background-color 0.15s ease;
 }
 .rail-toggle:hover {
   background: var(--surface-2);
@@ -358,6 +368,9 @@ pre {
   text-align: left;
   text-decoration: none;
   cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 .rail-foot .rail-menu-item:hover,
 .rail-foot .rail-menu-item[aria-current="page"] {
@@ -464,18 +477,42 @@ li strong {
 .button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   height: 40px;
   padding: 0 18px;
   border: 1px solid var(--rule-strong);
+  background: none;
+  color: var(--ink);
+  font: inherit;
   font-size: 14px;
   font-weight: 500;
+  white-space: nowrap;
   text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
 }
-
+.button:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: var(--ink-3);
+}
+.button:active:not(:disabled) {
+  background: var(--rule-strong);
+}
 .button.primary {
   background: var(--accent);
   color: var(--accent-ink);
   border-color: var(--accent);
+}
+.button.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+.button.primary:active:not(:disabled) {
+  background: var(--accent-active);
+  border-color: var(--accent-active);
 }
 
 .section-num {
@@ -568,14 +605,6 @@ button {
   font: inherit;
   cursor: pointer;
 }
-button.button {
-  background: none;
-  color: var(--ink);
-}
-button.button.primary {
-  background: var(--accent);
-  color: var(--accent-ink);
-}
 .hero form {
   margin-top: 20px;
 }
@@ -597,11 +626,22 @@ button.button.primary {
   margin: 10px 0 0;
   background: var(--surface);
 }
+.secret {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.secret pre {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
 .notice.error {
   margin-top: 20px;
-  border-color: #d4524d;
+  border-color: var(--danger);
   background: none;
-  color: #d4524d;
+  color: var(--danger);
 }
 .inline-form {
   display: flex;
@@ -614,8 +654,10 @@ button.button.primary {
   font-size: 14px;
   font-weight: 500;
 }
-.inline-form input {
+.inline-form .input {
   flex: 1 1 200px;
+}
+.input {
   height: 40px;
   padding: 0 12px;
   border: 1px solid var(--rule-strong);
@@ -623,17 +665,24 @@ button.button.primary {
   color: var(--ink);
   font: inherit;
   font-size: 14px;
+  transition: border-color 0.15s ease;
 }
-.inline-form input:focus {
+.input::placeholder {
+  color: var(--ink-3);
+}
+.input:hover {
+  border-color: var(--ink-3);
+}
+.input:focus {
   outline: 2px solid var(--accent);
   outline-offset: -1px;
 }
-.keys {
+.data-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
 }
-.keys th {
+.data-table th {
   white-space: nowrap;
   padding: 8px 12px 8px 0;
   text-align: left;
@@ -642,17 +691,17 @@ button.button.primary {
   color: var(--ink-3);
   border-bottom: 1px solid var(--rule-strong);
 }
-.keys td {
+.data-table td {
   padding: 12px 12px 12px 0;
   border-bottom: 1px solid var(--rule);
   color: var(--ink-2);
   white-space: nowrap;
 }
-.keys td:first-child {
+.data-table td:first-child {
   color: var(--ink);
   white-space: normal;
 }
-.keys td:last-child {
+.data-table td:last-child {
   text-align: right;
   padding-right: 0;
 }
@@ -666,7 +715,7 @@ button.button.primary {
   display: none;
 }
 .form-status.error {
-  color: #d4524d;
+  color: var(--danger);
 }
 button:disabled {
   opacity: 0.6;
@@ -702,7 +751,7 @@ button:disabled {
   background: var(--accent);
 }
 .method-delete {
-  background: #d4524d;
+  background: var(--danger);
 }
 .method-patch,
 .method-put {
@@ -753,14 +802,15 @@ button:disabled {
 .rail-group > .rail-subheading {
   margin: 0 0 2px;
 }
-.link-button {
+.text-button {
   padding: 0;
   border: 0;
   background: none;
   color: var(--accent);
   font-size: 14px;
+  text-underline-offset: 3px;
 }
-.link-button:hover {
+.text-button:hover:not(:disabled) {
   text-decoration: underline;
 }
 .empty {
@@ -835,8 +885,8 @@ button:disabled {
   .section::after {
     display: none;
   }
-  .keys th:nth-child(3),
-  .keys td:nth-child(3) {
+  .data-table th:nth-child(3),
+  .data-table td:nth-child(3) {
     display: none;
   }
 }

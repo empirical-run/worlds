@@ -1,6 +1,8 @@
 import { providersFor, type Provider } from "@worlds/db";
 
 import { workerContext } from "../../worker/context";
+import { Button, ButtonLink } from "../components/Button";
+import { Notice } from "../components/Notice";
 import type { Route } from "./+types/account";
 
 export const meta = () => [{ title: "Account · Worlds" }, { name: "robots", content: "noindex" }];
@@ -42,9 +44,7 @@ export default function Account({ loaderData }: Route.ComponentProps) {
           Signed in as <strong>{email}</strong>.
         </p>
         <form method="post" action="/auth/sign-out">
-          <button className="button" type="submit">
-            Sign out
-          </button>
+          <Button type="submit">Sign out</Button>
         </form>
       </header>
 
@@ -66,18 +66,12 @@ function SignIn({ error, next }: { error: string | null; next: string }) {
     <header className="section hero">
       <h1>Sign in</h1>
       <p className="lede">Sign in to create worlds and API keys.</p>
-      {error && (
-        <p className="notice error" role="alert">
-          {error}
-        </p>
-      )}
+      {error && <Notice tone="error">{error}</Notice>}
       <div className="actions">
-        <a className="button primary" href={`/auth/google${query}`}>
+        <ButtonLink variant="primary" href={`/auth/google${query}`}>
           Sign in with Google
-        </a>
-        <a className="button" href={`/auth/github${query}`}>
-          Sign in with GitHub
-        </a>
+        </ButtonLink>
+        <ButtonLink href={`/auth/github${query}`}>Sign in with GitHub</ButtonLink>
       </div>
       <p className="fine">
         By signing in you agree to the <a href="/privacy">privacy policy</a>.

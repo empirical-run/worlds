@@ -1,3 +1,4 @@
+import { ButtonLink } from "../components/Button";
 import { type RailHandle } from "../components/Rail";
 
 export const meta = () => [{ title: "Worlds" }];
@@ -25,12 +26,10 @@ export default function Home() {
           a world, then drive it from a UI or an API to test real flows end to end.
         </p>
         <div className="actions">
-          <a className="button primary" href="/docs">
+          <ButtonLink variant="primary" href="/docs">
             Read the docs
-          </a>
-          <a className="button" href="/worlds">
-            Create a world
-          </a>
+          </ButtonLink>
+          <ButtonLink href="/worlds">Create a world</ButtonLink>
         </div>
       </section>
 

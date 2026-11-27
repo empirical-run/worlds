@@ -1,10 +1,12 @@
 import { API_KEY_NAME_MAX, TEAM_NAME_MAX } from "@worlds/db";
 import type { ApiKey } from "makeworlds";
-import { Form, useNavigation } from "react-router";
 
 import { requireAccount } from "../account.server";
 import { actionData, api, formText, orThrow } from "../api.server";
-import { ActionError, type ActionResult, dateFormat, useSubmitting } from "../components/forms";
+import { CopyButton } from "../components/CopyButton";
+import { DataTable } from "../components/DataTable";
+import { ActionError, dateFormat, InlineTextForm, RowAction } from "../components/forms";
+import { Notice } from "../components/Notice";
 import type { Route } from "./+types/settings";
 
 export const meta = () => [{ title: "Settings · Worlds" }, { name: "robots", content: "noindex" }];
@@ -68,9 +70,20 @@ export default function Settings({
       <section className="section" id="team">
         <h2>Team name</h2>
         {role === "owner" ? (
-          <TeamNameForm
-            name={team.name}
-            result={actionData?.intent === "rename-team" ? actionData : undefined}
+          <InlineTextForm
+            key={team.name}
+            intent="rename-team"
+            label="Name"
+            input={{
+              id: "team-name",
+              name: "name",
+              required: true,
+              maxLength: TEAM_NAME_MAX,
+              defaultValue: team.name,
+            }}
+            submitLabel="Save"
+            result={actionData}
+            successMessage="Saved."
           />
         ) : (
           <p>
@@ -86,18 +99,32 @@ export default function Settings({
           Keys are shown once and stored only as a hash.
         </p>
         {actionData?.secret && (
-          <div className="notice" role="status">
+          <Notice>
             <p>
               <strong>Copy your new key now.</strong> You won't see it again.
             </p>
-            <pre>
-              <code>{actionData.secret}</code>
-            </pre>
-          </div>
+            <div className="secret">
+              <pre>
+                <code>{actionData.secret}</code>
+              </pre>
+              <CopyButton text={actionData.secret} />
+            </div>
+          </Notice>
         )}
-        <CreateKeyForm
+        <InlineTextForm
           key={actionData?.secret}
-          error={actionData?.intent === "create-key" ? actionData.error : undefined}
+          intent="create-key"
+          label="Name"
+          input={{
+            id: "key-name",
+            name: "name",
+            required: true,
+            maxLength: API_KEY_NAME_MAX,
+            placeholder: "CI",
+          }}
+          submitLabel="Create key"
+          variant="primary"
+          result={actionData}
         />
         <ActionError result={actionData} intent="revoke-key" />
         {keys.length ? <KeyTable keys={keys} /> : <p className="empty">No API keys yet.</p>}
@@ -106,96 +133,24 @@ export default function Settings({
   );
 }
 
-function TeamNameForm({ name, result }: { name: string; result?: ActionResult }) {
-  const submitting = useSubmitting("rename-team");
-  return (
-    <Form className="inline-form" method="post" key={name}>
-      <input type="hidden" name="intent" value="rename-team" />
-      <label htmlFor="team-name">Name</label>
-      <input
-        id="team-name"
-        name="name"
-        required
-        maxLength={TEAM_NAME_MAX}
-        defaultValue={name}
-        autoComplete="off"
-      />
-      <button className="button" type="submit" disabled={submitting}>
-        Save
-      </button>
-      {!submitting && result && (
-        <p className={`form-status${result.error ? " error" : ""}`} role="status">
-          {result.error ?? "Saved."}
-        </p>
-      )}
-    </Form>
-  );
-}
-
-function CreateKeyForm({ error }: { error?: string }) {
-  const submitting = useSubmitting("create-key");
-  return (
-    <Form className="inline-form" method="post">
-      <input type="hidden" name="intent" value="create-key" />
-      <label htmlFor="key-name">Name</label>
-      <input
-        id="key-name"
-        name="name"
-        required
-        maxLength={API_KEY_NAME_MAX}
-        placeholder="CI"
-        autoComplete="off"
-      />
-      <button className="button primary" type="submit" disabled={submitting}>
-        Create key
-      </button>
-      {!submitting && error && (
-        <p className="form-status error" role="alert">
-          {error}
-        </p>
-      )}
-    </Form>
-  );
-}
-
 function KeyTable({ keys }: { keys: ApiKey[] }) {
-  const navigation = useNavigation();
-  const revoking =
-    navigation.formData?.get("intent") === "revoke-key" ? navigation.formData.get("keyId") : null;
   return (
-    <table className="keys">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Key</th>
-          <th>Created</th>
-          <th>Last used</th>
-          <th>
-            <span className="visually-hidden">Actions</span>
-          </th>
+    <DataTable columns={["Name", "Key", "Created", "Last used"]}>
+      {keys.map((key) => (
+        <tr key={key.id}>
+          <td>{key.name}</td>
+          <td>
+            <code>{key.prefix}…</code>
+          </td>
+          <td>{dateFormat.format(new Date(key.created_at))}</td>
+          <td>{key.last_used_at ? dateFormat.format(new Date(key.last_used_at)) : "Never"}</td>
+          <td>
+            <RowAction intent="revoke-key" name="keyId" value={key.id}>
+              Revoke
+            </RowAction>
+          </td>
         </tr>
-      </thead>
-      <tbody>
-        {keys.map((key) => (
-          <tr key={key.id}>
-            <td>{key.name}</td>
-            <td>
-              <code>{key.prefix}…</code>
-            </td>
-            <td>{dateFormat.format(new Date(key.created_at))}</td>
-            <td>{key.last_used_at ? dateFormat.format(new Date(key.last_used_at)) : "Never"}</td>
-            <td>
-              <Form method="post">
-                <input type="hidden" name="intent" value="revoke-key" />
-                <input type="hidden" name="keyId" value={key.id} />
-                <button className="link-button" type="submit" disabled={revoking === key.id}>
-                  Revoke
-                </button>
-              </Form>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+      ))}
+    </DataTable>
   );
 }
