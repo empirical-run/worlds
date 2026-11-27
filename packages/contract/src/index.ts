@@ -1,14 +1,21 @@
 import { OpenAPIHono, z, type RouteConfig } from "@hono/zod-openapi";
 import type { Env } from "hono";
 
-const ApiErrorSchema = z
+const ApiErrorDetailSchema = z
   .object({
-    error: z.object({
-      code: z.string().openapi({ example: "not_found" }),
-      message: z.string().openapi({ example: "No team with that id is visible to you." }),
+    code: z
+      .string()
+      .openapi({ description: "Stable, for code to match on.", example: "not_found" }),
+    message: z.string().openapi({
+      description: "For people; may change.",
+      example: "No team with that id is visible to you.",
     }),
   })
-  .openapi("ApiError");
+  .openapi("ApiErrorDetail", { description: "What went wrong." });
+
+const ApiErrorSchema = z
+  .object({ error: ApiErrorDetailSchema })
+  .openapi("ApiError", { description: "Every error response from the API and world controls." });
 
 export type ApiError = z.infer<typeof ApiErrorSchema>;
 

@@ -30,7 +30,7 @@ export const TeamSchema = z
     created_at: z.iso.datetime(),
     updated_at: z.iso.datetime(),
   })
-  .openapi("Team");
+  .openapi("Team", { description: "A team. Worlds and API keys belong to a team." });
 
 export const MemberSchema = z
   .object({
@@ -39,17 +39,20 @@ export const MemberSchema = z
     name: z.string().nullable(),
     role: Role,
   })
-  .openapi("Member");
+  .openapi("Member", { description: "A person in a team." });
 
 export const TeamDetailSchema = TeamSchema.extend({ members: z.array(MemberSchema) }).openapi(
   "TeamDetail",
+  { description: "A team with its members." },
 );
 
-export const TeamListSchema = z.object({ teams: z.array(TeamSchema) }).openapi("TeamList");
+export const TeamListSchema = z
+  .object({ teams: z.array(TeamSchema) })
+  .openapi("TeamList", { description: "The teams you can see." });
 
 export const TeamUpdateSchema = z
   .object({ name: name(TEAM_NAME_MAX).openapi({ example: "Empirical" }) })
-  .openapi("TeamUpdate");
+  .openapi("TeamUpdate", { description: "New values for a team." });
 
 export const ApiKeySchema = z
   .object({
@@ -67,20 +70,24 @@ export const ApiKeySchema = z
     updated_at: z.iso.datetime(),
     last_used_at: z.iso.datetime().nullable(),
   })
-  .openapi("ApiKey");
+  .openapi("ApiKey", {
+    description: "An API key. The secret itself is shown only when the key is created.",
+  });
 
-export const ApiKeyListSchema = z.object({ api_keys: z.array(ApiKeySchema) }).openapi("ApiKeyList");
+export const ApiKeyListSchema = z
+  .object({ api_keys: z.array(ApiKeySchema) })
+  .openapi("ApiKeyList", { description: "The team's API keys, without their secrets." });
 
 export const ApiKeyCreateSchema = z
   .object({ name: name(API_KEY_NAME_MAX).openapi({ example: "CI" }) })
-  .openapi("ApiKeyCreate");
+  .openapi("ApiKeyCreate", { description: "A new API key." });
 
 export const ApiKeyCreatedSchema = ApiKeySchema.extend({
   secret: z.string().openapi({
     description: "The key itself. Shown only in this response.",
     example: "wk_live_4fQ9zTb1Lx7mKc2RyV8nHs0dWq5ePj3uGa6oNi9E",
   }),
-}).openapi("ApiKeyCreated");
+}).openapi("ApiKeyCreated", { description: "A new API key with its secret." });
 
 export const WorldSchema = z
   .object({
@@ -101,11 +108,17 @@ export const WorldSchema = z
     created_at: z.iso.datetime(),
     updated_at: z.iso.datetime(),
   })
-  .openapi("World");
+  .openapi("World", {
+    description: "A world: private copies of the services your app talks to, with their URLs.",
+  });
 
-export const WorldListSchema = z.object({ worlds: z.array(WorldSchema) }).openapi("WorldList");
+export const WorldListSchema = z
+  .object({ worlds: z.array(WorldSchema) })
+  .openapi("WorldList", { description: "The worlds you can see." });
 
-export const WorldCreatedSchema = WorldSchema.extend(createdShape).openapi("WorldCreated");
+export const WorldCreatedSchema = WorldSchema.extend(createdShape).openapi("WorldCreated", {
+  description: "A new world, with each service's URLs and effective spec.",
+});
 
 export const WorldSpecSchema = z.object(stateShape).openapi("WorldSpec", {
   description: "Each service's spec, or null for a service the world was created without.",
@@ -118,7 +131,9 @@ export const WorldCreateSchema = z
       .openapi({ description: "Defaults to Untitled world.", example: "Thread routing eval" }),
     ...specShape,
   })
-  .openapi("WorldCreate");
+  .openapi("WorldCreate", {
+    description: "A new world. Give a spec for each service it should have.",
+  });
 
 export const WorldParamsSchema = z.object({
   worldId: z

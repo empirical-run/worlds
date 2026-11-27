@@ -36,7 +36,8 @@
         },
         "required": [
           "teams"
-        ]
+        ],
+        "description": "The teams you can see."
       },
       "Team": {
         "type": "object",
@@ -76,32 +77,40 @@
           "role",
           "created_at",
           "updated_at"
-        ]
+        ],
+        "description": "A team. Worlds and API keys belong to a team."
       },
       "ApiError": {
         "type": "object",
         "properties": {
           "error": {
-            "type": "object",
-            "properties": {
-              "code": {
-                "type": "string",
-                "example": "not_found"
-              },
-              "message": {
-                "type": "string",
-                "example": "No team with that id is visible to you."
-              }
-            },
-            "required": [
-              "code",
-              "message"
-            ]
+            "$ref": "#/components/schemas/ApiErrorDetail"
           }
         },
         "required": [
           "error"
-        ]
+        ],
+        "description": "Every error response from the API and world controls."
+      },
+      "ApiErrorDetail": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Stable, for code to match on.",
+            "example": "not_found"
+          },
+          "message": {
+            "type": "string",
+            "description": "For people; may change.",
+            "example": "No team with that id is visible to you."
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "description": "What went wrong."
       },
       "TeamDetail": {
         "allOf": [
@@ -122,7 +131,8 @@
               "members"
             ]
           }
-        ]
+        ],
+        "description": "A team with its members."
       },
       "Member": {
         "type": "object",
@@ -154,7 +164,8 @@
           "email",
           "name",
           "role"
-        ]
+        ],
+        "description": "A person in a team."
       },
       "TeamUpdate": {
         "type": "object",
@@ -168,7 +179,8 @@
         },
         "required": [
           "name"
-        ]
+        ],
+        "description": "New values for a team."
       },
       "ApiKeyList": {
         "type": "object",
@@ -182,7 +194,8 @@
         },
         "required": [
           "api_keys"
-        ]
+        ],
+        "description": "The team's API keys, without their secrets."
       },
       "ApiKey": {
         "type": "object",
@@ -231,7 +244,8 @@
           "created_at",
           "updated_at",
           "last_used_at"
-        ]
+        ],
+        "description": "An API key. The secret itself is shown only when the key is created."
       },
       "ApiKeyCreated": {
         "allOf": [
@@ -251,7 +265,8 @@
               "secret"
             ]
           }
-        ]
+        ],
+        "description": "A new API key with its secret."
       },
       "ApiKeyCreate": {
         "type": "object",
@@ -265,7 +280,8 @@
         },
         "required": [
           "name"
-        ]
+        ],
+        "description": "A new API key."
       },
       "WorldList": {
         "type": "object",
@@ -279,7 +295,8 @@
         },
         "required": [
           "worlds"
-        ]
+        ],
+        "description": "The worlds you can see."
       },
       "World": {
         "type": "object",
@@ -317,68 +334,10 @@
             "description": "The services in this world, each with its UI."
           },
           "slack": {
-            "type": [
-              "object",
-              "null"
-            ],
-            "properties": {
-              "api_url": {
-                "type": "string",
-                "format": "uri",
-                "description": "Use as the Slack Web API base URL, e.g. slackApiUrl in @slack/web-api.",
-                "example": "https://k2v9x0q1m4-slack.makeworlds.dev/api/"
-              },
-              "oauth_authorize_url": {
-                "type": "string",
-                "format": "uri",
-                "description": "Send users here instead of slack.com/oauth/v2/authorize to install your app.",
-                "example": "https://k2v9x0q1m4-slack.makeworlds.dev/oauth/v2/authorize"
-              },
-              "ui_url": {
-                "type": "string",
-                "format": "uri",
-                "description": "The world's Slack UI.",
-                "example": "https://k2v9x0q1m4-slack.makeworlds.dev/"
-              }
-            },
-            "required": [
-              "api_url",
-              "oauth_authorize_url",
-              "ui_url"
-            ],
-            "description": "null when the world has no Slack."
+            "$ref": "#/components/schemas/SlackUrls"
           },
           "jira": {
-            "type": [
-              "object",
-              "null"
-            ],
-            "properties": {
-              "site_url": {
-                "type": "string",
-                "format": "uri",
-                "description": "The Jira site, in place of https://your-site.atlassian.net. Issue pages are at /browse/{key}.",
-                "example": "https://k2v9x0q1m4-jira.makeworlds.dev"
-              },
-              "auth_url": {
-                "type": "string",
-                "format": "uri",
-                "description": "In place of https://auth.atlassian.com: /authorize and /oauth/token.",
-                "example": "https://k2v9x0q1m4-jira-auth.makeworlds.dev"
-              },
-              "api_url": {
-                "type": "string",
-                "format": "uri",
-                "description": "In place of https://api.atlassian.com: /oauth/token/accessible-resources and /ex/jira/{cloudId}/rest/api/3.",
-                "example": "https://k2v9x0q1m4-jira-api.makeworlds.dev"
-              }
-            },
-            "required": [
-              "site_url",
-              "auth_url",
-              "api_url"
-            ],
-            "description": "null when the world has no Jira."
+            "$ref": "#/components/schemas/JiraUrls"
           },
           "created_at": {
             "type": "string",
@@ -400,7 +359,8 @@
           "jira",
           "created_at",
           "updated_at"
-        ]
+        ],
+        "description": "A world: private copies of the services your app talks to, with their URLs."
       },
       "WorldService": {
         "type": "object",
@@ -426,7 +386,72 @@
           "name",
           "title",
           "ui_url"
-        ]
+        ],
+        "description": "A service in a world."
+      },
+      "SlackUrls": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "api_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Use as the Slack Web API base URL, e.g. slackApiUrl in @slack/web-api.",
+            "example": "https://k2v9x0q1m4-slack.makeworlds.dev/api/"
+          },
+          "oauth_authorize_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Send users here instead of slack.com/oauth/v2/authorize to install your app.",
+            "example": "https://k2v9x0q1m4-slack.makeworlds.dev/oauth/v2/authorize"
+          },
+          "ui_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The world's Slack UI.",
+            "example": "https://k2v9x0q1m4-slack.makeworlds.dev/"
+          }
+        },
+        "required": [
+          "api_url",
+          "oauth_authorize_url",
+          "ui_url"
+        ],
+        "description": "null when the world has no Slack."
+      },
+      "JiraUrls": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "site_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The Jira site, in place of https://your-site.atlassian.net. Issue pages are at /browse/{key}.",
+            "example": "https://k2v9x0q1m4-jira.makeworlds.dev"
+          },
+          "auth_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "In place of https://auth.atlassian.com: /authorize and /oauth/token.",
+            "example": "https://k2v9x0q1m4-jira-auth.makeworlds.dev"
+          },
+          "api_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "In place of https://api.atlassian.com: /oauth/token/accessible-resources and /ex/jira/{cloudId}/rest/api/3.",
+            "example": "https://k2v9x0q1m4-jira-api.makeworlds.dev"
+          }
+        },
+        "required": [
+          "site_url",
+          "auth_url",
+          "api_url"
+        ],
+        "description": "null when the world has no Jira."
       },
       "WorldCreated": {
         "allOf": [
@@ -437,226 +462,60 @@
             "type": "object",
             "properties": {
               "slack": {
-                "type": [
-                  "object",
-                  "null"
-                ],
-                "properties": {
-                  "api_url": {
-                    "type": "string",
-                    "format": "uri",
-                    "description": "Use as the Slack Web API base URL, e.g. slackApiUrl in @slack/web-api.",
-                    "example": "https://k2v9x0q1m4-slack.makeworlds.dev/api/"
-                  },
-                  "oauth_authorize_url": {
-                    "type": "string",
-                    "format": "uri",
-                    "description": "Send users here instead of slack.com/oauth/v2/authorize to install your app.",
-                    "example": "https://k2v9x0q1m4-slack.makeworlds.dev/oauth/v2/authorize"
-                  },
-                  "ui_url": {
-                    "type": "string",
-                    "format": "uri",
-                    "description": "The world's Slack UI.",
-                    "example": "https://k2v9x0q1m4-slack.makeworlds.dev/"
-                  },
-                  "spec": {
-                    "$ref": "#/components/schemas/SlackState"
-                  }
-                },
-                "required": [
-                  "api_url",
-                  "oauth_authorize_url",
-                  "ui_url",
-                  "spec"
-                ],
-                "description": "null when the world has no Slack."
+                "$ref": "#/components/schemas/SlackCreated"
               },
               "jira": {
-                "type": [
-                  "object",
-                  "null"
-                ],
-                "properties": {
-                  "site_url": {
-                    "type": "string",
-                    "format": "uri",
-                    "description": "The Jira site, in place of https://your-site.atlassian.net. Issue pages are at /browse/{key}.",
-                    "example": "https://k2v9x0q1m4-jira.makeworlds.dev"
-                  },
-                  "auth_url": {
-                    "type": "string",
-                    "format": "uri",
-                    "description": "In place of https://auth.atlassian.com: /authorize and /oauth/token.",
-                    "example": "https://k2v9x0q1m4-jira-auth.makeworlds.dev"
-                  },
-                  "api_url": {
-                    "type": "string",
-                    "format": "uri",
-                    "description": "In place of https://api.atlassian.com: /oauth/token/accessible-resources and /ex/jira/{cloudId}/rest/api/3.",
-                    "example": "https://k2v9x0q1m4-jira-api.makeworlds.dev"
-                  },
-                  "spec": {
-                    "$ref": "#/components/schemas/JiraState"
-                  }
-                },
-                "required": [
-                  "site_url",
-                  "auth_url",
-                  "api_url",
-                  "spec"
-                ],
-                "description": "null when the world has no Jira."
+                "$ref": "#/components/schemas/JiraCreated"
               }
             }
           }
-        ]
+        ],
+        "description": "A new world, with each service's URLs and effective spec."
+      },
+      "SlackCreated": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SlackUrls"
+          },
+          {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "spec": {
+                "$ref": "#/components/schemas/SlackState"
+              }
+            },
+            "required": [
+              "spec"
+            ]
+          }
+        ],
+        "description": "null when the world has no Slack."
       },
       "SlackState": {
         "type": "object",
         "properties": {
           "team": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "domain": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "id",
-              "name",
-              "domain"
-            ]
+            "$ref": "#/components/schemas/SlackTeamState"
           },
           "users": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "real_name": {
-                  "type": "string"
-                },
-                "email": {
-                  "type": "string"
-                },
-                "token": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                }
-              },
-              "required": [
-                "id",
-                "name",
-                "real_name",
-                "email",
-                "token"
-              ]
+              "$ref": "#/components/schemas/SlackUserState"
             }
           },
           "channels": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "private": {
-                  "type": "boolean"
-                },
-                "topic": {
-                  "type": "string"
-                },
-                "members": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "messages": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SlackMessageSpec"
-                  }
-                }
-              },
-              "required": [
-                "id",
-                "name",
-                "private",
-                "topic",
-                "members",
-                "messages"
-              ]
+              "$ref": "#/components/schemas/SlackChannelState"
             }
           },
           "apps": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "app_id": {
-                  "type": "string"
-                },
-                "manifest": {
-                  "$ref": "#/components/schemas/SlackManifest"
-                },
-                "credentials": {
-                  "$ref": "#/components/schemas/SlackCredentials"
-                },
-                "install": {
-                  "type": [
-                    "object",
-                    "null"
-                  ],
-                  "properties": {
-                    "installer": {
-                      "type": "string"
-                    },
-                    "bot_user_id": {
-                      "type": "string"
-                    },
-                    "bot_token": {
-                      "type": "string"
-                    },
-                    "channels": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    }
-                  },
-                  "required": [
-                    "installer",
-                    "bot_user_id",
-                    "bot_token",
-                    "channels"
-                  ]
-                }
-              },
-              "required": [
-                "app_id",
-                "manifest",
-                "credentials",
-                "install"
-              ]
+              "$ref": "#/components/schemas/SlackAppState"
             }
           }
         },
@@ -667,6 +526,97 @@
           "apps"
         ],
         "description": "The world's spec with every generated id, credential and token filled in. Create a world from it to get an identical one."
+      },
+      "SlackTeamState": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "domain"
+        ],
+        "description": "The workspace, with its id."
+      },
+      "SlackUserState": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "real_name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "token": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The pinned user token. null when none was pinned."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "real_name",
+          "email",
+          "token"
+        ],
+        "description": "A user, with every generated field filled in."
+      },
+      "SlackChannelState": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "private": {
+            "type": "boolean"
+          },
+          "topic": {
+            "type": "string"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "User ids."
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SlackMessageSpec"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "private",
+          "topic",
+          "members",
+          "messages"
+        ],
+        "description": "A channel, with its id and member ids."
       },
       "SlackMessageSpec": {
         "type": "object",
@@ -685,23 +635,7 @@
           "replies": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "user": {
-                  "type": "string",
-                  "minLength": 1,
-                  "description": "A user's name or id.",
-                  "example": "alice"
-                },
-                "text": {
-                  "type": "string",
-                  "maxLength": 40000
-                }
-              },
-              "required": [
-                "user",
-                "text"
-              ]
+              "$ref": "#/components/schemas/SlackReplySpec"
             },
             "maxItems": 100
           }
@@ -709,109 +643,68 @@
         "required": [
           "user",
           "text"
-        ]
+        ],
+        "description": "A message posted when the world is created."
+      },
+      "SlackReplySpec": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A user's name or id.",
+            "example": "alice"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 40000,
+            "example": "Looking now."
+          }
+        },
+        "required": [
+          "user",
+          "text"
+        ],
+        "description": "A reply in the message's thread."
+      },
+      "SlackAppState": {
+        "type": "object",
+        "properties": {
+          "app_id": {
+            "type": "string"
+          },
+          "manifest": {
+            "$ref": "#/components/schemas/SlackManifest"
+          },
+          "credentials": {
+            "$ref": "#/components/schemas/SlackCredentials"
+          },
+          "install": {
+            "$ref": "#/components/schemas/SlackInstallState"
+          }
+        },
+        "required": [
+          "app_id",
+          "manifest",
+          "credentials",
+          "install"
+        ],
+        "description": "An app, with all its credentials."
       },
       "SlackManifest": {
         "type": "object",
         "properties": {
           "display_information": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string",
-                "minLength": 1
-              },
-              "description": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "name"
-            ],
-            "additionalProperties": {}
+            "$ref": "#/components/schemas/SlackManifestDisplayInformation"
           },
           "features": {
-            "type": "object",
-            "properties": {
-              "bot_user": {
-                "type": "object",
-                "properties": {
-                  "display_name": {
-                    "type": "string"
-                  },
-                  "always_online": {
-                    "type": "boolean"
-                  }
-                },
-                "additionalProperties": {}
-              }
-            },
-            "additionalProperties": {}
+            "$ref": "#/components/schemas/SlackManifestFeatures"
           },
           "oauth_config": {
-            "type": "object",
-            "properties": {
-              "redirect_urls": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "scopes": {
-                "type": "object",
-                "properties": {
-                  "bot": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "user": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "additionalProperties": {}
-              }
-            },
-            "additionalProperties": {}
+            "$ref": "#/components/schemas/SlackManifestOAuthConfig"
           },
           "settings": {
-            "type": "object",
-            "properties": {
-              "event_subscriptions": {
-                "type": "object",
-                "properties": {
-                  "request_url": {
-                    "type": "string",
-                    "format": "uri"
-                  },
-                  "bot_events": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "additionalProperties": {}
-              },
-              "interactivity": {
-                "type": "object",
-                "properties": {
-                  "is_enabled": {
-                    "type": "boolean"
-                  },
-                  "request_url": {
-                    "type": "string",
-                    "format": "uri"
-                  }
-                },
-                "additionalProperties": {}
-              }
-            },
-            "additionalProperties": {}
+            "$ref": "#/components/schemas/SlackManifestSettings"
           }
         },
         "required": [
@@ -847,6 +740,128 @@
           }
         }
       },
+      "SlackManifestDisplayInformation": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": {},
+        "description": "How the app shows in Slack."
+      },
+      "SlackManifestFeatures": {
+        "type": "object",
+        "properties": {
+          "bot_user": {
+            "$ref": "#/components/schemas/SlackManifestBotUser"
+          }
+        },
+        "additionalProperties": {},
+        "description": "The app's features."
+      },
+      "SlackManifestBotUser": {
+        "type": "object",
+        "properties": {
+          "display_name": {
+            "type": "string"
+          },
+          "always_online": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": {},
+        "description": "The app's bot user."
+      },
+      "SlackManifestOAuthConfig": {
+        "type": "object",
+        "properties": {
+          "redirect_urls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Allowed redirect_uri prefixes. A * in the host matches one label."
+          },
+          "scopes": {
+            "$ref": "#/components/schemas/SlackManifestScopes"
+          }
+        },
+        "additionalProperties": {},
+        "description": "How the app is installed over OAuth."
+      },
+      "SlackManifestScopes": {
+        "type": "object",
+        "properties": {
+          "bot": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "user": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": {},
+        "description": "OAuth scopes the app asks for."
+      },
+      "SlackManifestSettings": {
+        "type": "object",
+        "properties": {
+          "event_subscriptions": {
+            "$ref": "#/components/schemas/SlackManifestEventSubscriptions"
+          },
+          "interactivity": {
+            "$ref": "#/components/schemas/SlackManifestInteractivity"
+          }
+        },
+        "additionalProperties": {},
+        "description": "Events and interactivity settings."
+      },
+      "SlackManifestEventSubscriptions": {
+        "type": "object",
+        "properties": {
+          "request_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Where the world posts events."
+          },
+          "bot_events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Event types to send, such as app_mention."
+          }
+        },
+        "additionalProperties": {},
+        "description": "The Events API subscription."
+      },
+      "SlackManifestInteractivity": {
+        "type": "object",
+        "properties": {
+          "is_enabled": {
+            "type": "boolean"
+          },
+          "request_url": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "additionalProperties": {},
+        "description": "Where the world posts interactive payloads."
+      },
       "SlackCredentials": {
         "type": "object",
         "properties": {
@@ -868,142 +883,91 @@
           "client_secret",
           "signing_secret",
           "verification_token"
-        ]
+        ],
+        "description": "The app's OAuth and request-signing credentials."
+      },
+      "SlackInstallState": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "installer": {
+            "type": "string",
+            "description": "The installing user's id."
+          },
+          "bot_user_id": {
+            "type": "string"
+          },
+          "bot_token": {
+            "type": "string"
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Channel names the bot is a member of."
+          }
+        },
+        "required": [
+          "installer",
+          "bot_user_id",
+          "bot_token",
+          "channels"
+        ],
+        "description": "null when the spec didn't install the app."
+      },
+      "JiraCreated": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/JiraUrls"
+          },
+          {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "spec": {
+                "$ref": "#/components/schemas/JiraState"
+              }
+            },
+            "required": [
+              "spec"
+            ]
+          }
+        ],
+        "description": "null when the world has no Jira."
       },
       "JiraState": {
         "type": "object",
         "properties": {
           "site": {
-            "type": "object",
-            "properties": {
-              "cloud_id": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "url": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "cloud_id",
-              "name",
-              "url"
-            ]
+            "$ref": "#/components/schemas/JiraSiteState"
           },
           "users": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "account_id": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "display_name": {
-                  "type": "string"
-                },
-                "email": {
-                  "type": "string"
-                },
-                "hide_email": {
-                  "type": "boolean"
-                }
-              },
-              "required": [
-                "account_id",
-                "name",
-                "display_name",
-                "email",
-                "hide_email"
-              ]
+              "$ref": "#/components/schemas/JiraUserState"
             }
           },
           "projects": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "key": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "id",
-                "key",
-                "name"
-              ]
+              "$ref": "#/components/schemas/JiraProjectState"
             }
           },
           "issues": {
             "type": "array",
             "items": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/JiraIssueSpec"
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "key": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "key"
-                  ]
-                }
-              ]
+              "$ref": "#/components/schemas/JiraIssueState"
             }
           },
           "apps": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "callback_urls": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "scopes": {
-                  "type": "array",
-                  "items": {
-                    "type": "string",
-                    "enum": [
-                      "read:jira-work",
-                      "write:jira-work",
-                      "read:jira-user",
-                      "manage:jira-webhook",
-                      "manage:jira-project",
-                      "manage:jira-configuration",
-                      "read:me"
-                    ]
-                  }
-                },
-                "credentials": {
-                  "$ref": "#/components/schemas/JiraCredentials"
-                }
-              },
-              "required": [
-                "name",
-                "callback_urls",
-                "scopes",
-                "credentials"
-              ]
+              "$ref": "#/components/schemas/JiraAppState"
             }
           }
         },
@@ -1015,6 +979,115 @@
           "apps"
         ],
         "description": "The world's Jira spec with every generated id and credential filled in."
+      },
+      "JiraSiteState": {
+        "type": "object",
+        "properties": {
+          "cloud_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cloud_id",
+          "name",
+          "url"
+        ],
+        "description": "The site, with its cloud id and URL."
+      },
+      "JiraUserState": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "hide_email": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "account_id",
+          "name",
+          "display_name",
+          "email",
+          "hide_email"
+        ],
+        "description": "A user, with every generated field filled in."
+      },
+      "JiraProjectState": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name"
+        ],
+        "description": "A project, with its id."
+      },
+      "JiraIssueState": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/JiraIssueSpec"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "key"
+            ]
+          }
+        ],
+        "description": "An issue from the spec, with the key it was given."
+      },
+      "JiraCommentSpec": {
+        "type": "object",
+        "properties": {
+          "author": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A user's name or id.",
+            "example": "alice"
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32000,
+            "example": "Repro'd on staging."
+          }
+        },
+        "required": [
+          "author",
+          "body"
+        ],
+        "description": "A comment on the issue, oldest first."
       },
       "JiraIssueSpec": {
         "type": "object",
@@ -1064,24 +1137,7 @@
           "comments": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "author": {
-                  "type": "string",
-                  "minLength": 1,
-                  "description": "A user's name or id.",
-                  "example": "alice"
-                },
-                "body": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 32000
-                }
-              },
-              "required": [
-                "author",
-                "body"
-              ]
+              "$ref": "#/components/schemas/JiraCommentSpec"
             },
             "maxItems": 100
           }
@@ -1090,7 +1146,47 @@
           "project",
           "summary",
           "reporter"
-        ]
+        ],
+        "description": "An issue created with the world."
+      },
+      "JiraAppState": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "callback_urls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "read:jira-work",
+                "write:jira-work",
+                "read:jira-user",
+                "manage:jira-webhook",
+                "manage:jira-project",
+                "manage:jira-configuration",
+                "read:me"
+              ]
+            }
+          },
+          "credentials": {
+            "$ref": "#/components/schemas/JiraCredentials"
+          }
+        },
+        "required": [
+          "name",
+          "callback_urls",
+          "scopes",
+          "credentials"
+        ],
+        "description": "An app, with its credentials."
       },
       "JiraCredentials": {
         "type": "object",
@@ -1109,7 +1205,8 @@
         "required": [
           "client_id",
           "client_secret"
-        ]
+        ],
+        "description": "The app's OAuth client credentials."
       },
       "WorldCreate": {
         "type": "object",
@@ -1127,36 +1224,14 @@
           "jira": {
             "$ref": "#/components/schemas/JiraSpec"
           }
-        }
+        },
+        "description": "A new world. Give a spec for each service it should have."
       },
       "SlackSpec": {
         "type": "object",
         "properties": {
           "team": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "pattern": "^T[0-9A-Z]{2,20}$",
-                "example": "T0WORLDS0001"
-              },
-              "name": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 80,
-                "example": "Acme"
-              },
-              "domain": {
-                "type": "string",
-                "pattern": "^[a-z0-9-]{1,40}$",
-                "description": "The workspace subdomain. Users without an email get <name>@<domain>.test.",
-                "example": "acme"
-              }
-            },
-            "required": [
-              "name",
-              "domain"
-            ]
+            "$ref": "#/components/schemas/SlackTeamSpec"
           },
           "users": {
             "type": "array",
@@ -1184,6 +1259,35 @@
           "team"
         ],
         "description": "Everything in the world's Slack workspace. Omitted ids, credentials and tokens are generated. Leave it out to create the world without Slack."
+      },
+      "SlackTeamSpec": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^T[0-9A-Z]{2,20}$",
+            "example": "T0ACME00001",
+            "description": "Pin the team id, e.g. to match installs your app already stored. Generated if left out."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "The workspace name.",
+            "example": "Acme"
+          },
+          "domain": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{1,40}$",
+            "description": "The workspace subdomain. Users without an email get <name>@<domain>.test.",
+            "example": "acme"
+          }
+        },
+        "required": [
+          "name",
+          "domain"
+        ],
+        "description": "The world's Slack workspace."
       },
       "SlackUserSpec": {
         "type": "object",
@@ -1214,7 +1318,8 @@
         },
         "required": [
           "name"
-        ]
+        ],
+        "description": "A person in the workspace."
       },
       "SlackChannelSpec": {
         "type": "object",
@@ -1257,7 +1362,8 @@
         "required": [
           "name",
           "members"
-        ]
+        ],
+        "description": "A channel, its members and its first messages."
       },
       "SlackAppSpec": {
         "type": "object",
@@ -1266,22 +1372,7 @@
             "$ref": "#/components/schemas/SlackManifest"
           },
           "credentials": {
-            "type": "object",
-            "properties": {
-              "client_id": {
-                "type": "string"
-              },
-              "client_secret": {
-                "type": "string"
-              },
-              "signing_secret": {
-                "type": "string"
-              },
-              "verification_token": {
-                "type": "string"
-              }
-            },
-            "description": "Pin some or all credentials, e.g. to match secrets your app already has. Real Slack generates them; worlds lets you choose."
+            "$ref": "#/components/schemas/SlackCredentialsSpec"
           },
           "install": {
             "$ref": "#/components/schemas/SlackInstallSpec"
@@ -1289,7 +1380,26 @@
         },
         "required": [
           "manifest"
-        ]
+        ],
+        "description": "A Slack app, defined by its manifest."
+      },
+      "SlackCredentialsSpec": {
+        "type": "object",
+        "properties": {
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string"
+          },
+          "signing_secret": {
+            "type": "string"
+          },
+          "verification_token": {
+            "type": "string"
+          }
+        },
+        "description": "Pin some or all credentials, e.g. to match secrets your app already has. Real Slack generates them; worlds lets you choose."
       },
       "SlackInstallSpec": {
         "type": "object",
@@ -1325,22 +1435,7 @@
         "type": "object",
         "properties": {
           "site": {
-            "type": "object",
-            "properties": {
-              "cloud_id": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "name": {
-                "type": "string",
-                "pattern": "^[a-z0-9-]{1,40}$",
-                "description": "The site's subdomain. Users without an email get <name>@<site name>.test.",
-                "example": "acme"
-              }
-            },
-            "required": [
-              "name"
-            ]
+            "$ref": "#/components/schemas/JiraSiteSpec"
           },
           "users": {
             "type": "array",
@@ -1377,6 +1472,26 @@
         ],
         "description": "Everything in the world's Jira site. Omitted ids and credentials are generated. Leave it out to create the world without Jira."
       },
+      "JiraSiteSpec": {
+        "type": "object",
+        "properties": {
+          "cloud_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Pin the cloud id, e.g. to match one your app already stored. Generated if left out."
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{1,40}$",
+            "description": "The site's subdomain, as in <name>.atlassian.net. Users without an email get <user>@<name>.test.",
+            "example": "acme"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "description": "The world's Jira Cloud site."
+      },
       "JiraUserSpec": {
         "type": "object",
         "properties": {
@@ -1406,7 +1521,8 @@
         },
         "required": [
           "name"
-        ]
+        ],
+        "description": "A person on the site."
       },
       "JiraProjectSpec": {
         "type": "object",
@@ -1430,7 +1546,8 @@
         "required": [
           "key",
           "name"
-        ]
+        ],
+        "description": "A project; issues belong to one."
       },
       "JiraAppSpec": {
         "type": "object",
@@ -1478,27 +1595,31 @@
             ]
           },
           "credentials": {
-            "type": "object",
-            "properties": {
-              "client_id": {
-                "type": "string",
-                "minLength": 8,
-                "maxLength": 128
-              },
-              "client_secret": {
-                "type": "string",
-                "minLength": 16,
-                "maxLength": 256
-              }
-            },
-            "description": "Pin the client id and secret, e.g. to match ones your app already has."
+            "$ref": "#/components/schemas/JiraCredentialsSpec"
           }
         },
         "required": [
           "name",
           "callback_urls",
           "scopes"
-        ]
+        ],
+        "description": "An OAuth 2.0 (3LO) app, as in the Atlassian developer console."
+      },
+      "JiraCredentialsSpec": {
+        "type": "object",
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "client_secret": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 256
+          }
+        },
+        "description": "Pin the client id and secret, e.g. to match ones your app already has."
       },
       "WorldSpec": {
         "type": "object",
@@ -1551,7 +1672,8 @@
         "required": [
           "user_id",
           "token"
-        ]
+        ],
+        "description": "A user token, to call the Web API as that user."
       },
       "SlackTokenRequest": {
         "type": "object",
@@ -1565,90 +1687,25 @@
         },
         "required": [
           "user"
-        ]
+        ],
+        "description": "Whose token to get."
       },
       "SlackWorldState": {
         "type": "object",
         "properties": {
           "team": {
-            "type": [
-              "object",
-              "null"
-            ],
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "id",
-              "name"
-            ]
+            "$ref": "#/components/schemas/SlackWorldTeam"
           },
           "users": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "real_name": {
-                  "type": "string"
-                },
-                "is_bot": {
-                  "type": "boolean"
-                },
-                "has_token": {
-                  "type": "boolean"
-                }
-              },
-              "required": [
-                "id",
-                "name",
-                "real_name",
-                "is_bot",
-                "has_token"
-              ]
+              "$ref": "#/components/schemas/SlackWorldUser"
             }
           },
           "channels": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "is_private": {
-                  "type": "boolean"
-                },
-                "topic": {
-                  "type": "string"
-                },
-                "members": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "required": [
-                "id",
-                "name",
-                "is_private",
-                "topic",
-                "members"
-              ]
+              "$ref": "#/components/schemas/SlackWorldChannel"
             }
           },
           "messages": {
@@ -1664,7 +1721,88 @@
           "users",
           "channels",
           "messages"
-        ]
+        ],
+        "description": "The workspace as it is now, and one channel's messages."
+      },
+      "SlackWorldTeam": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "description": "The workspace."
+      },
+      "SlackWorldUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "real_name": {
+            "type": "string"
+          },
+          "is_bot": {
+            "type": "boolean"
+          },
+          "has_token": {
+            "type": "boolean",
+            "description": "Whether the user can be acted as."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "real_name",
+          "is_bot",
+          "has_token"
+        ],
+        "description": "A user or bot in the workspace now."
+      },
+      "SlackWorldChannel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "is_private": {
+            "type": "boolean"
+          },
+          "topic": {
+            "type": "string"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "User ids."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "is_private",
+          "topic",
+          "members"
+        ],
+        "description": "A channel in the workspace now."
       },
       "SlackMessage": {
         "type": "object",
@@ -1693,26 +1831,7 @@
           "reactions": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "users": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "count": {
-                  "type": "integer"
-                }
-              },
-              "required": [
-                "name",
-                "users",
-                "count"
-              ]
+              "$ref": "#/components/schemas/SlackReaction"
             }
           },
           "bot_name": {
@@ -1730,21 +1849,7 @@
           "images": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "file_id": {
-                  "type": "string"
-                },
-                "url": {
-                  "type": "string"
-                },
-                "alt": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "alt"
-              ]
+              "$ref": "#/components/schemas/SlackImage"
             }
           }
         },
@@ -1758,7 +1863,34 @@
           "edited",
           "files",
           "images"
-        ]
+        ],
+        "description": "A message as the world's Slack UI shows it."
+      },
+      "SlackReaction": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The emoji name.",
+            "example": "eyes"
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Ids of the users who reacted."
+          },
+          "count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "users",
+          "count"
+        ],
+        "description": "An emoji reaction on a message."
       },
       "SlackFileRef": {
         "type": "object",
@@ -1781,7 +1913,26 @@
           "name",
           "mimetype",
           "size"
-        ]
+        ],
+        "description": "A file shared in a message."
+      },
+      "SlackImage": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "alt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "alt"
+        ],
+        "description": "An image in a message, from a file or a block."
       },
       "SlackWebApiResponse": {
         "type": "object",
@@ -1832,7 +1983,8 @@
         "required": [
           "user",
           "method"
-        ]
+        ],
+        "description": "A Web API call to make as a user."
       },
       "SlackUploadRequest": {
         "type": "object",
@@ -1866,7 +2018,8 @@
           "user",
           "channel",
           "file"
-        ]
+        ],
+        "description": "A file to share as a user."
       },
       "JiraWorldState": {
         "type": "object",
@@ -1883,43 +2036,7 @@
           "webhooks": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "integer"
-                },
-                "client_id": {
-                  "type": "string"
-                },
-                "account_id": {
-                  "type": "string"
-                },
-                "url": {
-                  "type": "string"
-                },
-                "jql": {
-                  "type": "string"
-                },
-                "events": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "expires_at": {
-                  "type": "number",
-                  "description": "Milliseconds since the epoch."
-                }
-              },
-              "required": [
-                "id",
-                "client_id",
-                "account_id",
-                "url",
-                "jql",
-                "events",
-                "expires_at"
-              ]
+              "$ref": "#/components/schemas/JiraWebhook"
             }
           }
         },
@@ -1927,7 +2044,8 @@
           "spec",
           "issues",
           "webhooks"
-        ]
+        ],
+        "description": "The site as it is now: its spec, issues and registered webhooks."
       },
       "JiraIssue": {
         "type": "object",
@@ -1944,99 +2062,7 @@
             "format": "uri"
           },
           "fields": {
-            "type": "object",
-            "properties": {
-              "summary": {
-                "type": "string"
-              },
-              "description": {
-                "$ref": "#/components/schemas/JiraAdf"
-              },
-              "labels": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "status": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "enum": [
-                      "To Do",
-                      "In Progress",
-                      "Done"
-                    ]
-                  }
-                },
-                "required": [
-                  "name"
-                ],
-                "additionalProperties": {}
-              },
-              "reporter": {
-                "type": [
-                  "object",
-                  "null"
-                ],
-                "properties": {
-                  "accountId": {
-                    "type": "string"
-                  },
-                  "displayName": {
-                    "type": "string"
-                  },
-                  "emailAddress": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "accountId",
-                  "displayName"
-                ],
-                "additionalProperties": {}
-              },
-              "assignee": {
-                "type": [
-                  "object",
-                  "null"
-                ],
-                "properties": {
-                  "accountId": {
-                    "type": "string"
-                  },
-                  "displayName": {
-                    "type": "string"
-                  },
-                  "emailAddress": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "accountId",
-                  "displayName"
-                ],
-                "additionalProperties": {}
-              },
-              "created": {
-                "type": "string"
-              },
-              "updated": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "summary",
-              "description",
-              "labels",
-              "status",
-              "reporter",
-              "assignee",
-              "created",
-              "updated"
-            ],
-            "additionalProperties": {}
+            "$ref": "#/components/schemas/JiraIssueFields"
           }
         },
         "required": [
@@ -2047,6 +2073,50 @@
         ],
         "additionalProperties": {},
         "description": "The issue as the Jira REST API returns it."
+      },
+      "JiraIssueFields": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "string"
+          },
+          "description": {
+            "$ref": "#/components/schemas/JiraAdf"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "$ref": "#/components/schemas/JiraStatus"
+          },
+          "reporter": {
+            "$ref": "#/components/schemas/JiraUser"
+          },
+          "assignee": {
+            "$ref": "#/components/schemas/JiraUser"
+          },
+          "created": {
+            "type": "string"
+          },
+          "updated": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "summary",
+          "description",
+          "labels",
+          "status",
+          "reporter",
+          "assignee",
+          "created",
+          "updated"
+        ],
+        "additionalProperties": {},
+        "description": "The issue's fields."
       },
       "JiraAdf": {
         "type": [
@@ -2078,6 +2148,89 @@
         ],
         "additionalProperties": {},
         "description": "An Atlassian Document Format document."
+      },
+      "JiraStatus": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "To Do",
+              "In Progress",
+              "Done"
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": {},
+        "description": "The issue's workflow status."
+      },
+      "JiraUser": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "accountId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "emailAddress": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "accountId",
+          "displayName"
+        ],
+        "additionalProperties": {},
+        "description": "A user as the Jira REST API returns them."
+      },
+      "JiraWebhook": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "client_id": {
+            "type": "string",
+            "description": "The app that registered it."
+          },
+          "account_id": {
+            "type": "string",
+            "description": "The user it was registered as."
+          },
+          "url": {
+            "type": "string"
+          },
+          "jql": {
+            "type": "string"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expires_at": {
+            "type": "number",
+            "description": "Milliseconds since the epoch."
+          }
+        },
+        "required": [
+          "id",
+          "client_id",
+          "account_id",
+          "url",
+          "jql",
+          "events",
+          "expires_at"
+        ],
+        "description": "A dynamic webhook an app registered."
       },
       "JiraIssueCreate": {
         "type": "object",
@@ -2136,7 +2289,8 @@
         "required": [
           "user",
           "summary"
-        ]
+        ],
+        "description": "An issue to create as a user."
       },
       "JiraIssueUpdated": {
         "type": "object",
@@ -2154,7 +2308,8 @@
         "required": [
           "issue",
           "changelog"
-        ]
+        ],
+        "description": "The changed issue and what changed."
       },
       "JiraChangeItem": {
         "type": "object",
@@ -2204,7 +2359,8 @@
           "fromString",
           "to",
           "toString"
-        ]
+        ],
+        "description": "One changed field, as in a Jira changelog."
       },
       "JiraIssueUpdate": {
         "type": "object",
@@ -2264,7 +2420,8 @@
         },
         "required": [
           "user"
-        ]
+        ],
+        "description": "Changes to make to an issue as a user."
       },
       "JiraComment": {
         "type": "object",
@@ -2277,26 +2434,7 @@
             "format": "uri"
           },
           "author": {
-            "type": [
-              "object",
-              "null"
-            ],
-            "properties": {
-              "accountId": {
-                "type": "string"
-              },
-              "displayName": {
-                "type": "string"
-              },
-              "emailAddress": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "accountId",
-              "displayName"
-            ],
-            "additionalProperties": {}
+            "$ref": "#/components/schemas/JiraUser"
           },
           "body": {
             "$ref": "#/components/schemas/JiraAdf"
@@ -2344,7 +2482,8 @@
         "required": [
           "user",
           "body"
-        ]
+        ],
+        "description": "A comment to post as a user."
       }
     },
     "parameters": {}

@@ -4,36 +4,66 @@ const required = { error: "Field is required" };
 const stringList = z.array(z.string(), { error: "Must be an array of strings" }).optional();
 const url = z.url({ error: "Must be a URL" }).optional();
 
+const SlackManifestDisplayInformationSchema = z
+  .looseObject(
+    {
+      name: z.string(required).trim().min(1, required),
+      description: z.string().optional(),
+    },
+    required,
+  )
+  .openapi("SlackManifestDisplayInformation", { description: "How the app shows in Slack." });
+
+const SlackManifestBotUserSchema = z
+  .looseObject({
+    display_name: z.string().optional(),
+    always_online: z.boolean().optional(),
+  })
+  .openapi("SlackManifestBotUser", { description: "The app's bot user." });
+
+const SlackManifestFeaturesSchema = z
+  .looseObject({ bot_user: SlackManifestBotUserSchema.optional() })
+  .openapi("SlackManifestFeatures", { description: "The app's features." });
+
+const SlackManifestScopesSchema = z
+  .looseObject({ bot: stringList, user: stringList })
+  .openapi("SlackManifestScopes", { description: "OAuth scopes the app asks for." });
+
+const SlackManifestOAuthConfigSchema = z
+  .looseObject({
+    redirect_urls: stringList.openapi({
+      description: "Allowed redirect_uri prefixes. A * in the host matches one label.",
+    }),
+    scopes: SlackManifestScopesSchema.optional(),
+  })
+  .openapi("SlackManifestOAuthConfig", { description: "How the app is installed over OAuth." });
+
+const SlackManifestEventSubscriptionsSchema = z
+  .looseObject({
+    request_url: url.openapi({ description: "Where the world posts events." }),
+    bot_events: stringList.openapi({ description: "Event types to send, such as app_mention." }),
+  })
+  .openapi("SlackManifestEventSubscriptions", { description: "The Events API subscription." });
+
+const SlackManifestInteractivitySchema = z
+  .looseObject({ is_enabled: z.boolean().optional(), request_url: url })
+  .openapi("SlackManifestInteractivity", {
+    description: "Where the world posts interactive payloads.",
+  });
+
+const SlackManifestSettingsSchema = z
+  .looseObject({
+    event_subscriptions: SlackManifestEventSubscriptionsSchema.optional(),
+    interactivity: SlackManifestInteractivitySchema.optional(),
+  })
+  .openapi("SlackManifestSettings", { description: "Events and interactivity settings." });
+
 export const SlackManifestSchema = z
   .looseObject({
-    display_information: z.looseObject(
-      { name: z.string(required).trim().min(1, required), description: z.string().optional() },
-      required,
-    ),
-    features: z
-      .looseObject({
-        bot_user: z
-          .looseObject({
-            display_name: z.string().optional(),
-            always_online: z.boolean().optional(),
-          })
-          .optional(),
-      })
-      .optional(),
-    oauth_config: z
-      .looseObject({
-        redirect_urls: stringList,
-        scopes: z.looseObject({ bot: stringList, user: stringList }).optional(),
-      })
-      .optional(),
-    settings: z
-      .looseObject({
-        event_subscriptions: z.looseObject({ request_url: url, bot_events: stringList }).optional(),
-        interactivity: z
-          .looseObject({ is_enabled: z.boolean().optional(), request_url: url })
-          .optional(),
-      })
-      .optional(),
+    display_information: SlackManifestDisplayInformationSchema,
+    features: SlackManifestFeaturesSchema.optional(),
+    oauth_config: SlackManifestOAuthConfigSchema.optional(),
+    settings: SlackManifestSettingsSchema.optional(),
   })
   .openapi("SlackManifest", {
     description:
@@ -60,7 +90,7 @@ export const SlackCredentialsSchema = z
     signing_secret: z.string(),
     verification_token: z.string(),
   })
-  .openapi("SlackCredentials");
+  .openapi("SlackCredentials", { description: "The app's OAuth and request-signing credentials." });
 
 export type SlackCredentials = z.output<typeof SlackCredentialsSchema>;
 

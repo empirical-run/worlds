@@ -107,7 +107,7 @@ export const WorldServiceSchema = z
     title: z.string().openapi({ example: SERVICES[0].title }),
     ui_url: z.url().openapi({ description: "The service's UI in this world." }),
   })
-  .openapi("WorldService");
+  .openapi("WorldService", { description: "A service in a world." });
 
 export const specShape = byService<{
   [Name in ServiceName]: z.ZodOptional<Contract<Name>["spec"]>;
@@ -120,6 +120,9 @@ export const stateShape = byService<{
 export const createdShape = byService<Record<ServiceName, z.ZodType>>((service) =>
   service.urls
     .extend({ spec: service.state })
+    .openapi(`${service.title}Created`, {
+      description: `The world's ${service.title} URLs and effective spec.`,
+    })
     .nullable()
     .openapi({ description: `null when the world has no ${service.title}.` }),
 );

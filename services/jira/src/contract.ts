@@ -30,7 +30,7 @@ const JiraUserSpecSchema = z
         "Hide the email from apps, like a profile with email visibility off. GET /user then has no emailAddress.",
     }),
   })
-  .openapi("JiraUserSpec");
+  .openapi("JiraUserSpec", { description: "A person on the site." });
 
 const JiraProjectSpecSchema = z
   .object({
@@ -46,7 +46,7 @@ const JiraProjectSpecSchema = z
       .openapi({ example: "WRLD" }),
     name: z.string().trim().min(1).max(80).openapi({ example: "Worlds" }),
   })
-  .openapi("JiraProjectSpec");
+  .openapi("JiraProjectSpec", { description: "A project; issues belong to one." });
 
 const summary = z
   .string()
@@ -61,6 +61,13 @@ const labels = z
 
 const status = z.enum(ISSUE_STATUSES);
 
+const JiraCommentSpecSchema = z
+  .object({
+    author: userRef,
+    body: z.string().min(1).max(32_000).openapi({ example: "Repro'd on staging." }),
+  })
+  .openapi("JiraCommentSpec", { description: "A comment on the issue, oldest first." });
+
 const JiraIssueSpecSchema = z
   .object({
     project: z.string().openapi({ example: "WRLD" }),
@@ -70,16 +77,13 @@ const JiraIssueSpecSchema = z
     status: status.optional(),
     reporter: userRef,
     assignee: userRef.optional(),
-    comments: z
-      .array(z.object({ author: userRef, body: z.string().min(1).max(32_000) }))
-      .max(100)
-      .optional(),
+    comments: z.array(JiraCommentSpecSchema).max(100).optional(),
   })
-  .openapi("JiraIssueSpec");
+  .openapi("JiraIssueSpec", { description: "An issue created with the world." });
 
 const JiraCredentialsSchema = z
   .object({ client_id: z.string().min(8).max(128), client_secret: z.string().min(16).max(256) })
-  .openapi("JiraCredentials");
+  .openapi("JiraCredentials", { description: "The app's OAuth client credentials." });
 
 const JiraAppSpecSchema = z
   .object({
@@ -100,24 +104,36 @@ const JiraAppSpecSchema = z
         description: "Scopes the app may request (offline_access is always allowed).",
         example: ["read:jira-work", "write:jira-work", "read:jira-user", "manage:jira-webhook"],
       }),
-    credentials: JiraCredentialsSchema.partial().optional().openapi({
-      description: "Pin the client id and secret, e.g. to match ones your app already has.",
-    }),
+    credentials: JiraCredentialsSchema.partial()
+      .openapi("JiraCredentialsSpec", {
+        description: "Pin the client id and secret, e.g. to match ones your app already has.",
+      })
+      .optional(),
   })
-  .openapi("JiraAppSpec");
+  .openapi("JiraAppSpec", {
+    description: "An OAuth 2.0 (3LO) app, as in the Atlassian developer console.",
+  });
+
+const JiraSiteSpecSchema = z
+  .object({
+    cloud_id: z.uuid().optional().openapi({
+      description:
+        "Pin the cloud id, e.g. to match one your app already stored. Generated if left out.",
+    }),
+    name: z
+      .string()
+      .regex(/^[a-z0-9-]{1,40}$/)
+      .openapi({
+        description:
+          "The site's subdomain, as in <name>.atlassian.net. Users without an email get <user>@<name>.test.",
+        example: "acme",
+      }),
+  })
+  .openapi("JiraSiteSpec", { description: "The world's Jira Cloud site." });
 
 export const JiraSpecSchema = z
   .object({
-    site: z.object({
-      cloud_id: z.uuid().optional(),
-      name: z
-        .string()
-        .regex(/^[a-z0-9-]{1,40}$/)
-        .openapi({
-          description: "The site's subdomain. Users without an email get <name>@<site name>.test.",
-          example: "acme",
-        }),
-    }),
+    site: JiraSiteSpecSchema,
     users: z.array(JiraUserSpecSchema).max(200).optional(),
     projects: z.array(JiraProjectSpecSchema).max(50).optional(),
     issues: z.array(JiraIssueSpecSchema).max(500).optional().openapi({
@@ -130,53 +146,76 @@ export const JiraSpecSchema = z
       "Everything in the world's Jira site. Omitted ids and credentials are generated. Leave it out to create the world without Jira.",
   });
 
+const JiraSiteStateSchema = z
+  .object({ cloud_id: z.string(), name: z.string(), url: z.string() })
+  .openapi("JiraSiteState", { description: "The site, with its cloud id and URL." });
+
+const JiraUserStateSchema = z
+  .object({
+    account_id: z.string(),
+    name: z.string(),
+    display_name: z.string(),
+    email: z.string(),
+    hide_email: z.boolean(),
+  })
+  .openapi("JiraUserState", { description: "A user, with every generated field filled in." });
+
+const JiraProjectStateSchema = z
+  .object({ id: z.string(), key: z.string(), name: z.string() })
+  .openapi("JiraProjectState", { description: "A project, with its id." });
+
+const JiraIssueStateSchema = JiraIssueSpecSchema.extend({ key: z.string() }).openapi(
+  "JiraIssueState",
+  { description: "An issue from the spec, with the key it was given." },
+);
+
+const JiraAppStateSchema = z
+  .object({
+    name: z.string(),
+    callback_urls: z.array(z.string()),
+    scopes: z.array(z.enum(JIRA_SCOPES)),
+    credentials: JiraCredentialsSchema,
+  })
+  .openapi("JiraAppState", { description: "An app, with its credentials." });
+
 export const JiraStateSchema = z
   .object({
-    site: z.object({ cloud_id: z.string(), name: z.string(), url: z.string() }),
-    users: z.array(
-      z.object({
-        account_id: z.string(),
-        name: z.string(),
-        display_name: z.string(),
-        email: z.string(),
-        hide_email: z.boolean(),
-      }),
-    ),
-    projects: z.array(z.object({ id: z.string(), key: z.string(), name: z.string() })),
-    issues: z.array(JiraIssueSpecSchema.extend({ key: z.string() })),
-    apps: z.array(
-      z.object({
-        name: z.string(),
-        callback_urls: z.array(z.string()),
-        scopes: z.array(z.enum(JIRA_SCOPES)),
-        credentials: JiraCredentialsSchema,
-      }),
-    ),
+    site: JiraSiteStateSchema,
+    users: z.array(JiraUserStateSchema),
+    projects: z.array(JiraProjectStateSchema),
+    issues: z.array(JiraIssueStateSchema),
+    apps: z.array(JiraAppStateSchema),
   })
   .openapi("JiraState", {
     description: "The world's Jira spec with every generated id and credential filled in.",
   });
 
-const JiraUrlsSchema = z.object({
-  site_url: z.url().openapi({
-    description:
-      "The Jira site, in place of https://your-site.atlassian.net. Issue pages are at /browse/{key}.",
-    example: "https://k2v9x0q1m4-jira.makeworlds.dev",
-  }),
-  auth_url: z.url().openapi({
-    description: "In place of https://auth.atlassian.com: /authorize and /oauth/token.",
-    example: "https://k2v9x0q1m4-jira-auth.makeworlds.dev",
-  }),
-  api_url: z.url().openapi({
-    description:
-      "In place of https://api.atlassian.com: /oauth/token/accessible-resources and /ex/jira/{cloudId}/rest/api/3.",
-    example: "https://k2v9x0q1m4-jira-api.makeworlds.dev",
-  }),
-});
+const JiraUrlsSchema = z
+  .object({
+    site_url: z.url().openapi({
+      description:
+        "The Jira site, in place of https://your-site.atlassian.net. Issue pages are at /browse/{key}.",
+      example: "https://k2v9x0q1m4-jira.makeworlds.dev",
+    }),
+    auth_url: z.url().openapi({
+      description: "In place of https://auth.atlassian.com: /authorize and /oauth/token.",
+      example: "https://k2v9x0q1m4-jira-auth.makeworlds.dev",
+    }),
+    api_url: z.url().openapi({
+      description:
+        "In place of https://api.atlassian.com: /oauth/token/accessible-resources and /ex/jira/{cloudId}/rest/api/3.",
+      example: "https://k2v9x0q1m4-jira-api.makeworlds.dev",
+    }),
+  })
+  .openapi("JiraUrls", { description: "The world's Jira URLs, one per Atlassian host." });
 
 const JiraAdfSchema = z
   .looseObject({ type: z.literal("doc"), version: z.literal(1), content: z.array(z.unknown()) })
   .openapi("JiraAdf", { description: "An Atlassian Document Format document." });
+
+const JiraStatusSchema = z
+  .looseObject({ name: z.enum(ISSUE_STATUSES) })
+  .openapi("JiraStatus", { description: "The issue's workflow status." });
 
 const text = z
   .union([z.string().max(32_000), JiraAdfSchema])
@@ -186,27 +225,33 @@ const actor = userRef.openapi({
   description: "The user who acts: their name or account id. Webhooks name them as the actor.",
 });
 
-const JiraUserJsonSchema = z.looseObject({
-  accountId: z.string(),
-  displayName: z.string(),
-  emailAddress: z.string().optional(),
-});
+const JiraUserJsonSchema = z
+  .looseObject({
+    accountId: z.string(),
+    displayName: z.string(),
+    emailAddress: z.string().optional(),
+  })
+  .openapi("JiraUser", { description: "A user as the Jira REST API returns them." });
+
+const JiraIssueFieldsSchema = z
+  .looseObject({
+    summary: z.string(),
+    description: JiraAdfSchema.nullable(),
+    labels: z.array(z.string()),
+    status: JiraStatusSchema,
+    reporter: JiraUserJsonSchema.nullable(),
+    assignee: JiraUserJsonSchema.nullable(),
+    created: z.string(),
+    updated: z.string(),
+  })
+  .openapi("JiraIssueFields", { description: "The issue's fields." });
 
 const JiraIssueSchema = z
   .looseObject({
     id: z.string(),
     key: z.string().openapi({ example: "WRLD-1" }),
     self: z.url(),
-    fields: z.looseObject({
-      summary: z.string(),
-      description: JiraAdfSchema.nullable(),
-      labels: z.array(z.string()),
-      status: z.looseObject({ name: z.enum(ISSUE_STATUSES) }),
-      reporter: JiraUserJsonSchema.nullable(),
-      assignee: JiraUserJsonSchema.nullable(),
-      created: z.string(),
-      updated: z.string(),
-    }),
+    fields: JiraIssueFieldsSchema,
   })
   .openapi("JiraIssue", { description: "The issue as the Jira REST API returns it." });
 
@@ -231,7 +276,7 @@ const JiraChangeItemSchema = z
     to: z.string().nullable(),
     toString: z.string().nullable(),
   })
-  .openapi("JiraChangeItem");
+  .openapi("JiraChangeItem", { description: "One changed field, as in a Jira changelog." });
 
 const JiraIssueCreateSchema = z
   .object({
@@ -246,7 +291,7 @@ const JiraIssueCreateSchema = z
     status: status.optional(),
     assignee: userRef.optional(),
   })
-  .openapi("JiraIssueCreate");
+  .openapi("JiraIssueCreate", { description: "An issue to create as a user." });
 
 const JiraIssueUpdateSchema = z
   .object({
@@ -257,31 +302,37 @@ const JiraIssueUpdateSchema = z
     status: status.optional(),
     assignee: userRef.nullable().optional().openapi({ description: "null unassigns the issue." }),
   })
-  .openapi("JiraIssueUpdate");
+  .openapi("JiraIssueUpdate", { description: "Changes to make to an issue as a user." });
 
 const JiraIssueUpdatedSchema = z
   .object({ issue: JiraIssueSchema, changelog: z.array(JiraChangeItemSchema) })
-  .openapi("JiraIssueUpdated");
+  .openapi("JiraIssueUpdated", { description: "The changed issue and what changed." });
 
-const JiraCommentCreateSchema = z.object({ user: actor, body: text }).openapi("JiraCommentCreate");
+const JiraCommentCreateSchema = z
+  .object({ user: actor, body: text })
+  .openapi("JiraCommentCreate", { description: "A comment to post as a user." });
+
+const JiraWebhookSchema = z
+  .object({
+    id: z.number().int(),
+    client_id: z.string().openapi({ description: "The app that registered it." }),
+    account_id: z.string().openapi({ description: "The user it was registered as." }),
+    url: z.string(),
+    jql: z.string(),
+    events: z.array(z.string()),
+    expires_at: z.number().openapi({ description: "Milliseconds since the epoch." }),
+  })
+  .openapi("JiraWebhook", { description: "A dynamic webhook an app registered." });
 
 const JiraWorldStateSchema = z
   .object({
     spec: JiraStateSchema,
     issues: z.array(JiraIssueSchema),
-    webhooks: z.array(
-      z.object({
-        id: z.number().int(),
-        client_id: z.string(),
-        account_id: z.string(),
-        url: z.string(),
-        jql: z.string(),
-        events: z.array(z.string()),
-        expires_at: z.number().openapi({ description: "Milliseconds since the epoch." }),
-      }),
-    ),
+    webhooks: z.array(JiraWebhookSchema),
   })
-  .openapi("JiraWorldState");
+  .openapi("JiraWorldState", {
+    description: "The site as it is now: its spec, issues and registered webhooks.",
+  });
 
 const IssueKeyParamsSchema = z.object({
   key: z.string().openapi({ param: { name: "key", in: "path" }, example: "WRLD-1" }),

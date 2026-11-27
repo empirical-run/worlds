@@ -12,7 +12,7 @@
     "dev:api": "wrangler dev -c apps/api/wrangler.jsonc --port 8791 --persist-to services/world/.wrangler/state",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
-    "lint": "oxlint",
+    "lint": "oxlint && node scripts/check-openapi-docs.mjs",
     "lint:fix": "oxlint --fix",
     "prepare": "lefthook install"
   },

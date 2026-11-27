@@ -1250,9 +1250,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description The teams you can see. */
         TeamList: {
             teams: components["schemas"]["Team"][];
         };
+        /** @description A team. Worlds and API keys belong to a team. */
         Team: {
             /** @example team_k2v9x0q1m4s7d8f3a6b5 */
             id: string;
@@ -1268,17 +1270,28 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        /** @description Every error response from the API and world controls. */
         ApiError: {
-            error: {
-                /** @example not_found */
-                code: string;
-                /** @example No team with that id is visible to you. */
-                message: string;
-            };
+            error: components["schemas"]["ApiErrorDetail"];
         };
+        /** @description What went wrong. */
+        ApiErrorDetail: {
+            /**
+             * @description Stable, for code to match on.
+             * @example not_found
+             */
+            code: string;
+            /**
+             * @description For people; may change.
+             * @example No team with that id is visible to you.
+             */
+            message: string;
+        };
+        /** @description A team with its members. */
         TeamDetail: components["schemas"]["Team"] & {
             members: components["schemas"]["Member"][];
         };
+        /** @description A person in a team. */
         Member: {
             /** @example user_p0r7w2c9n5h1j4k8l3m6 */
             id: string;
@@ -1288,13 +1301,16 @@ export interface components {
             /** @enum {string} */
             role: "owner" | "member";
         };
+        /** @description New values for a team. */
         TeamUpdate: {
             /** @example Empirical */
             name: string;
         };
+        /** @description The team's API keys, without their secrets. */
         ApiKeyList: {
             api_keys: components["schemas"]["ApiKey"][];
         };
+        /** @description An API key. The secret itself is shown only when the key is created. */
         ApiKey: {
             /** @example key_w2rh3pmnhl1pe2wjxgqs */
             id: string;
@@ -1314,6 +1330,7 @@ export interface components {
             /** Format: date-time */
             last_used_at: string | null;
         };
+        /** @description A new API key with its secret. */
         ApiKeyCreated: components["schemas"]["ApiKey"] & {
             /**
              * @description The key itself. Shown only in this response.
@@ -1321,13 +1338,16 @@ export interface components {
              */
             secret: string;
         };
+        /** @description A new API key. */
         ApiKeyCreate: {
             /** @example CI */
             name: string;
         };
+        /** @description The worlds you can see. */
         WorldList: {
             worlds: components["schemas"]["World"][];
         };
+        /** @description A world: private copies of the services your app talks to, with their URLs. */
         World: {
             /** @example world_k2v9x0q1m4 */
             id: string;
@@ -1345,53 +1365,14 @@ export interface components {
             ui_url: string;
             /** @description The services in this world, each with its UI. */
             services: components["schemas"]["WorldService"][];
-            /** @description null when the world has no Slack. */
-            slack: {
-                /**
-                 * Format: uri
-                 * @description Use as the Slack Web API base URL, e.g. slackApiUrl in @slack/web-api.
-                 * @example https://k2v9x0q1m4-slack.makeworlds.dev/api/
-                 */
-                api_url: string;
-                /**
-                 * Format: uri
-                 * @description Send users here instead of slack.com/oauth/v2/authorize to install your app.
-                 * @example https://k2v9x0q1m4-slack.makeworlds.dev/oauth/v2/authorize
-                 */
-                oauth_authorize_url: string;
-                /**
-                 * Format: uri
-                 * @description The world's Slack UI.
-                 * @example https://k2v9x0q1m4-slack.makeworlds.dev/
-                 */
-                ui_url: string;
-            } | null;
-            /** @description null when the world has no Jira. */
-            jira: {
-                /**
-                 * Format: uri
-                 * @description The Jira site, in place of https://your-site.atlassian.net. Issue pages are at /browse/{key}.
-                 * @example https://k2v9x0q1m4-jira.makeworlds.dev
-                 */
-                site_url: string;
-                /**
-                 * Format: uri
-                 * @description In place of https://auth.atlassian.com: /authorize and /oauth/token.
-                 * @example https://k2v9x0q1m4-jira-auth.makeworlds.dev
-                 */
-                auth_url: string;
-                /**
-                 * Format: uri
-                 * @description In place of https://api.atlassian.com: /oauth/token/accessible-resources and /ex/jira/{cloudId}/rest/api/3.
-                 * @example https://k2v9x0q1m4-jira-api.makeworlds.dev
-                 */
-                api_url: string;
-            } | null;
+            slack: components["schemas"]["SlackUrls"];
+            jira: components["schemas"]["JiraUrls"];
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
             updated_at: string;
         };
+        /** @description A service in a world. */
         WorldService: {
             /** @enum {string} */
             name: "slack" | "jira";
@@ -1403,86 +1384,90 @@ export interface components {
              */
             ui_url: string;
         };
+        /** @description null when the world has no Slack. */
+        SlackUrls: {
+            /**
+             * Format: uri
+             * @description Use as the Slack Web API base URL, e.g. slackApiUrl in @slack/web-api.
+             * @example https://k2v9x0q1m4-slack.makeworlds.dev/api/
+             */
+            api_url: string;
+            /**
+             * Format: uri
+             * @description Send users here instead of slack.com/oauth/v2/authorize to install your app.
+             * @example https://k2v9x0q1m4-slack.makeworlds.dev/oauth/v2/authorize
+             */
+            oauth_authorize_url: string;
+            /**
+             * Format: uri
+             * @description The world's Slack UI.
+             * @example https://k2v9x0q1m4-slack.makeworlds.dev/
+             */
+            ui_url: string;
+        } | null;
+        /** @description null when the world has no Jira. */
+        JiraUrls: {
+            /**
+             * Format: uri
+             * @description The Jira site, in place of https://your-site.atlassian.net. Issue pages are at /browse/{key}.
+             * @example https://k2v9x0q1m4-jira.makeworlds.dev
+             */
+            site_url: string;
+            /**
+             * Format: uri
+             * @description In place of https://auth.atlassian.com: /authorize and /oauth/token.
+             * @example https://k2v9x0q1m4-jira-auth.makeworlds.dev
+             */
+            auth_url: string;
+            /**
+             * Format: uri
+             * @description In place of https://api.atlassian.com: /oauth/token/accessible-resources and /ex/jira/{cloudId}/rest/api/3.
+             * @example https://k2v9x0q1m4-jira-api.makeworlds.dev
+             */
+            api_url: string;
+        } | null;
+        /** @description A new world, with each service's URLs and effective spec. */
         WorldCreated: components["schemas"]["World"] & {
-            /** @description null when the world has no Slack. */
-            slack?: {
-                /**
-                 * Format: uri
-                 * @description Use as the Slack Web API base URL, e.g. slackApiUrl in @slack/web-api.
-                 * @example https://k2v9x0q1m4-slack.makeworlds.dev/api/
-                 */
-                api_url: string;
-                /**
-                 * Format: uri
-                 * @description Send users here instead of slack.com/oauth/v2/authorize to install your app.
-                 * @example https://k2v9x0q1m4-slack.makeworlds.dev/oauth/v2/authorize
-                 */
-                oauth_authorize_url: string;
-                /**
-                 * Format: uri
-                 * @description The world's Slack UI.
-                 * @example https://k2v9x0q1m4-slack.makeworlds.dev/
-                 */
-                ui_url: string;
-                spec: components["schemas"]["SlackState"];
-            } | null;
-            /** @description null when the world has no Jira. */
-            jira?: {
-                /**
-                 * Format: uri
-                 * @description The Jira site, in place of https://your-site.atlassian.net. Issue pages are at /browse/{key}.
-                 * @example https://k2v9x0q1m4-jira.makeworlds.dev
-                 */
-                site_url: string;
-                /**
-                 * Format: uri
-                 * @description In place of https://auth.atlassian.com: /authorize and /oauth/token.
-                 * @example https://k2v9x0q1m4-jira-auth.makeworlds.dev
-                 */
-                auth_url: string;
-                /**
-                 * Format: uri
-                 * @description In place of https://api.atlassian.com: /oauth/token/accessible-resources and /ex/jira/{cloudId}/rest/api/3.
-                 * @example https://k2v9x0q1m4-jira-api.makeworlds.dev
-                 */
-                api_url: string;
-                spec: components["schemas"]["JiraState"];
-            } | null;
+            slack?: components["schemas"]["SlackCreated"];
+            jira?: components["schemas"]["JiraCreated"];
         };
+        /** @description null when the world has no Slack. */
+        SlackCreated: components["schemas"]["SlackUrls"] & ({
+            spec: components["schemas"]["SlackState"];
+        } | null);
         /** @description The world's spec with every generated id, credential and token filled in. Create a world from it to get an identical one. */
         SlackState: {
-            team: {
-                id: string;
-                name: string;
-                domain: string;
-            };
-            users: {
-                id: string;
-                name: string;
-                real_name: string;
-                email: string;
-                token: string | null;
-            }[];
-            channels: {
-                id: string;
-                name: string;
-                private: boolean;
-                topic: string;
-                members: string[];
-                messages: components["schemas"]["SlackMessageSpec"][];
-            }[];
-            apps: {
-                app_id: string;
-                manifest: components["schemas"]["SlackManifest"];
-                credentials: components["schemas"]["SlackCredentials"];
-                install: {
-                    installer: string;
-                    bot_user_id: string;
-                    bot_token: string;
-                    channels: string[];
-                } | null;
-            }[];
+            team: components["schemas"]["SlackTeamState"];
+            users: components["schemas"]["SlackUserState"][];
+            channels: components["schemas"]["SlackChannelState"][];
+            apps: components["schemas"]["SlackAppState"][];
         };
+        /** @description The workspace, with its id. */
+        SlackTeamState: {
+            id: string;
+            name: string;
+            domain: string;
+        };
+        /** @description A user, with every generated field filled in. */
+        SlackUserState: {
+            id: string;
+            name: string;
+            real_name: string;
+            email: string;
+            /** @description The pinned user token. null when none was pinned. */
+            token: string | null;
+        };
+        /** @description A channel, with its id and member ids. */
+        SlackChannelState: {
+            id: string;
+            name: string;
+            private: boolean;
+            topic: string;
+            /** @description User ids. */
+            members: string[];
+            messages: components["schemas"]["SlackMessageSpec"][];
+        };
+        /** @description A message posted when the world is created. */
         SlackMessageSpec: {
             /**
              * @description A user's name or id.
@@ -1491,14 +1476,24 @@ export interface components {
             user: string;
             /** @example Deploy failed on main, can someone look? */
             text: string;
-            replies?: {
-                /**
-                 * @description A user's name or id.
-                 * @example alice
-                 */
-                user: string;
-                text: string;
-            }[];
+            replies?: components["schemas"]["SlackReplySpec"][];
+        };
+        /** @description A reply in the message's thread. */
+        SlackReplySpec: {
+            /**
+             * @description A user's name or id.
+             * @example alice
+             */
+            user: string;
+            /** @example Looking now. */
+            text: string;
+        };
+        /** @description An app, with all its credentials. */
+        SlackAppState: {
+            app_id: string;
+            manifest: components["schemas"]["SlackManifest"];
+            credentials: components["schemas"]["SlackCredentials"];
+            install: components["schemas"]["SlackInstallState"];
         };
         /**
          * @description A Slack app manifest (JSON). Its redirect_urls, scopes, event_subscriptions and interactivity apply in this world.
@@ -1531,89 +1526,138 @@ export interface components {
          *     }
          */
         SlackManifest: {
-            display_information: {
-                name: string;
-                description?: string;
-            } & {
-                [key: string]: unknown;
-            };
-            features?: {
-                bot_user?: {
-                    display_name?: string;
-                    always_online?: boolean;
-                } & {
-                    [key: string]: unknown;
-                };
-            } & {
-                [key: string]: unknown;
-            };
-            oauth_config?: {
-                redirect_urls?: string[];
-                scopes?: {
-                    bot?: string[];
-                    user?: string[];
-                } & {
-                    [key: string]: unknown;
-                };
-            } & {
-                [key: string]: unknown;
-            };
-            settings?: {
-                event_subscriptions?: {
-                    /** Format: uri */
-                    request_url?: string;
-                    bot_events?: string[];
-                } & {
-                    [key: string]: unknown;
-                };
-                interactivity?: {
-                    is_enabled?: boolean;
-                    /** Format: uri */
-                    request_url?: string;
-                } & {
-                    [key: string]: unknown;
-                };
-            } & {
-                [key: string]: unknown;
-            };
+            display_information: components["schemas"]["SlackManifestDisplayInformation"];
+            features?: components["schemas"]["SlackManifestFeatures"];
+            oauth_config?: components["schemas"]["SlackManifestOAuthConfig"];
+            settings?: components["schemas"]["SlackManifestSettings"];
         } & {
             [key: string]: unknown;
         };
+        /** @description How the app shows in Slack. */
+        SlackManifestDisplayInformation: {
+            name: string;
+            description?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        /** @description The app's features. */
+        SlackManifestFeatures: {
+            bot_user?: components["schemas"]["SlackManifestBotUser"];
+        } & {
+            [key: string]: unknown;
+        };
+        /** @description The app's bot user. */
+        SlackManifestBotUser: {
+            display_name?: string;
+            always_online?: boolean;
+        } & {
+            [key: string]: unknown;
+        };
+        /** @description How the app is installed over OAuth. */
+        SlackManifestOAuthConfig: {
+            /** @description Allowed redirect_uri prefixes. A * in the host matches one label. */
+            redirect_urls?: string[];
+            scopes?: components["schemas"]["SlackManifestScopes"];
+        } & {
+            [key: string]: unknown;
+        };
+        /** @description OAuth scopes the app asks for. */
+        SlackManifestScopes: {
+            bot?: string[];
+            user?: string[];
+        } & {
+            [key: string]: unknown;
+        };
+        /** @description Events and interactivity settings. */
+        SlackManifestSettings: {
+            event_subscriptions?: components["schemas"]["SlackManifestEventSubscriptions"];
+            interactivity?: components["schemas"]["SlackManifestInteractivity"];
+        } & {
+            [key: string]: unknown;
+        };
+        /** @description The Events API subscription. */
+        SlackManifestEventSubscriptions: {
+            /**
+             * Format: uri
+             * @description Where the world posts events.
+             */
+            request_url?: string;
+            /** @description Event types to send, such as app_mention. */
+            bot_events?: string[];
+        } & {
+            [key: string]: unknown;
+        };
+        /** @description Where the world posts interactive payloads. */
+        SlackManifestInteractivity: {
+            is_enabled?: boolean;
+            /** Format: uri */
+            request_url?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        /** @description The app's OAuth and request-signing credentials. */
         SlackCredentials: {
             client_id: string;
             client_secret: string;
             signing_secret: string;
             verification_token: string;
         };
+        /** @description null when the spec didn't install the app. */
+        SlackInstallState: {
+            /** @description The installing user's id. */
+            installer: string;
+            bot_user_id: string;
+            bot_token: string;
+            /** @description Channel names the bot is a member of. */
+            channels: string[];
+        } | null;
+        /** @description null when the world has no Jira. */
+        JiraCreated: components["schemas"]["JiraUrls"] & ({
+            spec: components["schemas"]["JiraState"];
+        } | null);
         /** @description The world's Jira spec with every generated id and credential filled in. */
         JiraState: {
-            site: {
-                cloud_id: string;
-                name: string;
-                url: string;
-            };
-            users: {
-                account_id: string;
-                name: string;
-                display_name: string;
-                email: string;
-                hide_email: boolean;
-            }[];
-            projects: {
-                id: string;
-                key: string;
-                name: string;
-            }[];
-            issues: (components["schemas"]["JiraIssueSpec"] & {
-                key: string;
-            })[];
-            apps: {
-                name: string;
-                callback_urls: string[];
-                scopes: ("read:jira-work" | "write:jira-work" | "read:jira-user" | "manage:jira-webhook" | "manage:jira-project" | "manage:jira-configuration" | "read:me")[];
-                credentials: components["schemas"]["JiraCredentials"];
-            }[];
+            site: components["schemas"]["JiraSiteState"];
+            users: components["schemas"]["JiraUserState"][];
+            projects: components["schemas"]["JiraProjectState"][];
+            issues: components["schemas"]["JiraIssueState"][];
+            apps: components["schemas"]["JiraAppState"][];
         };
+        /** @description The site, with its cloud id and URL. */
+        JiraSiteState: {
+            cloud_id: string;
+            name: string;
+            url: string;
+        };
+        /** @description A user, with every generated field filled in. */
+        JiraUserState: {
+            account_id: string;
+            name: string;
+            display_name: string;
+            email: string;
+            hide_email: boolean;
+        };
+        /** @description A project, with its id. */
+        JiraProjectState: {
+            id: string;
+            key: string;
+            name: string;
+        };
+        /** @description An issue from the spec, with the key it was given. */
+        JiraIssueState: components["schemas"]["JiraIssueSpec"] & {
+            key: string;
+        };
+        /** @description A comment on the issue, oldest first. */
+        JiraCommentSpec: {
+            /**
+             * @description A user's name or id.
+             * @example alice
+             */
+            author: string;
+            /** @example Repro'd on staging. */
+            body: string;
+        };
+        /** @description An issue created with the world. */
         JiraIssueSpec: {
             /** @example WRLD */
             project: string;
@@ -1633,19 +1677,21 @@ export interface components {
              * @example alice
              */
             assignee?: string;
-            comments?: {
-                /**
-                 * @description A user's name or id.
-                 * @example alice
-                 */
-                author: string;
-                body: string;
-            }[];
+            comments?: components["schemas"]["JiraCommentSpec"][];
         };
+        /** @description An app, with its credentials. */
+        JiraAppState: {
+            name: string;
+            callback_urls: string[];
+            scopes: ("read:jira-work" | "write:jira-work" | "read:jira-user" | "manage:jira-webhook" | "manage:jira-project" | "manage:jira-configuration" | "read:me")[];
+            credentials: components["schemas"]["JiraCredentials"];
+        };
+        /** @description The app's OAuth client credentials. */
         JiraCredentials: {
             client_id: string;
             client_secret: string;
         };
+        /** @description A new world. Give a spec for each service it should have. */
         WorldCreate: {
             /**
              * @description Defaults to Untitled world.
@@ -1657,21 +1703,30 @@ export interface components {
         };
         /** @description Everything in the world's Slack workspace. Omitted ids, credentials and tokens are generated. Leave it out to create the world without Slack. */
         SlackSpec: {
-            team: {
-                /** @example T0WORLDS0001 */
-                id?: string;
-                /** @example Acme */
-                name: string;
-                /**
-                 * @description The workspace subdomain. Users without an email get <name>@<domain>.test.
-                 * @example acme
-                 */
-                domain: string;
-            };
+            team: components["schemas"]["SlackTeamSpec"];
             users?: components["schemas"]["SlackUserSpec"][];
             channels?: components["schemas"]["SlackChannelSpec"][];
             apps?: components["schemas"]["SlackAppSpec"][];
         };
+        /** @description The world's Slack workspace. */
+        SlackTeamSpec: {
+            /**
+             * @description Pin the team id, e.g. to match installs your app already stored. Generated if left out.
+             * @example T0ACME00001
+             */
+            id?: string;
+            /**
+             * @description The workspace name.
+             * @example Acme
+             */
+            name: string;
+            /**
+             * @description The workspace subdomain. Users without an email get <name>@<domain>.test.
+             * @example acme
+             */
+            domain: string;
+        };
+        /** @description A person in the workspace. */
         SlackUserSpec: {
             /** @example U0ALICE00001 */
             id?: string;
@@ -1684,6 +1739,7 @@ export interface components {
             /** @description Pin the user's token, to act as them with any Slack client. */
             token?: string;
         };
+        /** @description A channel, its members and its first messages. */
         SlackChannelSpec: {
             /** @example C0GENERAL001 */
             id?: string;
@@ -1696,16 +1752,18 @@ export interface components {
             /** @description Posted in order before any app is installed, so they send no events. */
             messages?: components["schemas"]["SlackMessageSpec"][];
         };
+        /** @description A Slack app, defined by its manifest. */
         SlackAppSpec: {
             manifest: components["schemas"]["SlackManifest"];
-            /** @description Pin some or all credentials, e.g. to match secrets your app already has. Real Slack generates them; worlds lets you choose. */
-            credentials?: {
-                client_id?: string;
-                client_secret?: string;
-                signing_secret?: string;
-                verification_token?: string;
-            };
+            credentials?: components["schemas"]["SlackCredentialsSpec"];
             install?: components["schemas"]["SlackInstallSpec"];
+        };
+        /** @description Pin some or all credentials, e.g. to match secrets your app already has. Real Slack generates them; worlds lets you choose. */
+        SlackCredentialsSpec: {
+            client_id?: string;
+            client_secret?: string;
+            signing_secret?: string;
+            verification_token?: string;
         };
         /** @description Install the app into the world's workspace. */
         SlackInstallSpec: {
@@ -1720,21 +1778,27 @@ export interface components {
         };
         /** @description Everything in the world's Jira site. Omitted ids and credentials are generated. Leave it out to create the world without Jira. */
         JiraSpec: {
-            site: {
-                /** Format: uuid */
-                cloud_id?: string;
-                /**
-                 * @description The site's subdomain. Users without an email get <name>@<site name>.test.
-                 * @example acme
-                 */
-                name: string;
-            };
+            site: components["schemas"]["JiraSiteSpec"];
             users?: components["schemas"]["JiraUserSpec"][];
             projects?: components["schemas"]["JiraProjectSpec"][];
             /** @description Created in order before any app is installed, so they send no webhooks. */
             issues?: components["schemas"]["JiraIssueSpec"][];
             apps?: components["schemas"]["JiraAppSpec"][];
         };
+        /** @description The world's Jira Cloud site. */
+        JiraSiteSpec: {
+            /**
+             * Format: uuid
+             * @description Pin the cloud id, e.g. to match one your app already stored. Generated if left out.
+             */
+            cloud_id?: string;
+            /**
+             * @description The site's subdomain, as in <name>.atlassian.net. Users without an email get <user>@<name>.test.
+             * @example acme
+             */
+            name: string;
+        };
+        /** @description A person on the site. */
         JiraUserSpec: {
             /** @example 712020:4f1c6b9e-3d2a-4e8f-9b7c-1a2b3c4d5e6f */
             account_id?: string;
@@ -1747,6 +1811,7 @@ export interface components {
             /** @description Hide the email from apps, like a profile with email visibility off. GET /user then has no emailAddress. */
             hide_email?: boolean;
         };
+        /** @description A project; issues belong to one. */
         JiraProjectSpec: {
             id?: string;
             /** @example WRLD */
@@ -1754,6 +1819,7 @@ export interface components {
             /** @example Worlds */
             name: string;
         };
+        /** @description An OAuth 2.0 (3LO) app, as in the Atlassian developer console. */
         JiraAppSpec: {
             /** @example My app */
             name: string;
@@ -1774,23 +1840,26 @@ export interface components {
              *     ]
              */
             scopes: ("read:jira-work" | "write:jira-work" | "read:jira-user" | "manage:jira-webhook" | "manage:jira-project" | "manage:jira-configuration" | "read:me")[];
-            /** @description Pin the client id and secret, e.g. to match ones your app already has. */
-            credentials?: {
-                client_id?: string;
-                client_secret?: string;
-            };
+            credentials?: components["schemas"]["JiraCredentialsSpec"];
+        };
+        /** @description Pin the client id and secret, e.g. to match ones your app already has. */
+        JiraCredentialsSpec: {
+            client_id?: string;
+            client_secret?: string;
         };
         /** @description Each service's spec, or null for a service the world was created without. */
         WorldSpec: {
             slack: components["schemas"]["SlackState"] & (Record<string, never> | null);
             jira: components["schemas"]["JiraState"] & (Record<string, never> | null);
         };
+        /** @description A user token, to call the Web API as that user. */
         SlackToken: {
             /** @example U0ALICE00001 */
             user_id: string;
             /** @example xoxp-worlds-0b6c… */
             token: string;
         };
+        /** @description Whose token to get. */
         SlackTokenRequest: {
             /**
              * @description The user who acts: their name or id. Bots can't be acted as.
@@ -1798,28 +1867,38 @@ export interface components {
              */
             user: string;
         };
+        /** @description The workspace as it is now, and one channel's messages. */
         SlackWorldState: {
-            team: {
-                id: string;
-                name: string;
-            } | null;
-            users: {
-                id: string;
-                name: string;
-                real_name: string;
-                is_bot: boolean;
-                has_token: boolean;
-            }[];
-            channels: {
-                id: string;
-                name: string;
-                is_private: boolean;
-                topic: string;
-                members: string[];
-            }[];
+            team: components["schemas"]["SlackWorldTeam"];
+            users: components["schemas"]["SlackWorldUser"][];
+            channels: components["schemas"]["SlackWorldChannel"][];
             /** @description The channel's messages, oldest first. Empty without channel. */
             messages: components["schemas"]["SlackMessage"][];
         };
+        /** @description The workspace. */
+        SlackWorldTeam: {
+            id: string;
+            name: string;
+        } | null;
+        /** @description A user or bot in the workspace now. */
+        SlackWorldUser: {
+            id: string;
+            name: string;
+            real_name: string;
+            is_bot: boolean;
+            /** @description Whether the user can be acted as. */
+            has_token: boolean;
+        };
+        /** @description A channel in the workspace now. */
+        SlackWorldChannel: {
+            id: string;
+            name: string;
+            is_private: boolean;
+            topic: string;
+            /** @description User ids. */
+            members: string[];
+        };
+        /** @description A message as the world's Slack UI shows it. */
         SlackMessage: {
             ts: string;
             thread_ts?: string;
@@ -1827,25 +1906,35 @@ export interface components {
             text: string;
             reply_count: number;
             reply_users: string[];
-            reactions: {
-                name: string;
-                users: string[];
-                count: number;
-            }[];
+            reactions: components["schemas"]["SlackReaction"][];
             bot_name?: string;
             edited: boolean;
             files: components["schemas"]["SlackFileRef"][];
-            images: {
-                file_id?: string;
-                url?: string;
-                alt: string;
-            }[];
+            images: components["schemas"]["SlackImage"][];
         };
+        /** @description An emoji reaction on a message. */
+        SlackReaction: {
+            /**
+             * @description The emoji name.
+             * @example eyes
+             */
+            name: string;
+            /** @description Ids of the users who reacted. */
+            users: string[];
+            count: number;
+        };
+        /** @description A file shared in a message. */
         SlackFileRef: {
             id: string;
             name: string;
             mimetype: string;
             size: number;
+        };
+        /** @description An image in a message, from a file or a block. */
+        SlackImage: {
+            file_id?: string;
+            url?: string;
+            alt: string;
         };
         /** @description The Slack Web API's response, as is: ok false with an error is a Slack error, not a failed request. */
         SlackWebApiResponse: {
@@ -1854,6 +1943,7 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** @description A Web API call to make as a user. */
         SlackActRequest: {
             /**
              * @description The user who acts: their name or id. Bots can't be acted as.
@@ -1876,6 +1966,7 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** @description A file to share as a user. */
         SlackUploadRequest: {
             /**
              * @description The user who acts: their name or id. Bots can't be acted as.
@@ -1894,19 +1985,11 @@ export interface components {
             /** @description Share it in this thread. */
             thread_ts?: string;
         };
+        /** @description The site as it is now: its spec, issues and registered webhooks. */
         JiraWorldState: {
             spec: components["schemas"]["JiraState"];
             issues: components["schemas"]["JiraIssue"][];
-            webhooks: {
-                id: number;
-                client_id: string;
-                account_id: string;
-                url: string;
-                jql: string;
-                events: string[];
-                /** @description Milliseconds since the epoch. */
-                expires_at: number;
-            }[];
+            webhooks: components["schemas"]["JiraWebhook"][];
         };
         /** @description The issue as the Jira REST API returns it. */
         JiraIssue: {
@@ -1915,35 +1998,20 @@ export interface components {
             key: string;
             /** Format: uri */
             self: string;
-            fields: {
-                summary: string;
-                description: components["schemas"]["JiraAdf"];
-                labels: string[];
-                status: {
-                    /** @enum {string} */
-                    name: "To Do" | "In Progress" | "Done";
-                } & {
-                    [key: string]: unknown;
-                };
-                reporter: ({
-                    accountId: string;
-                    displayName: string;
-                    emailAddress?: string;
-                } & {
-                    [key: string]: unknown;
-                }) | null;
-                assignee: ({
-                    accountId: string;
-                    displayName: string;
-                    emailAddress?: string;
-                } & {
-                    [key: string]: unknown;
-                }) | null;
-                created: string;
-                updated: string;
-            } & {
-                [key: string]: unknown;
-            };
+            fields: components["schemas"]["JiraIssueFields"];
+        } & {
+            [key: string]: unknown;
+        };
+        /** @description The issue's fields. */
+        JiraIssueFields: {
+            summary: string;
+            description: components["schemas"]["JiraAdf"];
+            labels: string[];
+            status: components["schemas"]["JiraStatus"];
+            reporter: components["schemas"]["JiraUser"];
+            assignee: components["schemas"]["JiraUser"];
+            created: string;
+            updated: string;
         } & {
             [key: string]: unknown;
         };
@@ -1957,6 +2025,35 @@ export interface components {
         } & {
             [key: string]: unknown;
         }) | null;
+        /** @description The issue's workflow status. */
+        JiraStatus: {
+            /** @enum {string} */
+            name: "To Do" | "In Progress" | "Done";
+        } & {
+            [key: string]: unknown;
+        };
+        /** @description A user as the Jira REST API returns them. */
+        JiraUser: ({
+            accountId: string;
+            displayName: string;
+            emailAddress?: string;
+        } & {
+            [key: string]: unknown;
+        }) | null;
+        /** @description A dynamic webhook an app registered. */
+        JiraWebhook: {
+            id: number;
+            /** @description The app that registered it. */
+            client_id: string;
+            /** @description The user it was registered as. */
+            account_id: string;
+            url: string;
+            jql: string;
+            events: string[];
+            /** @description Milliseconds since the epoch. */
+            expires_at: number;
+        };
+        /** @description An issue to create as a user. */
         JiraIssueCreate: {
             /**
              * @description The user who acts: their name or account id. Webhooks name them as the actor.
@@ -1978,10 +2075,12 @@ export interface components {
              */
             assignee?: string;
         };
+        /** @description The changed issue and what changed. */
         JiraIssueUpdated: {
             issue: components["schemas"]["JiraIssue"];
             changelog: components["schemas"]["JiraChangeItem"][];
         };
+        /** @description One changed field, as in a Jira changelog. */
         JiraChangeItem: {
             field: string;
             /** @enum {string} */
@@ -1992,6 +2091,7 @@ export interface components {
             to: string | null;
             toString: string | null;
         };
+        /** @description Changes to make to an issue as a user. */
         JiraIssueUpdate: {
             /**
              * @description The user who acts: their name or account id. Webhooks name them as the actor.
@@ -2016,19 +2116,14 @@ export interface components {
             id: string;
             /** Format: uri */
             self: string;
-            author: ({
-                accountId: string;
-                displayName: string;
-                emailAddress?: string;
-            } & {
-                [key: string]: unknown;
-            }) | null;
+            author: components["schemas"]["JiraUser"];
             body: components["schemas"]["JiraAdf"];
             created: string;
             updated: string;
         } & {
             [key: string]: unknown;
         };
+        /** @description A comment to post as a user. */
         JiraCommentCreate: {
             /**
              * @description The user who acts: their name or account id. Webhooks name them as the actor.
@@ -2048,6 +2143,7 @@ export interface components {
 export type TeamList = components['schemas']['TeamList'];
 export type Team = components['schemas']['Team'];
 export type ApiError = components['schemas']['ApiError'];
+export type ApiErrorDetail = components['schemas']['ApiErrorDetail'];
 export type TeamDetail = components['schemas']['TeamDetail'];
 export type Member = components['schemas']['Member'];
 export type TeamUpdate = components['schemas']['TeamUpdate'];
@@ -2058,36 +2154,73 @@ export type ApiKeyCreate = components['schemas']['ApiKeyCreate'];
 export type WorldList = components['schemas']['WorldList'];
 export type World = components['schemas']['World'];
 export type WorldService = components['schemas']['WorldService'];
+export type SlackUrls = components['schemas']['SlackUrls'];
+export type JiraUrls = components['schemas']['JiraUrls'];
 export type WorldCreated = components['schemas']['WorldCreated'];
+export type SlackCreated = components['schemas']['SlackCreated'];
 export type SlackState = components['schemas']['SlackState'];
+export type SlackTeamState = components['schemas']['SlackTeamState'];
+export type SlackUserState = components['schemas']['SlackUserState'];
+export type SlackChannelState = components['schemas']['SlackChannelState'];
 export type SlackMessageSpec = components['schemas']['SlackMessageSpec'];
+export type SlackReplySpec = components['schemas']['SlackReplySpec'];
+export type SlackAppState = components['schemas']['SlackAppState'];
 export type SlackManifest = components['schemas']['SlackManifest'];
+export type SlackManifestDisplayInformation = components['schemas']['SlackManifestDisplayInformation'];
+export type SlackManifestFeatures = components['schemas']['SlackManifestFeatures'];
+export type SlackManifestBotUser = components['schemas']['SlackManifestBotUser'];
+export type SlackManifestOAuthConfig = components['schemas']['SlackManifestOAuthConfig'];
+export type SlackManifestScopes = components['schemas']['SlackManifestScopes'];
+export type SlackManifestSettings = components['schemas']['SlackManifestSettings'];
+export type SlackManifestEventSubscriptions = components['schemas']['SlackManifestEventSubscriptions'];
+export type SlackManifestInteractivity = components['schemas']['SlackManifestInteractivity'];
 export type SlackCredentials = components['schemas']['SlackCredentials'];
+export type SlackInstallState = components['schemas']['SlackInstallState'];
+export type JiraCreated = components['schemas']['JiraCreated'];
 export type JiraState = components['schemas']['JiraState'];
+export type JiraSiteState = components['schemas']['JiraSiteState'];
+export type JiraUserState = components['schemas']['JiraUserState'];
+export type JiraProjectState = components['schemas']['JiraProjectState'];
+export type JiraIssueState = components['schemas']['JiraIssueState'];
+export type JiraCommentSpec = components['schemas']['JiraCommentSpec'];
 export type JiraIssueSpec = components['schemas']['JiraIssueSpec'];
+export type JiraAppState = components['schemas']['JiraAppState'];
 export type JiraCredentials = components['schemas']['JiraCredentials'];
 export type WorldCreate = components['schemas']['WorldCreate'];
 export type SlackSpec = components['schemas']['SlackSpec'];
+export type SlackTeamSpec = components['schemas']['SlackTeamSpec'];
 export type SlackUserSpec = components['schemas']['SlackUserSpec'];
 export type SlackChannelSpec = components['schemas']['SlackChannelSpec'];
 export type SlackAppSpec = components['schemas']['SlackAppSpec'];
+export type SlackCredentialsSpec = components['schemas']['SlackCredentialsSpec'];
 export type SlackInstallSpec = components['schemas']['SlackInstallSpec'];
 export type JiraSpec = components['schemas']['JiraSpec'];
+export type JiraSiteSpec = components['schemas']['JiraSiteSpec'];
 export type JiraUserSpec = components['schemas']['JiraUserSpec'];
 export type JiraProjectSpec = components['schemas']['JiraProjectSpec'];
 export type JiraAppSpec = components['schemas']['JiraAppSpec'];
+export type JiraCredentialsSpec = components['schemas']['JiraCredentialsSpec'];
 export type WorldSpec = components['schemas']['WorldSpec'];
 export type SlackToken = components['schemas']['SlackToken'];
 export type SlackTokenRequest = components['schemas']['SlackTokenRequest'];
 export type SlackWorldState = components['schemas']['SlackWorldState'];
+export type SlackWorldTeam = components['schemas']['SlackWorldTeam'];
+export type SlackWorldUser = components['schemas']['SlackWorldUser'];
+export type SlackWorldChannel = components['schemas']['SlackWorldChannel'];
 export type SlackMessage = components['schemas']['SlackMessage'];
+export type SlackReaction = components['schemas']['SlackReaction'];
 export type SlackFileRef = components['schemas']['SlackFileRef'];
+export type SlackImage = components['schemas']['SlackImage'];
 export type SlackWebApiResponse = components['schemas']['SlackWebApiResponse'];
 export type SlackActRequest = components['schemas']['SlackActRequest'];
 export type SlackUploadRequest = components['schemas']['SlackUploadRequest'];
 export type JiraWorldState = components['schemas']['JiraWorldState'];
 export type JiraIssue = components['schemas']['JiraIssue'];
+export type JiraIssueFields = components['schemas']['JiraIssueFields'];
 export type JiraAdf = components['schemas']['JiraAdf'];
+export type JiraStatus = components['schemas']['JiraStatus'];
+export type JiraUser = components['schemas']['JiraUser'];
+export type JiraWebhook = components['schemas']['JiraWebhook'];
 export type JiraIssueCreate = components['schemas']['JiraIssueCreate'];
 export type JiraIssueUpdated = components['schemas']['JiraIssueUpdated'];
 export type JiraChangeItem = components['schemas']['JiraChangeItem'];
