@@ -1,4 +1,4 @@
-import { DurableObject } from "cloudflare:workers";
+import { DurableObject, WorkerEntrypoint } from "cloudflare:workers";
 import {
   createServer,
   restoreTokenMap,
@@ -58,14 +58,18 @@ export class World extends DurableObject<Env> {
     return response;
   }
 
+  async purge(): Promise<void> {
+    await this.ctx.storage.deleteAlarm();
+    await this.ctx.storage.deleteAll();
+    this.slack = null;
+    this.blobs.forget();
+    this.delivery = this.newDelivery();
+  }
+
   private async admin(request: Request, url: URL): Promise<Response> {
     if (!isAdmin(request, this.env)) return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
     if (request.method === "POST" && url.pathname === "/_worlds/reset") {
-      await this.ctx.storage.deleteAlarm();
-      await this.ctx.storage.deleteAll();
-      this.slack = null;
-      this.blobs.forget();
-      this.delivery = this.newDelivery();
+      await this.purge();
       return Response.json({ ok: true });
     }
     if (request.method === "POST" && url.pathname === "/_worlds/slack/redirect-uris") {
@@ -202,6 +206,12 @@ async function callSlack(
 
 function isUiPath(pathname: string): boolean {
   return pathname === "/" || pathname === "/index.html" || pathname.startsWith("/assets/");
+}
+
+export class WorldsControl extends WorkerEntrypoint<Env> {
+  async purge(worldId: string): Promise<void> {
+    await this.env.WORLD.get(this.env.WORLD.idFromName(worldId)).purge();
+  }
 }
 
 export default {

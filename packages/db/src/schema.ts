@@ -91,7 +91,25 @@ export const apiKeys = sqliteTable(
   (table) => [index("api_keys_team_id_idx").on(table.teamId)],
 );
 
+export const worlds = sqliteTable(
+  "worlds",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newId("world")),
+    teamId: text("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
+    name: text("name").notNull(),
+    deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
+    ...timestamps(),
+  },
+  (table) => [index("worlds_team_id_idx").on(table.teamId)],
+);
+
 export type User = typeof users.$inferSelect;
+export type World = typeof worlds.$inferSelect;
 export type Provider = (typeof identities.$inferSelect)["provider"];
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type Team = typeof teams.$inferSelect;

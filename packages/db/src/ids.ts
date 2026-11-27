@@ -1,6 +1,6 @@
 import { customAlphabet } from "nanoid";
 
-const ID_PREFIXES = { user: "user", team: "team", apiKey: "key" } as const;
+const ID_PREFIXES = { user: "user", team: "team", apiKey: "key", world: "world" } as const;
 
 const randomPart = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 20);
 const secretPart = customAlphabet("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 40);

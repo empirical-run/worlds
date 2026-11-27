@@ -5,7 +5,7 @@ export default function Privacy() {
     <article>
       <header className="section hero">
         <h1>Privacy policy</h1>
-        <p className="lede">Last updated 26 November 2026</p>
+        <p className="lede">Last updated 27 November 2026</p>
         <p>Worlds is run by Empirical. This page explains what Worlds stores about you and the worlds you create.</p>
       </header>
 
@@ -42,8 +42,8 @@ export default function Privacy() {
           a world with real data, such as recorded conversations, you are responsible for having the right to use it.
         </p>
         <p>
-          Worlds and their snapshots are private to your team. A world and its journal are deleted when it expires (24 hours by default,
-          unless you set a different lifetime) or when you delete it, whichever comes first.
+          Worlds and their snapshots are private to your team. When you delete a world, everything in it is wiped right away; we keep only
+          its id, name and timestamps so the id is never reused.
         </p>
       </section>
 

@@ -4,6 +4,7 @@ import { authenticate } from "./auth";
 import { apiError, type AppEnv } from "./context";
 import { apiKeys } from "./routes/api-keys";
 import { teams } from "./routes/teams";
+import { worlds } from "./routes/worlds";
 
 const app = new OpenAPIHono<AppEnv>({
   defaultHook: (result, c) => {
@@ -27,6 +28,7 @@ app.openAPIRegistry.registerComponent("securitySchemes", "sessionCookie", {
 app.use("/api/*", authenticate);
 app.route("/", teams);
 app.route("/", apiKeys);
+app.route("/", worlds);
 
 app.doc31("/api/openapi.json", {
   openapi: "3.1.0",

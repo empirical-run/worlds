@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { randomToken, sha256 } from "./crypto";
 import { API_KEY_SECRET_PREFIX, newApiKeySecret, newId } from "./ids";
@@ -9,15 +9,18 @@ import {
   sessions,
   teams,
   users,
+  worlds,
   type ApiKey,
   type Provider,
   type Membership,
   type Team,
   type User,
+  type World,
 } from "./schema";
 
 export const TEAM_NAME_MAX = 80;
 export const API_KEY_NAME_MAX = 80;
+export const WORLD_NAME_MAX = 80;
 export const SESSION_COOKIE = "worlds_session";
 
 export type Profile = {
@@ -34,7 +37,7 @@ export const SESSION_TTL_SECONDS = SESSION_TTL_MS / 1000;
 export type Db = ReturnType<typeof database>;
 
 export function database(d1: D1Database) {
-  return drizzle(d1, { schema: { users, identities, teams, memberships, sessions, apiKeys } });
+  return drizzle(d1, { schema: { users, identities, teams, memberships, sessions, apiKeys, worlds } });
 }
 
 export async function signIn(db: Db, profile: Profile): Promise<User> {
@@ -180,4 +183,32 @@ export async function revokeKey(db: Db, teamId: string, keyId: string): Promise<
     .where(and(eq(apiKeys.id, keyId), eq(apiKeys.teamId, teamId), isNull(apiKeys.revokedAt)))
     .returning({ id: apiKeys.id });
   return revoked.length > 0;
+}
+
+export async function createWorld(db: Db, teamId: string, createdBy: string | null, name: string): Promise<World> {
+  const [world] = await db.insert(worlds).values({ teamId, createdBy, name }).returning();
+  if (!world) throw new Error("world insert returned no row");
+  return world;
+}
+
+export async function listWorlds(db: Db, teamIds: string[]): Promise<World[]> {
+  if (!teamIds.length) return [];
+  return db
+    .select()
+    .from(worlds)
+    .where(and(inArray(worlds.teamId, teamIds), isNull(worlds.deletedAt)))
+    .orderBy(desc(worlds.createdAt));
+}
+
+export async function liveWorld(db: Db, worldId: string): Promise<World | null> {
+  const [world] = await db
+    .select()
+    .from(worlds)
+    .where(and(eq(worlds.id, worldId), isNull(worlds.deletedAt)))
+    .limit(1);
+  return world ?? null;
+}
+
+export async function markWorldDeleted(db: Db, worldId: string): Promise<void> {
+  await db.update(worlds).set({ deletedAt: new Date() }).where(eq(worlds.id, worldId));
 }

@@ -1,9 +1,11 @@
 import type { ApiKey, Db, Membership, Team, User } from "@worlds/db";
 
+export type WorldsControl = { purge(worldId: string): Promise<void> };
+
 export type Caller = { kind: "key"; key: ApiKey } | { kind: "user"; user: User };
 
 export type AppEnv = {
-  Bindings: { DB: D1Database };
+  Bindings: { DB: D1Database; SLACK: WorldsControl; SLACK_URL: string };
   Variables: { db: Db; caller: Caller };
 };
 

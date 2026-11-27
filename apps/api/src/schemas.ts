@@ -1,5 +1,5 @@
 import { z } from "@hono/zod-openapi";
-import { API_KEY_NAME_MAX, TEAM_NAME_MAX } from "@worlds/db";
+import { API_KEY_NAME_MAX, TEAM_NAME_MAX, WORLD_NAME_MAX } from "@worlds/db";
 
 export const ErrorSchema = z
   .object({
@@ -71,6 +71,41 @@ export const ApiKeyCreatedSchema = ApiKeySchema.extend({
   secret: z.string().openapi({ description: "The key itself. Shown only in this response.", example: "wk_live_4fQ9zTb1Lx7mKc2RyV8nHs0dWq5ePj3uGa6oNi9E" }),
 }).openapi("ApiKeyCreated");
 
+export const WorldSchema = z
+  .object({
+    id: z.string().openapi({ example: "world_x7c2m9q4r1t8v5w0z3b6" }),
+    name: z.string().openapi({ example: "Thread routing eval" }),
+    team_id: z.string().openapi({ example: "team_k2v9x0q1m4s7d8f3a6b5" }),
+    created_by: z.string().nullable().openapi({ description: "Id of the user who created the world. null when an API key created it." }),
+    slack: z.object({
+      api_url: z.url().openapi({
+        description: "Use as the Slack Web API base URL, e.g. slackApiUrl in @slack/web-api.",
+        example: "https://slack.makeworlds.dev/w/world_x7c2m9q4r1t8v5w0z3b6/api/",
+      }),
+      oauth_authorize_url: z.url().openapi({
+        description: "Send users here instead of slack.com/oauth/v2/authorize to install your app.",
+        example: "https://slack.makeworlds.dev/w/world_x7c2m9q4r1t8v5w0z3b6/oauth/v2/authorize",
+      }),
+      ui_url: z.url().openapi({ description: "The world's Slack UI.", example: "https://slack.makeworlds.dev/w/world_x7c2m9q4r1t8v5w0z3b6/" }),
+    }),
+    created_at: z.iso.datetime(),
+    updated_at: z.iso.datetime(),
+  })
+  .openapi("World");
+
+export const WorldListSchema = z.object({ worlds: z.array(WorldSchema) }).openapi("WorldList");
+
+export const WorldCreateSchema = z
+  .object({
+    name: name(WORLD_NAME_MAX).optional().openapi({ description: "Defaults to Untitled world.", example: "Thread routing eval" }),
+    team_id: z.string().optional().openapi({ description: "The team to create the world in. API keys always use their own team; signed-in users default to their first team." }),
+  })
+  .openapi("WorldCreate");
+
+export const WorldParamsSchema = z.object({
+  worldId: z.string().openapi({ param: { name: "worldId", in: "path" }, example: "world_x7c2m9q4r1t8v5w0z3b6" }),
+});
+
 export const TeamParamsSchema = z.object({
   teamId: z.string().openapi({ param: { name: "teamId", in: "path" }, example: "team_k2v9x0q1m4s7d8f3a6b5" }),
 });
@@ -93,4 +128,6 @@ export type TeamJson = z.infer<typeof TeamSchema>;
 export type TeamDetailJson = z.infer<typeof TeamDetailSchema>;
 export type ApiKeyJson = z.infer<typeof ApiKeySchema>;
 export type ApiKeyListJson = z.infer<typeof ApiKeyListSchema>;
+export type WorldJson = z.infer<typeof WorldSchema>;
+export type WorldListJson = z.infer<typeof WorldListSchema>;
 export type ApiKeyCreatedJson = z.infer<typeof ApiKeyCreatedSchema>;
