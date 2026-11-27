@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation, useMatches } from "react-router";
 
 import type { RootData } from "../root";
@@ -57,43 +57,94 @@ export function Rail({ account }: { account: RootData["account"] }) {
           </NavLink>
         )}
       </nav>
-      {account && <RailAccount account={account} />}
       {railIndex && <RailIndex groups={railIndex} numbered={handle?.numberedRailIndex ?? false} />}
-      <div className="rail-foot">
-        <span>
-          Built by <a href="https://empirical.run">Empirical</a>
-        </span>
-        <a className="rail-foot-link" href="/privacy">
-          Privacy policy
-        </a>
-      </div>
+      {account ? (
+        <RailAccountMenu account={account} />
+      ) : (
+        <div className="rail-foot">
+          <BuiltBy />
+          <a className="rail-foot-link" href="/privacy">
+            Privacy policy
+          </a>
+        </div>
+      )}
     </aside>
   );
 }
 
-function RailAccount({ account }: { account: NonNullable<RootData["account"]> }) {
-  const name = account.user.name ?? account.user.email;
+function BuiltBy() {
   return (
-    <NavLink className="rail-user" to="/account" aria-label={`Account: ${name}`}>
-      {account.user.picture ? (
-        <img
-          className="avatar"
-          src={account.user.picture}
-          alt=""
-          width="28"
-          height="28"
-          referrerPolicy="no-referrer"
-        />
-      ) : (
-        <span className="avatar" aria-hidden="true">
-          {name.charAt(0).toUpperCase()}
+    <span>
+      Built by <a href="https://empirical.run">Empirical</a>
+    </span>
+  );
+}
+
+function RailAccountMenu({ account }: { account: NonNullable<RootData["account"]> }) {
+  const name = account.user.name ?? account.user.email;
+  const menu = useRef<HTMLDetailsElement>(null);
+  const { pathname } = useLocation();
+  useEffect(() => {
+    if (menu.current) menu.current.open = false;
+  }, [pathname]);
+  useEffect(() => {
+    const close = (event: PointerEvent | KeyboardEvent) => {
+      const details = menu.current;
+      if (!details?.open) return;
+      if (event instanceof KeyboardEvent) {
+        if (event.key !== "Escape") return;
+        details.open = false;
+        details.querySelector("summary")?.focus();
+        return;
+      }
+      if (!details.contains(event.target as Node)) details.open = false;
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, []);
+  return (
+    <details className="rail-foot rail-account" ref={menu}>
+      <summary className="rail-user" aria-label={`Account menu: ${name}`}>
+        {account.user.picture ? (
+          <img
+            className="avatar"
+            src={account.user.picture}
+            alt=""
+            width="28"
+            height="28"
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          <span className="avatar" aria-hidden="true">
+            {name.charAt(0).toUpperCase()}
+          </span>
+        )}
+        <span className="rail-user-text">
+          <span className="rail-user-name">{name}</span>
+          <span className="rail-user-email">{account.user.email}</span>
         </span>
-      )}
-      <span className="rail-user-text">
-        <span className="rail-user-name">{name}</span>
-        <span className="rail-user-email">{account.user.email}</span>
-      </span>
-    </NavLink>
+      </summary>
+      <div className="rail-menu">
+        <NavLink className="rail-menu-item" to="/account">
+          Account
+        </NavLink>
+        <a className="rail-menu-item" href="/privacy">
+          Privacy policy
+        </a>
+        <form method="post" action="/auth/sign-out">
+          <button className="rail-menu-item" type="submit">
+            Sign out
+          </button>
+        </form>
+        <div className="rail-menu-built-by">
+          <BuiltBy />
+        </div>
+      </div>
+    </details>
   );
 }
 

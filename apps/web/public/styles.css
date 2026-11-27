@@ -220,18 +220,24 @@ pre {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.rail-user[aria-current="page"] .rail-user-name {
-  text-decoration: underline;
-}
 .rail-user {
   display: flex;
   align-items: center;
   gap: 10px;
-  text-decoration: none;
+  margin: -6px -8px;
+  padding: 6px 8px;
+  border-radius: 6px;
   color: var(--ink);
+  cursor: pointer;
+  list-style: none;
+  transition: background 0.15s ease;
 }
-.rail-user:hover .rail-user-name {
-  text-decoration: underline;
+.rail-user::-webkit-details-marker {
+  display: none;
+}
+.rail-user:hover,
+.rail-account[open] .rail-user {
+  background: var(--surface-2);
 }
 .avatar {
   flex: none;
@@ -265,6 +271,11 @@ pre {
   color: var(--ink-3);
 }
 
+.rail > .rail-foot {
+  margin-top: auto;
+  border-top: 1px solid var(--rule);
+  border-bottom: 0;
+}
 .rail-foot {
   display: grid;
   gap: 6px;
@@ -283,6 +294,48 @@ pre {
   color: var(--ink-3);
   font-weight: 400;
   justify-self: start;
+}
+
+.rail-account {
+  position: relative;
+  padding-block: 20px;
+}
+.rail-menu {
+  position: absolute;
+  inset-inline: 20px;
+  bottom: calc(100% - 8px);
+  z-index: 20;
+  display: grid;
+  padding: 6px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.08);
+}
+.rail-menu form {
+  display: contents;
+}
+.rail-foot .rail-menu-item {
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.rail-foot .rail-menu-item:hover,
+.rail-foot .rail-menu-item[aria-current="page"] {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.rail-menu-built-by {
+  margin-top: 6px;
+  padding: 8px 10px 4px;
+  border-top: 1px solid var(--rule);
 }
 
 .content {
@@ -712,7 +765,7 @@ button:disabled {
   .rail-link::before,
   .rail-sublink,
   .rail-index,
-  .rail-foot,
+  .rail-foot:not(.rail-account),
   .rail-user-text,
   .rail-team-heading,
   .rail-home {
@@ -721,8 +774,26 @@ button:disabled {
   .rail nav {
     margin-left: auto;
   }
+  .rail {
+    overflow: visible;
+  }
+  .rail > .rail-foot {
+    margin-top: 0;
+    border: 0;
+  }
+  .rail-account {
+    padding-block: 0;
+  }
   .rail-user {
-    padding-left: 0;
+    margin: 0;
+    padding: 0;
+    border-radius: 50%;
+  }
+  .rail-menu {
+    inset-inline: auto 16px;
+    top: calc(100% + 10px);
+    bottom: auto;
+    width: 220px;
   }
   .content {
     border: 0;
