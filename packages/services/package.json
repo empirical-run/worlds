@@ -13,6 +13,7 @@
     "@hono/zod-openapi": "^1.6.3",
     "@worlds/contract": "workspace:*",
     "@worlds/jira": "workspace:*",
+    "@worlds/linear": "workspace:*",
     "@worlds/slack": "workspace:*",
     "zod": "^4.6.7"
   },

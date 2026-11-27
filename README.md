@@ -1,6 +1,6 @@
 # <img src="apps/web/public/logo.svg" alt="" height="22"> worlds
 
-Hosted, stateful worlds of the third-party services an app depends on, for testing apps and agents end to end. Slack and Jira; GitHub next.
+Hosted, stateful worlds of the third-party services an app depends on, for testing apps and agents end to end. Slack, Jira and Linear; GitHub next.
 
 A world is a Durable Object that holds the state of every service in it. Services in a world speak the real wire protocol (Web API, OAuth, signed event callbacks), so an app under test only needs its base URL pointed at the world.
 
@@ -61,9 +61,24 @@ A world with a `jira` spec has a Jira Cloud site, written for this repo (emulate
 - Dynamic webhooks: one URL per app and user, up to 5, 30-day expiry. JQL supports `labels`, `project`, `status`, `issuekey`, `assignee`, `reporter` with `=`, `!=`, `in`, `not in` joined by `AND`; anything else is refused at registration. Events: `jira:issue_created|updated|deleted`, `comment_created`. Deliveries carry `Authorization: Bearer <JWT HS256 signed with the client secret>` and `X-Atlassian-Webhook-Identifier`, and are retried up to 5 times, 5 to 15 minutes apart (`X-Atlassian-Webhook-Retry`), on 408/409/425/429/5xx or no answer within 10s.
 - Control routes on the site host (`/_worlds/jira/*`: create, change, comment on and delete issues, site state) are in the [API reference](https://makeworlds.dev/docs/api) under Jira world. Changes send the webhooks Jira would (`issue_assigned` for an assignee-only change, `issue_generic` for a status-only change).
 
+## Linear
+
+A world with a `linear` spec has a Linear workspace, written for this repo in `services/linear`. Like Linear it answers on two hosts:
+
+| Linear           | World host                       | Serves                                                                                                                                                        |
+| ---------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `linear.app`     | `{id}-linear.makeworlds.dev`     | `/oauth/authorize` (consent page: pick who authorizes; `actor=app` installs an app user), issue pages at `/{url_key}/issue/{identifier}` for the world's team |
+| `api.linear.app` | `{id}-linear-api.makeworlds.dev` | `/graphql`, `/oauth/token` (authorization_code, refresh_token), `/oauth/revoke`                                                                               |
+
+- The spec (`POST /api/worlds` with `linear: { workspace, users, teams, issues, apps }`) seeds once. Apps are OAuth applications: `name`, `callback_urls` (`*` matches one host label), `scopes`, optional `webhook_url`, optional pinned `credentials` (client id, client secret, webhook signing secret). The organization id is a random UUID unless pinned.
+- Tokens follow Linear's OAuth: 24-hour access tokens, refresh tokens that rotate on every refresh and expire 30 days after issue, and a 30-minute window in which retrying a used refresh token returns the same replacement pair. `app:assignable`/`app:mentionable` need `actor=app`; `actor=app` can't ask for `admin`.
+- `/graphql` runs a subset of Linear's schema with graphql-js: `viewer`, `organization`, `teams`, `team`, `users`, `issue(id)` (UUID or identifier), and `commentCreate`, `reactionCreate`, `attachmentCreate` (upserts by URL). Field names, the `AUTHENTICATION_ERROR` (401) and `GRAPHQL_VALIDATION_FAILED` (400) errors and `Entity not found` match api.linear.app.
+- Webhooks go to an installed app's `webhook_url`: `AppUserNotification` (`issueAssignedToYou`, `issueUnassignedFromYou`) when a member assigns an issue to or away from the app user, and `OAuthApp` `revoked` when the app is uninstalled. Payloads follow Linear's published `AppUserNotificationWebhookPayload` and `OAuthAppWebhookPayload` types; each delivery has `Linear-Delivery`, `Linear-Event`, `Linear-Timestamp` and `Linear-Signature` (hex HMAC-SHA256 of the body with the webhook secret), a fresh `webhookTimestamp`, and is retried after 1 minute, 1 hour and 6 hours unless the app answers 200 within 5 seconds.
+- Control routes on the app host (`/_worlds/linear/*`: create, change and comment on issues as a member, uninstall an app, workspace state) are in the [API reference](https://makeworlds.dev/docs/api) under Linear world.
+
 ## Services
 
-Each service (Slack, Jira) is a package in `services/<name>` with two entry points:
+Each service (Slack, Jira, Linear) is a package in `services/<name>` with two entry points:
 
 - `src/contract.ts`: zod-openapi schemas for its spec and state, the URLs a world gets, spec checks, a `starter` spec (what the makeworlds.dev create form sends), and the `/_worlds/<name>/*` control routes. A spec requires what a person would choose (a Slack team name, a Jira reporter); the service generates only ids, tokens and credentials, never other defaults. The service serves the same route objects with `OpenAPIHono`, so requests are validated against the published spec.
 - `src/hosting.ts`: its runtime in the world's Durable Object (setup, state, fetch, alarms), its page rules (sign-in gate, UI page and assets), its error shape for requests the world Worker answers itself (an unknown or archived world), and any banner CSS its pages need.

@@ -206,6 +206,29 @@ export default function Docs({ loaderData: { examples } }: Route.ComponentProps)
         </p>
       </section>
 
+      <section className="section" id="linear">
+        <h2>Linear</h2>
+        <p>
+          A world with a <code>linear</code> spec has a Linear workspace. The spec names the
+          workspace and describes its users, teams, issues and OAuth applications (name,{" "}
+          <code>callback_urls</code>, <code>scopes</code>, an optional <code>webhook_url</code> and
+          optional pinned <code>credentials</code>). Like Linear, it answers on two hosts, returned
+          as <code>linear.app_url</code> (in place of linear.app) and <code>linear.api_url</code>{" "}
+          (api.linear.app).
+        </p>
+        <p>
+          Supported: <code>/oauth/authorize</code> (a consent page where you pick who authorizes;{" "}
+          <code>actor=app</code> installs an app user), <code>/oauth/token</code> with Linear's
+          24-hour access tokens and rotating 30-day refresh tokens, <code>/oauth/revoke</code>, and
+          a subset of <code>/graphql</code>: <code>viewer</code>, <code>organization</code>,{" "}
+          <code>teams</code>, <code>issue</code>, <code>commentCreate</code>,{" "}
+          <code>reactionCreate</code> and <code>attachmentCreate</code>. Assigning an issue to the
+          app sends an <code>AppUserNotification</code> webhook (<code>issueAssignedToYou</code>) to
+          its <code>webhook_url</code>, signed in <code>Linear-Signature</code> with the webhook
+          secret and retried after 1 minute, 1 hour and 6 hours unless the app answers 200.
+        </p>
+      </section>
+
       <section className="section" id="worlds-api">
         <h2>Worlds API</h2>
         <p>

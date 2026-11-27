@@ -410,7 +410,7 @@ export interface paths {
         put?: never;
         /**
          * Create a world
-         * @description A new world with a spec for each service it should have (Slack and Jira). Point your app at the returned URLs.
+         * @description A new world with a spec for each service it should have (Slack, Jira and Linear). Point your app at the returned URLs.
          */
         post: {
             parameters: {
@@ -434,7 +434,7 @@ export interface paths {
                         "application/json": components["schemas"]["WorldCreated"];
                     };
                 };
-                /** @description Invalid name, no service spec, or an invalid Slack or Jira spec */
+                /** @description Invalid name, no service spec, or an invalid Slack, Jira or Linear spec */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1246,6 +1246,316 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/_worlds/linear/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the Linear workspace's state
+         * @description The spec with generated ids filled in, every issue and the installed app users.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The workspace's state */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LinearWorldState"];
+                    };
+                };
+                /** @description Missing or invalid credentials, or not your team's world */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/_worlds/linear/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create an issue
+         * @description Creates the issue as user. Assigning it to an app sends that app AppUserNotification issueAssignedToYou.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LinearIssueCreate"];
+                };
+            };
+            responses: {
+                /** @description The new issue */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LinearIssue"];
+                    };
+                };
+                /** @description Invalid fields, or an unknown user, assignee or team */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Missing or invalid credentials, or not your team's world */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/_worlds/linear/issues/{identifier}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update an issue
+         * @description Changes the given fields as user. Assigning to an app sends it issueAssignedToYou; reassigning away sends issueUnassignedFromYou.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    identifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LinearIssueUpdate"];
+                };
+            };
+            responses: {
+                /** @description The changed issue */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LinearIssue"];
+                    };
+                };
+                /** @description Invalid fields, or an unknown user or assignee */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Missing or invalid credentials, or not your team's world */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description No issue with that identifier or id */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/_worlds/linear/issues/{identifier}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Comment on an issue
+         * @description Adds the comment as user.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    identifier: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LinearCommentCreate"];
+                };
+            };
+            responses: {
+                /** @description The changed issue */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LinearIssue"];
+                    };
+                };
+                /** @description Unknown user */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Missing or invalid credentials, or not your team's world */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description No issue with that identifier or id */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/_worlds/linear/apps/{client_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Uninstall an app
+         * @description Revokes every token of the app in this workspace, as an admin removing it, and sends OAuthApp revoked to its webhook URL.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    client_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Revoked */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Missing or invalid credentials, or not your team's world */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description No app with that client id */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1367,6 +1677,7 @@ export interface components {
             services: components["schemas"]["WorldService"][];
             slack: components["schemas"]["SlackUrls"];
             jira: components["schemas"]["JiraUrls"];
+            linear: components["schemas"]["LinearUrls"];
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -1375,7 +1686,7 @@ export interface components {
         /** @description A service in a world. */
         WorldService: {
             /** @enum {string} */
-            name: "slack" | "jira";
+            name: "slack" | "jira" | "linear";
             /** @example Slack */
             title: string;
             /**
@@ -1426,10 +1737,26 @@ export interface components {
              */
             api_url: string;
         } | null;
+        /** @description null when the world has no Linear. */
+        LinearUrls: {
+            /**
+             * Format: uri
+             * @description In place of https://linear.app: /oauth/authorize, and issue pages at /<url_key>/issue/<identifier>.
+             * @example https://k2v9x0q1m4-linear.makeworlds.dev
+             */
+            app_url: string;
+            /**
+             * Format: uri
+             * @description In place of https://api.linear.app: /graphql, /oauth/token and /oauth/revoke.
+             * @example https://k2v9x0q1m4-linear-api.makeworlds.dev
+             */
+            api_url: string;
+        } | null;
         /** @description A new world, with each service's URLs and effective spec. */
         WorldCreated: components["schemas"]["World"] & {
             slack?: components["schemas"]["SlackCreated"];
             jira?: components["schemas"]["JiraCreated"];
+            linear?: components["schemas"]["LinearCreated"];
         };
         /** @description null when the world has no Slack. */
         SlackCreated: components["schemas"]["SlackUrls"] & ({
@@ -1691,12 +2018,101 @@ export interface components {
             client_id: string;
             client_secret: string;
         };
+        /** @description null when the world has no Linear. */
+        LinearCreated: components["schemas"]["LinearUrls"] & ({
+            spec: components["schemas"]["LinearState"];
+        } | null);
+        /** @description The world's Linear spec with every generated id and credential filled in. */
+        LinearState: {
+            workspace: components["schemas"]["LinearWorkspaceState"];
+            users: components["schemas"]["LinearUserState"][];
+            teams: components["schemas"]["LinearTeamState"][];
+            issues: components["schemas"]["LinearIssueState"][];
+            apps: components["schemas"]["LinearAppState"][];
+        };
+        /** @description The workspace, with its id and URL. */
+        LinearWorkspaceState: {
+            id: string;
+            name: string;
+            url_key: string;
+            url: string;
+        };
+        /** @description A user, with its id. */
+        LinearUserState: {
+            id: string;
+            name: string;
+            display_name: string;
+            email: string;
+        };
+        /** @description A team, with its id. */
+        LinearTeamState: {
+            id: string;
+            key: string;
+            name: string;
+        };
+        /** @description An issue from the spec, with the identifier it was given. */
+        LinearIssueState: components["schemas"]["LinearIssueSpec"] & {
+            identifier: string;
+        };
+        /** @description A comment on the issue, oldest first. */
+        LinearCommentSpec: {
+            /**
+             * @description A user's name or id.
+             * @example alice
+             */
+            author: string;
+            /** @example Repro'd on staging. */
+            body: string;
+        };
+        /** @description An issue created with the world. */
+        LinearIssueSpec: {
+            /**
+             * @description A team key.
+             * @example ENG
+             */
+            team: string;
+            /** @example Checkout fails for guest users */
+            title: string;
+            /** @description Markdown. */
+            description?: string;
+            /**
+             * @description The issue's workflow state.
+             * @enum {string}
+             */
+            state: "Backlog" | "Todo" | "In Progress" | "Done" | "Canceled";
+            /**
+             * @description A user's name or id.
+             * @example alice
+             */
+            creator: string;
+            /**
+             * @description A user's name or id.
+             * @example alice
+             */
+            assignee?: string;
+            comments?: components["schemas"]["LinearCommentSpec"][];
+        };
+        /** @description An app, with its credentials. */
+        LinearAppState: {
+            name: string;
+            callback_urls: string[];
+            scopes: ("read" | "write" | "issues:create" | "comments:create" | "admin" | "app:assignable" | "app:mentionable")[];
+            webhook_url: string | null;
+            credentials: components["schemas"]["LinearCredentials"];
+        };
+        /** @description The app's OAuth client credentials and webhook signing secret. */
+        LinearCredentials: {
+            client_id: string;
+            client_secret: string;
+            webhook_secret: string;
+        };
         /** @description A new world. Give a spec for each service it should have. */
         WorldCreate: {
             /** @example Thread routing eval */
             name: string;
             slack?: components["schemas"]["SlackSpec"];
             jira?: components["schemas"]["JiraSpec"];
+            linear?: components["schemas"]["LinearSpec"];
         };
         /** @description Everything in the world's Slack workspace. Omitted ids, credentials and tokens are generated. Leave it out to create the world without Slack. */
         SlackSpec: {
@@ -1850,10 +2266,101 @@ export interface components {
             client_id?: string;
             client_secret?: string;
         };
+        /** @description Everything in the world's Linear workspace. Omitted ids and credentials are generated. Leave it out to create the world without Linear. */
+        LinearSpec: {
+            workspace: components["schemas"]["LinearWorkspaceSpec"];
+            users?: components["schemas"]["LinearUserSpec"][];
+            teams?: components["schemas"]["LinearTeamSpec"][];
+            /** @description Created in order before any app is installed, so they send no webhooks. */
+            issues?: components["schemas"]["LinearIssueSpec"][];
+            apps?: components["schemas"]["LinearAppSpec"][];
+        };
+        /** @description The world's Linear workspace (organization). */
+        LinearWorkspaceSpec: {
+            /**
+             * Format: uuid
+             * @description Pin the organization id, e.g. to match one your app stored. Generated if left out.
+             */
+            id?: string;
+            /** @example Acme */
+            name: string;
+            /**
+             * @description As in linear.app/<url_key>.
+             * @example acme
+             */
+            url_key: string;
+        };
+        /** @description A member of the workspace. */
+        LinearUserSpec: {
+            /**
+             * Format: uuid
+             * @description Pin the user id. Generated if left out.
+             */
+            id?: string;
+            /**
+             * @description The user's handle (Linear's displayName).
+             * @example alice
+             */
+            name: string;
+            /**
+             * @description The user's full name (Linear's name).
+             * @example Alice Tester
+             */
+            display_name: string;
+            /**
+             * Format: email
+             * @example alice@acme.test
+             */
+            email: string;
+        };
+        /** @description A team; issues belong to one. */
+        LinearTeamSpec: {
+            /** Format: uuid */
+            id?: string;
+            /** @example ENG */
+            key: string;
+            /** @example Engineering */
+            name: string;
+        };
+        /** @description An OAuth application, as in Linear's API settings. */
+        LinearAppSpec: {
+            /** @example My app */
+            name: string;
+            /**
+             * @description OAuth callback URLs. redirect_uri must equal one of them; a * in the host matches one label.
+             * @example [
+             *       "https://example.com/linear/callback"
+             *     ]
+             */
+            callback_urls: string[];
+            /**
+             * @description Scopes the app may request.
+             * @example [
+             *       "read",
+             *       "write",
+             *       "app:assignable",
+             *       "app:mentionable"
+             *     ]
+             */
+            scopes: ("read" | "write" | "issues:create" | "comments:create" | "admin" | "app:assignable" | "app:mentionable")[];
+            /**
+             * @description Where app webhooks (AppUserNotification, OAuthApp) go once the app is installed, as in the app's settings.
+             * @example https://example.com/linear/events
+             */
+            webhook_url?: string;
+            credentials?: components["schemas"]["LinearCredentialsSpec"];
+        };
+        /** @description Pin the client id, secret and webhook secret, e.g. to match ones your app has. */
+        LinearCredentialsSpec: {
+            client_id?: string;
+            client_secret?: string;
+            webhook_secret?: string;
+        };
         /** @description Each service's spec, or null for a service the world was created without. */
         WorldSpec: {
             slack: components["schemas"]["SlackState"] & (Record<string, never> | null);
             jira: components["schemas"]["JiraState"] & (Record<string, never> | null);
+            linear: components["schemas"]["LinearState"] & (Record<string, never> | null);
         };
         /** @description A user token, to call the Web API as that user. */
         SlackToken: {
@@ -2139,6 +2646,118 @@ export interface components {
             /** @description Plain text, or an Atlassian Document Format document. */
             body: string | components["schemas"]["JiraAdf"];
         };
+        /** @description The workspace as it is now: its spec, issues and installed app users. */
+        LinearWorldState: {
+            spec: components["schemas"]["LinearState"];
+            issues: components["schemas"]["LinearIssue"][];
+            app_users: components["schemas"]["LinearAppUser"][];
+        };
+        /** @description An issue as the world stores it. */
+        LinearIssue: {
+            id: string;
+            /** @example ENG-1 */
+            identifier: string;
+            title: string;
+            description: string | null;
+            /** Format: uri */
+            url: string;
+            /** @enum {string} */
+            state: "Backlog" | "Todo" | "In Progress" | "Done" | "Canceled";
+            /** @description The team key. */
+            team: string;
+            /** @description The creator's user id. */
+            creator: string;
+            /** @description The assignee's user id, a member or an app user. */
+            assignee: string | null;
+            created_at: string;
+            updated_at: string;
+            comments: components["schemas"]["LinearComment"][];
+            reactions: components["schemas"]["LinearReaction"][];
+            attachments: components["schemas"]["LinearAttachment"][];
+        };
+        /** @description A comment on an issue. */
+        LinearComment: {
+            id: string;
+            user: string;
+            body: string;
+            created_at: string;
+        };
+        /** @description An emoji reaction on an issue. */
+        LinearReaction: {
+            id: string;
+            user: string;
+            emoji: string;
+        };
+        /** @description A link attached to an issue. */
+        LinearAttachment: {
+            id: string;
+            title: string;
+            subtitle: string | null;
+            url: string;
+        };
+        /** @description The user an app installed with actor=app acts as (viewer for its tokens). */
+        LinearAppUser: {
+            id: string;
+            client_id: string;
+            name: string;
+            handle: string;
+        };
+        /** @description An issue to create as a member. */
+        LinearIssueCreate: {
+            /**
+             * @description The member who acts: their name or id. Webhooks name them as the actor.
+             * @example alice
+             */
+            user: string;
+            /**
+             * @description A team key.
+             * @example ENG
+             */
+            team: string;
+            /** @example Checkout fails for guest users */
+            title: string;
+            description?: string;
+            /**
+             * @description The issue's workflow state.
+             * @enum {string}
+             */
+            state: "Backlog" | "Todo" | "In Progress" | "Done" | "Canceled";
+            /**
+             * @description A member's name or id, or an installed app's name to assign the issue to the app.
+             * @example alice
+             */
+            assignee?: string;
+        };
+        /** @description Changes to make to an issue as a member. */
+        LinearIssueUpdate: {
+            /**
+             * @description The member who acts: their name or id. Webhooks name them as the actor.
+             * @example alice
+             */
+            user: string;
+            /** @example Checkout fails for guest users */
+            title?: string;
+            description?: string | null;
+            /**
+             * @description The issue's workflow state.
+             * @enum {string}
+             */
+            state?: "Backlog" | "Todo" | "In Progress" | "Done" | "Canceled";
+            /**
+             * @description null unassigns the issue.
+             * @example alice
+             */
+            assignee?: string | null;
+        };
+        /** @description A comment to post as a member. */
+        LinearCommentCreate: {
+            /**
+             * @description The member who acts: their name or id. Webhooks name them as the actor.
+             * @example alice
+             */
+            user: string;
+            body: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -2162,6 +2781,7 @@ export type World = components['schemas']['World'];
 export type WorldService = components['schemas']['WorldService'];
 export type SlackUrls = components['schemas']['SlackUrls'];
 export type JiraUrls = components['schemas']['JiraUrls'];
+export type LinearUrls = components['schemas']['LinearUrls'];
 export type WorldCreated = components['schemas']['WorldCreated'];
 export type SlackCreated = components['schemas']['SlackCreated'];
 export type SlackState = components['schemas']['SlackState'];
@@ -2192,6 +2812,16 @@ export type JiraCommentSpec = components['schemas']['JiraCommentSpec'];
 export type JiraIssueSpec = components['schemas']['JiraIssueSpec'];
 export type JiraAppState = components['schemas']['JiraAppState'];
 export type JiraCredentials = components['schemas']['JiraCredentials'];
+export type LinearCreated = components['schemas']['LinearCreated'];
+export type LinearState = components['schemas']['LinearState'];
+export type LinearWorkspaceState = components['schemas']['LinearWorkspaceState'];
+export type LinearUserState = components['schemas']['LinearUserState'];
+export type LinearTeamState = components['schemas']['LinearTeamState'];
+export type LinearIssueState = components['schemas']['LinearIssueState'];
+export type LinearCommentSpec = components['schemas']['LinearCommentSpec'];
+export type LinearIssueSpec = components['schemas']['LinearIssueSpec'];
+export type LinearAppState = components['schemas']['LinearAppState'];
+export type LinearCredentials = components['schemas']['LinearCredentials'];
 export type WorldCreate = components['schemas']['WorldCreate'];
 export type SlackSpec = components['schemas']['SlackSpec'];
 export type SlackTeamSpec = components['schemas']['SlackTeamSpec'];
@@ -2206,6 +2836,12 @@ export type JiraUserSpec = components['schemas']['JiraUserSpec'];
 export type JiraProjectSpec = components['schemas']['JiraProjectSpec'];
 export type JiraAppSpec = components['schemas']['JiraAppSpec'];
 export type JiraCredentialsSpec = components['schemas']['JiraCredentialsSpec'];
+export type LinearSpec = components['schemas']['LinearSpec'];
+export type LinearWorkspaceSpec = components['schemas']['LinearWorkspaceSpec'];
+export type LinearUserSpec = components['schemas']['LinearUserSpec'];
+export type LinearTeamSpec = components['schemas']['LinearTeamSpec'];
+export type LinearAppSpec = components['schemas']['LinearAppSpec'];
+export type LinearCredentialsSpec = components['schemas']['LinearCredentialsSpec'];
 export type WorldSpec = components['schemas']['WorldSpec'];
 export type SlackToken = components['schemas']['SlackToken'];
 export type SlackTokenRequest = components['schemas']['SlackTokenRequest'];
@@ -2233,5 +2869,14 @@ export type JiraChangeItem = components['schemas']['JiraChangeItem'];
 export type JiraIssueUpdate = components['schemas']['JiraIssueUpdate'];
 export type JiraComment = components['schemas']['JiraComment'];
 export type JiraCommentCreate = components['schemas']['JiraCommentCreate'];
+export type LinearWorldState = components['schemas']['LinearWorldState'];
+export type LinearIssue = components['schemas']['LinearIssue'];
+export type LinearComment = components['schemas']['LinearComment'];
+export type LinearReaction = components['schemas']['LinearReaction'];
+export type LinearAttachment = components['schemas']['LinearAttachment'];
+export type LinearAppUser = components['schemas']['LinearAppUser'];
+export type LinearIssueCreate = components['schemas']['LinearIssueCreate'];
+export type LinearIssueUpdate = components['schemas']['LinearIssueUpdate'];
+export type LinearCommentCreate = components['schemas']['LinearCommentCreate'];
 export type $defs = Record<string, never>;
 export type operations = Record<string, never>;

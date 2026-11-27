@@ -23,6 +23,10 @@
       "description": "Act inside a world's Jira, on its own host."
     },
     {
+      "name": "Linear world",
+      "description": "Act inside a world's Linear, on its own host."
+    },
+    {
       "name": "Teams",
       "description": "Your teams and their members."
     },
@@ -361,6 +365,9 @@
           "jira": {
             "$ref": "#/components/schemas/JiraUrls"
           },
+          "linear": {
+            "$ref": "#/components/schemas/LinearUrls"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time"
@@ -379,6 +386,7 @@
           "services",
           "slack",
           "jira",
+          "linear",
           "created_at",
           "updated_at"
         ],
@@ -391,7 +399,8 @@
             "type": "string",
             "enum": [
               "slack",
-              "jira"
+              "jira",
+              "linear"
             ]
           },
           "title": {
@@ -475,6 +484,31 @@
         ],
         "description": "null when the world has no Jira."
       },
+      "LinearUrls": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "app_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "In place of https://linear.app: /oauth/authorize, and issue pages at /<url_key>/issue/<identifier>.",
+            "example": "https://k2v9x0q1m4-linear.makeworlds.dev"
+          },
+          "api_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "In place of https://api.linear.app: /graphql, /oauth/token and /oauth/revoke.",
+            "example": "https://k2v9x0q1m4-linear-api.makeworlds.dev"
+          }
+        },
+        "required": [
+          "app_url",
+          "api_url"
+        ],
+        "description": "null when the world has no Linear."
+      },
       "WorldCreated": {
         "allOf": [
           {
@@ -488,6 +522,9 @@
               },
               "jira": {
                 "$ref": "#/components/schemas/JiraCreated"
+              },
+              "linear": {
+                "$ref": "#/components/schemas/LinearCreated"
               }
             }
           }
@@ -1231,6 +1268,307 @@
         ],
         "description": "The app's OAuth client credentials."
       },
+      "LinearCreated": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LinearUrls"
+          },
+          {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "spec": {
+                "$ref": "#/components/schemas/LinearState"
+              }
+            },
+            "required": [
+              "spec"
+            ]
+          }
+        ],
+        "description": "null when the world has no Linear."
+      },
+      "LinearState": {
+        "type": "object",
+        "properties": {
+          "workspace": {
+            "$ref": "#/components/schemas/LinearWorkspaceState"
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinearUserState"
+            }
+          },
+          "teams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinearTeamState"
+            }
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinearIssueState"
+            }
+          },
+          "apps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinearAppState"
+            }
+          }
+        },
+        "required": [
+          "workspace",
+          "users",
+          "teams",
+          "issues",
+          "apps"
+        ],
+        "description": "The world's Linear spec with every generated id and credential filled in."
+      },
+      "LinearWorkspaceState": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url_key": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "url_key",
+          "url"
+        ],
+        "description": "The workspace, with its id and URL."
+      },
+      "LinearUserState": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "display_name",
+          "email"
+        ],
+        "description": "A user, with its id."
+      },
+      "LinearTeamState": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name"
+        ],
+        "description": "A team, with its id."
+      },
+      "LinearIssueState": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LinearIssueSpec"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "identifier": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "identifier"
+            ]
+          }
+        ],
+        "description": "An issue from the spec, with the identifier it was given."
+      },
+      "LinearCommentSpec": {
+        "type": "object",
+        "properties": {
+          "author": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A user's name or id.",
+            "example": "alice"
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32000,
+            "example": "Repro'd on staging."
+          }
+        },
+        "required": [
+          "author",
+          "body"
+        ],
+        "description": "A comment on the issue, oldest first."
+      },
+      "LinearIssueSpec": {
+        "type": "object",
+        "properties": {
+          "team": {
+            "type": "string",
+            "description": "A team key.",
+            "example": "ENG"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "example": "Checkout fails for guest users"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 32000,
+            "description": "Markdown."
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "Backlog",
+              "Todo",
+              "In Progress",
+              "Done",
+              "Canceled"
+            ],
+            "description": "The issue's workflow state."
+          },
+          "creator": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A user's name or id.",
+            "example": "alice"
+          },
+          "assignee": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A user's name or id.",
+            "example": "alice"
+          },
+          "comments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinearCommentSpec"
+            },
+            "maxItems": 100
+          }
+        },
+        "required": [
+          "team",
+          "title",
+          "state",
+          "creator"
+        ],
+        "description": "An issue created with the world."
+      },
+      "LinearAppState": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "callback_urls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "read",
+                "write",
+                "issues:create",
+                "comments:create",
+                "admin",
+                "app:assignable",
+                "app:mentionable"
+              ]
+            }
+          },
+          "webhook_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "credentials": {
+            "$ref": "#/components/schemas/LinearCredentials"
+          }
+        },
+        "required": [
+          "name",
+          "callback_urls",
+          "scopes",
+          "webhook_url",
+          "credentials"
+        ],
+        "description": "An app, with its credentials."
+      },
+      "LinearCredentials": {
+        "type": "object",
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "client_secret": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 256
+          },
+          "webhook_secret": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "client_id",
+          "client_secret",
+          "webhook_secret"
+        ],
+        "description": "The app's OAuth client credentials and webhook signing secret."
+      },
       "WorldCreate": {
         "type": "object",
         "properties": {
@@ -1245,6 +1583,9 @@
           },
           "jira": {
             "$ref": "#/components/schemas/JiraSpec"
+          },
+          "linear": {
+            "$ref": "#/components/schemas/LinearSpec"
           }
         },
         "required": [
@@ -1654,6 +1995,216 @@
         },
         "description": "Pin the client id and secret, e.g. to match ones your app already has."
       },
+      "LinearSpec": {
+        "type": "object",
+        "properties": {
+          "workspace": {
+            "$ref": "#/components/schemas/LinearWorkspaceSpec"
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinearUserSpec"
+            },
+            "maxItems": 200
+          },
+          "teams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinearTeamSpec"
+            },
+            "maxItems": 50
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinearIssueSpec"
+            },
+            "maxItems": 500,
+            "description": "Created in order before any app is installed, so they send no webhooks."
+          },
+          "apps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinearAppSpec"
+            },
+            "maxItems": 10
+          }
+        },
+        "required": [
+          "workspace"
+        ],
+        "description": "Everything in the world's Linear workspace. Omitted ids and credentials are generated. Leave it out to create the world without Linear."
+      },
+      "LinearWorkspaceSpec": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Pin the organization id, e.g. to match one your app stored. Generated if left out."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "example": "Acme"
+          },
+          "url_key": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{1,32}$",
+            "description": "As in linear.app/<url_key>.",
+            "example": "acme"
+          }
+        },
+        "required": [
+          "name",
+          "url_key"
+        ],
+        "description": "The world's Linear workspace (organization)."
+      },
+      "LinearUserSpec": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Pin the user id. Generated if left out."
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9._-]{1,80}$",
+            "description": "The user's handle (Linear's displayName).",
+            "example": "alice"
+          },
+          "display_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "The user's full name (Linear's name).",
+            "example": "Alice Tester"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "alice@acme.test"
+          }
+        },
+        "required": [
+          "name",
+          "display_name",
+          "email"
+        ],
+        "description": "A member of the workspace."
+      },
+      "LinearTeamSpec": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9]{0,6}$",
+            "example": "ENG"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "example": "Engineering"
+          }
+        },
+        "required": [
+          "key",
+          "name"
+        ],
+        "description": "A team; issues belong to one."
+      },
+      "LinearAppSpec": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "example": "My app"
+          },
+          "callback_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^https?:\\/\\/[^\\s]+$"
+            },
+            "minItems": 1,
+            "maxItems": 20,
+            "description": "OAuth callback URLs. redirect_uri must equal one of them; a * in the host matches one label.",
+            "example": [
+              "https://example.com/linear/callback"
+            ]
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "read",
+                "write",
+                "issues:create",
+                "comments:create",
+                "admin",
+                "app:assignable",
+                "app:mentionable"
+              ]
+            },
+            "minItems": 1,
+            "description": "Scopes the app may request.",
+            "example": [
+              "read",
+              "write",
+              "app:assignable",
+              "app:mentionable"
+            ]
+          },
+          "webhook_url": {
+            "type": "string",
+            "pattern": "^https?:\\/\\/[^\\s]+$",
+            "description": "Where app webhooks (AppUserNotification, OAuthApp) go once the app is installed, as in the app's settings.",
+            "example": "https://example.com/linear/events"
+          },
+          "credentials": {
+            "$ref": "#/components/schemas/LinearCredentialsSpec"
+          }
+        },
+        "required": [
+          "name",
+          "callback_urls",
+          "scopes"
+        ],
+        "description": "An OAuth application, as in Linear's API settings."
+      },
+      "LinearCredentialsSpec": {
+        "type": "object",
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "client_secret": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 256
+          },
+          "webhook_secret": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 256
+          }
+        },
+        "description": "Pin the client id, secret and webhook secret, e.g. to match ones your app has."
+      },
       "WorldSpec": {
         "type": "object",
         "properties": {
@@ -1682,11 +2233,25 @@
                 ]
               }
             ]
+          },
+          "linear": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LinearState"
+              },
+              {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              }
+            ]
           }
         },
         "required": [
           "slack",
-          "jira"
+          "jira",
+          "linear"
         ],
         "description": "Each service's spec, or null for a service the world was created without."
       },
@@ -2517,6 +3082,337 @@
           "body"
         ],
         "description": "A comment to post as a user."
+      },
+      "LinearWorldState": {
+        "type": "object",
+        "properties": {
+          "spec": {
+            "$ref": "#/components/schemas/LinearState"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinearIssue"
+            }
+          },
+          "app_users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinearAppUser"
+            }
+          }
+        },
+        "required": [
+          "spec",
+          "issues",
+          "app_users"
+        ],
+        "description": "The workspace as it is now: its spec, issues and installed app users."
+      },
+      "LinearIssue": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "identifier": {
+            "type": "string",
+            "example": "ENG-1"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "Backlog",
+              "Todo",
+              "In Progress",
+              "Done",
+              "Canceled"
+            ]
+          },
+          "team": {
+            "type": "string",
+            "description": "The team key."
+          },
+          "creator": {
+            "type": "string",
+            "description": "The creator's user id."
+          },
+          "assignee": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The assignee's user id, a member or an app user."
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "comments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinearComment"
+            }
+          },
+          "reactions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinearReaction"
+            }
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinearAttachment"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "identifier",
+          "title",
+          "description",
+          "url",
+          "state",
+          "team",
+          "creator",
+          "assignee",
+          "created_at",
+          "updated_at",
+          "comments",
+          "reactions",
+          "attachments"
+        ],
+        "description": "An issue as the world stores it."
+      },
+      "LinearComment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user",
+          "body",
+          "created_at"
+        ],
+        "description": "A comment on an issue."
+      },
+      "LinearReaction": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "emoji": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user",
+          "emoji"
+        ],
+        "description": "An emoji reaction on an issue."
+      },
+      "LinearAttachment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "subtitle": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "subtitle",
+          "url"
+        ],
+        "description": "A link attached to an issue."
+      },
+      "LinearAppUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "handle": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "client_id",
+          "name",
+          "handle"
+        ],
+        "description": "The user an app installed with actor=app acts as (viewer for its tokens)."
+      },
+      "LinearIssueCreate": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The member who acts: their name or id. Webhooks name them as the actor.",
+            "example": "alice"
+          },
+          "team": {
+            "type": "string",
+            "description": "A team key.",
+            "example": "ENG"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "example": "Checkout fails for guest users"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 32000
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "Backlog",
+              "Todo",
+              "In Progress",
+              "Done",
+              "Canceled"
+            ],
+            "description": "The issue's workflow state."
+          },
+          "assignee": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A member's name or id, or an installed app's name to assign the issue to the app.",
+            "example": "alice"
+          }
+        },
+        "required": [
+          "user",
+          "team",
+          "title",
+          "state"
+        ],
+        "description": "An issue to create as a member."
+      },
+      "LinearIssueUpdate": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The member who acts: their name or id. Webhooks name them as the actor.",
+            "example": "alice"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "example": "Checkout fails for guest users"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 32000
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "Backlog",
+              "Todo",
+              "In Progress",
+              "Done",
+              "Canceled"
+            ],
+            "description": "The issue's workflow state."
+          },
+          "assignee": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "description": "null unassigns the issue.",
+            "example": "alice"
+          }
+        },
+        "required": [
+          "user"
+        ],
+        "description": "Changes to make to an issue as a member."
+      },
+      "LinearCommentCreate": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The member who acts: their name or id. Webhooks name them as the actor.",
+            "example": "alice"
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32000
+          }
+        },
+        "required": [
+          "user",
+          "body"
+        ],
+        "description": "A comment to post as a member."
       }
     },
     "parameters": {}
@@ -2972,7 +3868,7 @@
           "Worlds"
         ],
         "summary": "Create a world",
-        "description": "A new world with a spec for each service it should have (Slack and Jira). Point your app at the returned URLs.",
+        "description": "A new world with a spec for each service it should have (Slack, Jira and Linear). Point your app at the returned URLs.",
         "security": [
           {
             "bearerAuth": []
@@ -3003,7 +3899,7 @@
             }
           },
           "400": {
-            "description": "Invalid name, no service spec, or an invalid Slack or Jira spec",
+            "description": "Invalid name, no service spec, or an invalid Slack, Jira or Linear spec",
             "content": {
               "application/json": {
                 "schema": {
@@ -3946,6 +4842,376 @@
           },
           "404": {
             "description": "No issue with that key or id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_worlds/linear/state": {
+      "get": {
+        "tags": [
+          "Linear world"
+        ],
+        "servers": [
+          {
+            "url": "https://{world}-linear.makeworlds.dev",
+            "description": "{world} is the world id without its world_ prefix, as in the world's URLs.",
+            "variables": {
+              "world": {
+                "default": "k2v9x0q1m4",
+                "description": "The world id without its world_ prefix."
+              }
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Get the Linear workspace's state",
+        "description": "The spec with generated ids filled in, every issue and the installed app users.",
+        "responses": {
+          "200": {
+            "description": "The workspace's state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinearWorldState"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials, or not your team's world",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_worlds/linear/issues": {
+      "post": {
+        "tags": [
+          "Linear world"
+        ],
+        "servers": [
+          {
+            "url": "https://{world}-linear.makeworlds.dev",
+            "description": "{world} is the world id without its world_ prefix, as in the world's URLs.",
+            "variables": {
+              "world": {
+                "default": "k2v9x0q1m4",
+                "description": "The world id without its world_ prefix."
+              }
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Create an issue",
+        "description": "Creates the issue as user. Assigning it to an app sends that app AppUserNotification issueAssignedToYou.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinearIssueCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new issue",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinearIssue"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields, or an unknown user, assignee or team",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials, or not your team's world",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_worlds/linear/issues/{identifier}": {
+      "patch": {
+        "tags": [
+          "Linear world"
+        ],
+        "servers": [
+          {
+            "url": "https://{world}-linear.makeworlds.dev",
+            "description": "{world} is the world id without its world_ prefix, as in the world's URLs.",
+            "variables": {
+              "world": {
+                "default": "k2v9x0q1m4",
+                "description": "The world id without its world_ prefix."
+              }
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Update an issue",
+        "description": "Changes the given fields as user. Assigning to an app sends it issueAssignedToYou; reassigning away sends issueUnassignedFromYou.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "ENG-1"
+            },
+            "required": true,
+            "name": "identifier",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinearIssueUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The changed issue",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinearIssue"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields, or an unknown user or assignee",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials, or not your team's world",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No issue with that identifier or id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_worlds/linear/issues/{identifier}/comments": {
+      "post": {
+        "tags": [
+          "Linear world"
+        ],
+        "servers": [
+          {
+            "url": "https://{world}-linear.makeworlds.dev",
+            "description": "{world} is the world id without its world_ prefix, as in the world's URLs.",
+            "variables": {
+              "world": {
+                "default": "k2v9x0q1m4",
+                "description": "The world id without its world_ prefix."
+              }
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Comment on an issue",
+        "description": "Adds the comment as user.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "ENG-1"
+            },
+            "required": true,
+            "name": "identifier",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinearCommentCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The changed issue",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinearIssue"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials, or not your team's world",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No issue with that identifier or id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_worlds/linear/apps/{client_id}/revoke": {
+      "post": {
+        "tags": [
+          "Linear world"
+        ],
+        "servers": [
+          {
+            "url": "https://{world}-linear.makeworlds.dev",
+            "description": "{world} is the world id without its world_ prefix, as in the world's URLs.",
+            "variables": {
+              "world": {
+                "default": "k2v9x0q1m4",
+                "description": "The world id without its world_ prefix."
+              }
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Uninstall an app",
+        "description": "Revokes every token of the app in this workspace, as an admin removing it, and sends OAuthApp revoked to its webhook URL.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "client_id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Revoked"
+          },
+          "401": {
+            "description": "Missing or invalid credentials, or not your team's world",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No app with that client id",
             "content": {
               "application/json": {
                 "schema": {

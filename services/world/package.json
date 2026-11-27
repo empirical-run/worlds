@@ -10,6 +10,7 @@
     "@worlds/contract": "workspace:*",
     "@worlds/db": "workspace:*",
     "@worlds/jira": "workspace:*",
+    "@worlds/linear": "workspace:*",
     "@worlds/services": "workspace:*",
     "@worlds/slack": "workspace:*"
   },
