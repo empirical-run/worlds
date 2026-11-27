@@ -8,8 +8,7 @@ import {
   worldHost,
   type World,
 } from "@worlds/db";
-import { DEFAULT_JIRA_SPEC, jiraSpecProblems } from "@worlds/jira/spec";
-import { DEFAULT_SLACK_SPEC, slackSpecProblems } from "@worlds/slack/spec";
+import { specProblems, withSpecs, worldUrls } from "@worlds/services";
 
 import type { AppEnv } from "../context";
 import {
@@ -104,26 +103,19 @@ const archiveWorldRoute = createRoute({
 });
 
 function worldJson(world: World, domain: string) {
-  const base = `https://${worldHost(world.id, "slack", domain)}`;
-  const jiraOrigin = (service: string) => `https://${worldHost(world.id, service, domain)}`;
   return {
     id: world.id,
     name: world.name,
     team_id: world.teamId,
     created_by: world.createdBy,
-    slack: {
-      api_url: `${base}/api/`,
-      oauth_authorize_url: `${base}/oauth/v2/authorize`,
-      ui_url: `${base}/`,
-    },
-    jira: {
-      site_url: jiraOrigin("jira"),
-      auth_url: jiraOrigin("jira-auth"),
-      api_url: jiraOrigin("jira-api"),
-    },
+    ...worldUrls(origins(world, domain)),
     created_at: world.createdAt.toISOString(),
     updated_at: world.updatedAt.toISOString(),
   };
+}
+
+function origins(world: World, domain: string) {
+  return (host: string) => `https://${worldHost(world.id, host, domain)}`;
 }
 
 const NOT_VISIBLE = "No world with that id is visible to you.";
@@ -142,19 +134,14 @@ export const worlds = new OpenAPIHono<AppEnv>()
     const body = c.req.valid("json") ?? {};
     const [target] = await accessibleTeams(db, caller);
     if (!target) return c.json(apiError("not_found", "You are not in any team."), 404);
-    const problem = body.slack ? slackSpecProblems(body.slack)[0] : undefined;
-    if (problem) return c.json(apiError("invalid_request", `slack.${problem}`), 400);
-    const jiraProblem = body.jira ? jiraSpecProblems(body.jira)[0] : undefined;
-    if (jiraProblem) return c.json(apiError("invalid_request", `jira.${jiraProblem}`), 400);
+    const { name, ...specs } = body;
+    const problem = specProblems(specs)[0];
+    if (problem) return c.json(apiError("invalid_request", problem), 400);
     const createdBy = caller.kind === "user" ? caller.user.id : null;
-    const world = await createWorld(db, target.team.id, createdBy, body.name ?? "Untitled world");
-    const spec = await c.env.SLACK.setupSlack(world.id, body.slack ?? DEFAULT_SLACK_SPEC);
-    const jira = await c.env.SLACK.setupJira(world.id, body.jira ?? DEFAULT_JIRA_SPEC);
-    const json = worldJson(world, c.env.WORLDS_DOMAIN);
-    return c.json(
-      { ...json, slack: { ...json.slack, spec }, jira: { ...json.jira, spec: jira } },
-      201,
-    );
+    const world = await createWorld(db, target.team.id, createdBy, name ?? "Untitled world");
+    const states = await c.env.WORLDS.setup(world.id, specs);
+    const urls = worldUrls(origins(world, c.env.WORLDS_DOMAIN));
+    return c.json({ ...worldJson(world, c.env.WORLDS_DOMAIN), ...withSpecs(urls, states) }, 201);
   })
   .openapi(getWorldRoute, async (c) => {
     const world = await visibleWorld(c, c.req.valid("param").worldId);
@@ -163,15 +150,16 @@ export const worlds = new OpenAPIHono<AppEnv>()
   })
   .openapi(getWorldSpecRoute, async (c) => {
     const world = await visibleWorld(c, c.req.valid("param").worldId);
-    const spec = world ? await c.env.SLACK.slackState(world.id) : null;
-    if (!world || !spec) return c.json(apiError("not_found", NOT_VISIBLE), 404);
-    return c.json({ slack: spec, jira: await c.env.SLACK.jiraState(world.id) }, 200);
+    const states = world ? await c.env.WORLDS.states(world.id) : null;
+    if (!states || Object.values(states).every((state) => state === null))
+      return c.json(apiError("not_found", NOT_VISIBLE), 404);
+    return c.json(states, 200);
   })
   .openapi(archiveWorldRoute, async (c) => {
     const world = await visibleWorld(c, c.req.valid("param").worldId);
     if (!world) return c.json(apiError("not_found", NOT_VISIBLE), 404);
     await archiveWorld(c.var.db, world.id);
-    await c.env.SLACK.archive(world.id);
+    await c.env.WORLDS.archive(world.id);
     return c.body(null, 204);
   });
 

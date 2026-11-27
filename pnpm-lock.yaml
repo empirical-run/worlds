@@ -46,12 +46,9 @@ importers:
       '@worlds/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@worlds/jira':
+      '@worlds/services':
         specifier: workspace:*
-        version: link:../../services/jira
-      '@worlds/slack':
-        specifier: workspace:*
-        version: link:../../services/slack
+        version: link:../../packages/services
       hono:
         specifier: ^4.13.22
         version: 4.13.22
@@ -172,6 +169,31 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  packages/services:
+    dependencies:
+      '@hono/zod-openapi':
+        specifier: ^1.6.3
+        version: 1.6.3(hono@4.13.22)(zod@4.6.7)
+      '@worlds/contract':
+        specifier: workspace:*
+        version: link:../contract
+      '@worlds/jira':
+        specifier: workspace:*
+        version: link:../../services/jira
+      '@worlds/slack':
+        specifier: workspace:*
+        version: link:../../services/slack
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^5.20261125.1
+        version: 5.20261125.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   services/jira:
     dependencies:
       '@hono/zod-openapi':
@@ -254,6 +276,9 @@ importers:
       '@worlds/jira':
         specifier: workspace:*
         version: link:../jira
+      '@worlds/services':
+        specifier: workspace:*
+        version: link:../../packages/services
       '@worlds/slack':
         specifier: workspace:*
         version: link:../slack

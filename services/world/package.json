@@ -11,6 +11,7 @@
     "@worlds/contract": "workspace:*",
     "@worlds/db": "workspace:*",
     "@worlds/jira": "workspace:*",
+    "@worlds/services": "workspace:*",
     "@worlds/slack": "workspace:*"
   },
   "devDependencies": {

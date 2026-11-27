@@ -1740,8 +1740,9 @@ export interface components {
                 client_secret?: string;
             };
         };
+        /** @description Each service's spec, or null for a service the world was created without. */
         WorldSpec: {
-            slack: components["schemas"]["SlackState"];
+            slack: components["schemas"]["SlackState"] & (Record<string, never> | null);
             jira: components["schemas"]["JiraState"] & (Record<string, never> | null);
         };
         SlackToken: {

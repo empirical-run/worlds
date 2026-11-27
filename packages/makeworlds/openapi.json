@@ -1420,7 +1420,17 @@
         "type": "object",
         "properties": {
           "slack": {
-            "$ref": "#/components/schemas/SlackState"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SlackState"
+              },
+              {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              }
+            ]
           },
           "jira": {
             "allOf": [
@@ -1439,7 +1449,8 @@
         "required": [
           "slack",
           "jira"
-        ]
+        ],
+        "description": "Each service's spec, or null for a service the world was created without."
       },
       "SlackToken": {
         "type": "object",

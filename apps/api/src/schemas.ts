@@ -1,7 +1,6 @@
 import { z } from "@hono/zod-openapi";
 import { API_KEY_NAME_MAX, TEAM_NAME_MAX, WORLD_NAME_MAX } from "@worlds/db";
-import { JiraSpecSchema, JiraStateSchema } from "@worlds/jira/contract";
-import { SlackSpecSchema, SlackStateSchema } from "@worlds/slack/contract";
+import { createdShape, specShape, stateShape, urlsShape } from "@worlds/services";
 
 const Role = z.enum(["owner", "member"]);
 
@@ -84,36 +83,7 @@ export const WorldSchema = z
     created_by: z.string().nullable().openapi({
       description: "Id of the user who created the world. null when an API key created it.",
     }),
-    slack: z.object({
-      api_url: z.url().openapi({
-        description: "Use as the Slack Web API base URL, e.g. slackApiUrl in @slack/web-api.",
-        example: "https://k2v9x0q1m4-slack.makeworlds.dev/api/",
-      }),
-      oauth_authorize_url: z.url().openapi({
-        description: "Send users here instead of slack.com/oauth/v2/authorize to install your app.",
-        example: "https://k2v9x0q1m4-slack.makeworlds.dev/oauth/v2/authorize",
-      }),
-      ui_url: z.url().openapi({
-        description: "The world's Slack UI.",
-        example: "https://k2v9x0q1m4-slack.makeworlds.dev/",
-      }),
-    }),
-    jira: z.object({
-      site_url: z.url().openapi({
-        description:
-          "The Jira site, in place of https://your-site.atlassian.net. Issue pages are at /browse/{key}.",
-        example: "https://k2v9x0q1m4-jira.makeworlds.dev",
-      }),
-      auth_url: z.url().openapi({
-        description: "In place of https://auth.atlassian.com: /authorize and /oauth/token.",
-        example: "https://k2v9x0q1m4-jira-auth.makeworlds.dev",
-      }),
-      api_url: z.url().openapi({
-        description:
-          "In place of https://api.atlassian.com: /oauth/token/accessible-resources and /ex/jira/{cloudId}/rest/api/3.",
-        example: "https://k2v9x0q1m4-jira-api.makeworlds.dev",
-      }),
-    }),
+    ...urlsShape,
     created_at: z.iso.datetime(),
     updated_at: z.iso.datetime(),
   })
@@ -121,22 +91,18 @@ export const WorldSchema = z
 
 export const WorldListSchema = z.object({ worlds: z.array(WorldSchema) }).openapi("WorldList");
 
-export const WorldCreatedSchema = WorldSchema.extend({
-  slack: WorldSchema.shape.slack.extend({ spec: SlackStateSchema }),
-  jira: WorldSchema.shape.jira.extend({ spec: JiraStateSchema }),
-}).openapi("WorldCreated");
+export const WorldCreatedSchema = WorldSchema.extend(createdShape).openapi("WorldCreated");
 
-export const WorldSpecSchema = z
-  .object({ slack: SlackStateSchema, jira: JiraStateSchema.nullable() })
-  .openapi("WorldSpec");
+export const WorldSpecSchema = z.object(stateShape).openapi("WorldSpec", {
+  description: "Each service's spec, or null for a service the world was created without.",
+});
 
 export const WorldCreateSchema = z
   .object({
     name: name(WORLD_NAME_MAX)
       .optional()
       .openapi({ description: "Defaults to Untitled world.", example: "Thread routing eval" }),
-    slack: SlackSpecSchema.optional(),
-    jira: JiraSpecSchema.optional(),
+    ...specShape,
   })
   .openapi("WorldCreate");
 
