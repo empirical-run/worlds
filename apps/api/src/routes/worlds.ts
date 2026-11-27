@@ -1,5 +1,5 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
-import { createWorld, listWorlds, liveWorld, markWorldDeleted, type World } from "@worlds/db";
+import { createWorld, listWorlds, liveWorld, markWorldDeleted, worldHost, type World } from "@worlds/db";
 import { apiError, type AppEnv } from "../context";
 import { errorResponse, jsonResponse, security, WorldCreateSchema, WorldListSchema, WorldParamsSchema, WorldSchema } from "../schemas";
 import { accessibleTeam, accessibleTeams } from "../teams";
@@ -62,8 +62,8 @@ const deleteWorldRoute = createRoute({
   },
 });
 
-function worldJson(world: World, slackUrl: string) {
-  const base = `${slackUrl}/w/${world.id}`;
+function worldJson(world: World, domain: string) {
+  const base = `https://${worldHost(world.id, "slack", domain)}`;
   return {
     id: world.id,
     name: world.name,
@@ -81,7 +81,7 @@ export const worlds = new OpenAPIHono<AppEnv>()
   .openapi(listWorldsRoute, async (c) => {
     const teams = await accessibleTeams(c.var.db, c.var.caller);
     const found = await listWorlds(c.var.db, teams.map(({ team }) => team.id));
-    return c.json({ worlds: found.map((world) => worldJson(world, c.env.SLACK_URL)) }, 200);
+    return c.json({ worlds: found.map((world) => worldJson(world, c.env.WORLDS_DOMAIN)) }, 200);
   })
   .openapi(createWorldRoute, async (c) => {
     const { caller, db } = c.var;
@@ -91,12 +91,12 @@ export const worlds = new OpenAPIHono<AppEnv>()
     if (!target) return c.json(apiError("not_found", "No team with that id is visible to you."), 404);
     const createdBy = caller.kind === "user" ? caller.user.id : null;
     const world = await createWorld(db, target.team.id, createdBy, body.name ?? "Untitled world");
-    return c.json(worldJson(world, c.env.SLACK_URL), 201);
+    return c.json(worldJson(world, c.env.WORLDS_DOMAIN), 201);
   })
   .openapi(getWorldRoute, async (c) => {
     const world = await visibleWorld(c, c.req.valid("param").worldId);
     if (!world) return c.json(apiError("not_found", NOT_VISIBLE), 404);
-    return c.json(worldJson(world, c.env.SLACK_URL), 200);
+    return c.json(worldJson(world, c.env.WORLDS_DOMAIN), 200);
   })
   .openapi(deleteWorldRoute, async (c) => {
     const world = await visibleWorld(c, c.req.valid("param").worldId);

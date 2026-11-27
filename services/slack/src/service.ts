@@ -118,7 +118,7 @@ export class SlackService {
   private async inspector(request: Request, url: URL, baseUrl: string): Promise<Response> {
     const slack = await this.load(baseUrl);
     const response = await slack.app.fetch(new Request(`${url.origin}/${url.search}`, request));
-    const html = (await response.text()).replaceAll('href="/?', `href="${new URL(baseUrl).pathname}${INSPECTOR_PATH}?`);
+    const html = (await response.text()).replaceAll('href="/?', `href="${new URL(baseUrl).pathname.replace(/\/$/, "")}${INSPECTOR_PATH}?`);
     return new Response(html, { status: response.status, headers: response.headers });
   }
 

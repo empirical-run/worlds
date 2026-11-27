@@ -17,7 +17,7 @@ import {
   fileObjectUrl,
   uploadAs,
   Unauthorized,
-  WORLD_BASE,
+  SLACK_BASE,
   type Channel,
   type FileRef,
   type ImageRef,
@@ -45,7 +45,7 @@ function writeRoute(route: Route) {
   if (route.channel) params.set("channel", route.channel);
   if (route.thread) params.set("thread", route.thread);
   const query = params.toString();
-  history.replaceState(null, "", `${WORLD_BASE}/${query ? `?${query}` : ""}`);
+  history.replaceState(null, "", `${SLACK_BASE}/${query ? `?${query}` : ""}`);
 }
 
 function hue(id: string): number {
@@ -310,7 +310,7 @@ function Sidebar(props: {
           </select>
         </label>
         <div className="footer-links">
-          <a href={`${WORLD_BASE}/_inspector`}>Inspector</a>
+          <a href={`${SLACK_BASE}/_inspector`}>Inspector</a>
           <a href="https://makeworlds.dev/account">Account</a>
         </div>
       </footer>

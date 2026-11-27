@@ -31,12 +31,12 @@ export type WorldState = {
 
 export class Unauthorized extends Error {}
 
-export const WORLD_BASE = location.pathname.match(/^\/w\/[^/]+/)?.[0] ?? "";
+export const SLACK_BASE = "";
 
 const NOT_SIGNED_IN = "Sign in at makeworlds.dev with an account in this world's team.";
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${WORLD_BASE}${path}`, {
+  const response = await fetch(`${SLACK_BASE}${path}`, {
     ...init,
     headers: { "content-type": "application/json", ...init?.headers },
   });
@@ -64,7 +64,7 @@ const fileUrls = new Map<string, Promise<string>>();
 export function fileObjectUrl(fileId: string): Promise<string> {
   const cached = fileUrls.get(fileId);
   if (cached) return cached;
-  const pending = fetch(`${WORLD_BASE}/_worlds/slack/files/${encodeURIComponent(fileId)}`).then(
+  const pending = fetch(`${SLACK_BASE}/_worlds/slack/files/${encodeURIComponent(fileId)}`).then(
     async (response) => {
       if (response.status === 401) throw new Unauthorized(NOT_SIGNED_IN);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -85,7 +85,7 @@ export async function uploadAs(
   if (upload.threadTs) form.set("thread_ts", upload.threadTs);
   if (upload.text) form.set("text", upload.text);
   form.set("file", upload.file, upload.file.name);
-  const response = await fetch(`${WORLD_BASE}/_worlds/slack/upload`, { method: "POST", body: form });
+  const response = await fetch(`${SLACK_BASE}/_worlds/slack/upload`, { method: "POST", body: form });
   if (response.status === 401) throw new Unauthorized(NOT_SIGNED_IN);
   const body = (await response.json()) as { ok: boolean; error?: string };
   if (!body.ok) throw new Error(body.error ?? `HTTP ${response.status}`);

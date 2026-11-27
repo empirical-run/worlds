@@ -19,11 +19,11 @@ pnpm smoke
 
 `pnpm smoke` runs against the seeded smoke world: it checks the world's access rules, installs the app over OAuth, posts an @mention as a user, replies as the bot and checks the signed `app_mention` callback.
 
-`services/world` is the `worlds` Worker on slack.makeworlds.dev. Every world is one `World` Durable Object holding all of its services; the Worker routes `/w/{worldId}/…` to it after checking the world exists in D1. `services/slack` is the Slack service module (`SlackService`) and its UI (`ui/`), which the world Worker serves; `wrangler dev` and `wrangler deploy` build the UI first.
+`services/world` is the `worlds` Worker on `*.makeworlds.dev`. Every world is one `World` Durable Object holding all of its services. Each service of a world has its own host, `{id}-{service}.makeworlds.dev` with the id minus its `world_` prefix (`https://k2v9x0q1m4-slack.makeworlds.dev`, `http://k2v9x0q1m4-slack.localhost:8787` in dev), so services sit at the root like the real ones; the Worker checks the world exists in D1 before routing to its Durable Object. `services/slack` is the Slack service module (`SlackService`) and its UI (`ui/`), which the world Worker serves; `wrangler dev` and `wrangler deploy` build the UI first.
 
 ## Slack
 
-All paths below are under the world's URL, `https://slack.makeworlds.dev/w/{worldId}`. Create worlds with `POST /api/worlds` on makeworlds.dev.
+All paths below are on the world's Slack host, `https://{id}-slack.makeworlds.dev`. Create worlds with `POST /api/worlds` on makeworlds.dev.
 
 - Web API at `/api/*`, OAuth at `/oauth/v2/authorize`.
 - A Slack-style UI at `/`, for members of the world's team (makeworlds.dev session): channels, threads, mrkdwn, live updates. Pick a user under "Acting as" and post as them; `@name` becomes a real mention, so `@empirical` fires `app_mention` at the app under test. Create channels and add people (or the app) from the UI too.
@@ -42,4 +42,4 @@ The site at https://makeworlds.dev is `apps/web`: React Router 8 (framework mode
 
 ## Deploy
 
-Production is https://slack.makeworlds.dev (custom domain on the `makeworlds.dev` zone; `WORLDS_SLACK_URL` pins the base URL in Slack responses). worlds.empirical-run.workers.dev serves the same world. Pushes to `main` deploy through GitHub Actions (`.github/workflows/ci.yml`) after typecheck and the smoke test pass. Runtime secrets (`SLACK_*`, `WORLDS_ADMIN_TOKEN`) live on the Worker and are kept across deploys. The workflow needs a `CLOUDFLARE_API_TOKEN` repo secret with Workers Scripts: Edit on the empirical.run account.
+Worlds are served on the `*.makeworlds.dev/*` route (a proxied wildcard DNS record on the `makeworlds.dev` zone; the apex stays with the site). Pushes to `main` deploy through GitHub Actions (`.github/workflows/ci.yml`) after typecheck and the smoke test pass. Runtime secrets (`SLACK_*`) live on the Worker and are kept across deploys. The workflow needs a `CLOUDFLARE_API_TOKEN` repo secret with Workers Scripts: Edit on the empirical.run account.

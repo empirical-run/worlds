@@ -73,20 +73,20 @@ export const ApiKeyCreatedSchema = ApiKeySchema.extend({
 
 export const WorldSchema = z
   .object({
-    id: z.string().openapi({ example: "world_x7c2m9q4r1t8v5w0z3b6" }),
+    id: z.string().openapi({ example: "world_k2v9x0q1m4" }),
     name: z.string().openapi({ example: "Thread routing eval" }),
     team_id: z.string().openapi({ example: "team_k2v9x0q1m4s7d8f3a6b5" }),
     created_by: z.string().nullable().openapi({ description: "Id of the user who created the world. null when an API key created it." }),
     slack: z.object({
       api_url: z.url().openapi({
         description: "Use as the Slack Web API base URL, e.g. slackApiUrl in @slack/web-api.",
-        example: "https://slack.makeworlds.dev/w/world_x7c2m9q4r1t8v5w0z3b6/api/",
+        example: "https://k2v9x0q1m4-slack.makeworlds.dev/api/",
       }),
       oauth_authorize_url: z.url().openapi({
         description: "Send users here instead of slack.com/oauth/v2/authorize to install your app.",
-        example: "https://slack.makeworlds.dev/w/world_x7c2m9q4r1t8v5w0z3b6/oauth/v2/authorize",
+        example: "https://k2v9x0q1m4-slack.makeworlds.dev/oauth/v2/authorize",
       }),
-      ui_url: z.url().openapi({ description: "The world's Slack UI.", example: "https://slack.makeworlds.dev/w/world_x7c2m9q4r1t8v5w0z3b6/" }),
+      ui_url: z.url().openapi({ description: "The world's Slack UI.", example: "https://k2v9x0q1m4-slack.makeworlds.dev/" }),
     }),
     created_at: z.iso.datetime(),
     updated_at: z.iso.datetime(),
@@ -103,7 +103,7 @@ export const WorldCreateSchema = z
   .openapi("WorldCreate");
 
 export const WorldParamsSchema = z.object({
-  worldId: z.string().openapi({ param: { name: "worldId", in: "path" }, example: "world_x7c2m9q4r1t8v5w0z3b6" }),
+  worldId: z.string().openapi({ param: { name: "worldId", in: "path" }, example: "world_k2v9x0q1m4" }),
 });
 
 export const TeamParamsSchema = z.object({

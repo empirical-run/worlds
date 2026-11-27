@@ -6,7 +6,7 @@
   "compatibility_date": "2026-11-01",
   "workers_dev": false,
   "services": [{ "binding": "SLACK", "service": "worlds", "entrypoint": "WorldsControl" }],
-  "vars": { "SLACK_URL": "https://slack.makeworlds.dev" },
+  "vars": { "WORLDS_DOMAIN": "makeworlds.dev" },
   "d1_databases": [
     {
       "binding": "DB",

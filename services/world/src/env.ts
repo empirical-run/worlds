@@ -10,6 +10,6 @@ export type Env = {
   SLACK_USER_TOKEN: string;
   SLACK_REDIRECT_URIS: string;
   SLACK_EVENTS_URL: string;
-  WORLDS_SLACK_URL: string;
+  WORLDS_DOMAIN: string;
   MAKEWORLDS_URL: string;
 };
