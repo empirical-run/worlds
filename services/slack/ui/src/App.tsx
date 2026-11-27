@@ -14,6 +14,7 @@ import {
 
 import {
   actAs,
+  type ActingMethod,
   fetchState,
   fileObjectUrl,
   uploadAs,
@@ -154,7 +155,7 @@ function World({ onUnauthorized }: { onUnauthorized: (message: string) => void }
   }, [state]);
 
   const act = useCallback(
-    async (method: string, args: Record<string, unknown>) => {
+    async (method: ActingMethod, args: Record<string, unknown>) => {
       if (!actor) throw new Error("No user to act as");
       try {
         const result = await actAs(actor.id, method, args);
@@ -387,7 +388,7 @@ function ChannelView(props: {
   actor: User | null;
   openThread: string | null;
   onOpenThread: (ts: string) => void;
-  act: (method: string, args: Record<string, unknown>) => Promise<unknown>;
+  act: (method: ActingMethod, args: Record<string, unknown>) => Promise<unknown>;
   upload: Upload;
 }) {
   const topLevel = props.messages.filter(isTopLevel);
@@ -469,7 +470,7 @@ function ThreadPanel(props: {
   lookup: Lookup;
   actor: User | null;
   onClose: () => void;
-  act: (method: string, args: Record<string, unknown>) => Promise<unknown>;
+  act: (method: ActingMethod, args: Record<string, unknown>) => Promise<unknown>;
   upload: Upload;
 }) {
   return (

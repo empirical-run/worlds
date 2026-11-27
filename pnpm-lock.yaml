@@ -202,6 +202,18 @@ importers:
       '@emulators/slack':
         specifier: 0.14.0
         version: 0.14.0(patch_hash=f09e963d144bf6bd0beb97debd323439635fab7a6c62b9d9082290bd3cca0fbe)
+      '@hono/zod-openapi':
+        specifier: ^1.6.3
+        version: 1.6.3(hono@4.13.22)(zod@4.6.7)
+      '@worlds/contract':
+        specifier: workspace:*
+        version: link:../../packages/contract
+      hono:
+        specifier: ^4.13.22
+        version: 4.13.22
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^5.20261125.1

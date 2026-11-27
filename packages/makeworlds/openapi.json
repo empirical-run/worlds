@@ -559,8 +559,7 @@
                   "type": "string"
                 },
                 "manifest": {
-                  "type": "object",
-                  "additionalProperties": {}
+                  "$ref": "#/components/schemas/SlackManifest"
                 },
                 "credentials": {
                   "$ref": "#/components/schemas/SlackCredentials"
@@ -617,6 +616,7 @@
         "properties": {
           "user": {
             "type": "string",
+            "minLength": 1,
             "description": "A user's name or id.",
             "example": "alice"
           },
@@ -631,7 +631,10 @@
               "type": "object",
               "properties": {
                 "user": {
-                  "type": "string"
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "A user's name or id.",
+                  "example": "alice"
                 },
                 "text": {
                   "type": "string",
@@ -650,6 +653,142 @@
           "user",
           "text"
         ]
+      },
+      "SlackManifest": {
+        "type": "object",
+        "properties": {
+          "display_information": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": {}
+          },
+          "features": {
+            "type": "object",
+            "properties": {
+              "bot_user": {
+                "type": "object",
+                "properties": {
+                  "display_name": {
+                    "type": "string"
+                  },
+                  "always_online": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": {}
+              }
+            },
+            "additionalProperties": {}
+          },
+          "oauth_config": {
+            "type": "object",
+            "properties": {
+              "redirect_urls": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "scopes": {
+                "type": "object",
+                "properties": {
+                  "bot": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "user": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "additionalProperties": {}
+              }
+            },
+            "additionalProperties": {}
+          },
+          "settings": {
+            "type": "object",
+            "properties": {
+              "event_subscriptions": {
+                "type": "object",
+                "properties": {
+                  "request_url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "bot_events": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "additionalProperties": {}
+              },
+              "interactivity": {
+                "type": "object",
+                "properties": {
+                  "is_enabled": {
+                    "type": "boolean"
+                  },
+                  "request_url": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                },
+                "additionalProperties": {}
+              }
+            },
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "display_information"
+        ],
+        "additionalProperties": {},
+        "description": "A Slack app manifest (JSON). Its redirect_urls, scopes, event_subscriptions and interactivity apply in this world.",
+        "example": {
+          "display_information": {
+            "name": "My app"
+          },
+          "features": {
+            "bot_user": {
+              "display_name": "my-app"
+            }
+          },
+          "oauth_config": {
+            "scopes": {
+              "bot": [
+                "app_mentions:read",
+                "chat:write",
+                "channels:history"
+              ]
+            }
+          },
+          "settings": {
+            "event_subscriptions": {
+              "request_url": "https://example.com/slack/events",
+              "bot_events": [
+                "app_mention"
+              ]
+            }
+          }
+        }
       },
       "SlackCredentials": {
         "type": "object",
@@ -1053,36 +1192,7 @@
         "type": "object",
         "properties": {
           "manifest": {
-            "type": "object",
-            "additionalProperties": {},
-            "description": "A Slack app manifest (JSON). Its redirect_urls, scopes, event_subscriptions and interactivity apply in this world.",
-            "example": {
-              "display_information": {
-                "name": "My app"
-              },
-              "features": {
-                "bot_user": {
-                  "display_name": "my-app"
-                }
-              },
-              "oauth_config": {
-                "scopes": {
-                  "bot": [
-                    "app_mentions:read",
-                    "chat:write",
-                    "channels:history"
-                  ]
-                }
-              },
-              "settings": {
-                "event_subscriptions": {
-                  "request_url": "https://example.com/slack/events",
-                  "bot_events": [
-                    "app_mention"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/schemas/SlackManifest"
           },
           "credentials": {
             "type": "object",
@@ -1329,6 +1439,338 @@
         "required": [
           "slack",
           "jira"
+        ]
+      },
+      "SlackToken": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "example": "U0ALICE00001"
+          },
+          "token": {
+            "type": "string",
+            "example": "xoxp-worlds-0b6c…"
+          }
+        },
+        "required": [
+          "user_id",
+          "token"
+        ]
+      },
+      "SlackTokenRequest": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The user who acts: their name or id. Bots can't be acted as.",
+            "example": "alice"
+          }
+        },
+        "required": [
+          "user"
+        ]
+      },
+      "SlackWorldState": {
+        "type": "object",
+        "properties": {
+          "team": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "real_name": {
+                  "type": "string"
+                },
+                "is_bot": {
+                  "type": "boolean"
+                },
+                "has_token": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "real_name",
+                "is_bot",
+                "has_token"
+              ]
+            }
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "is_private": {
+                  "type": "boolean"
+                },
+                "topic": {
+                  "type": "string"
+                },
+                "members": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "is_private",
+                "topic",
+                "members"
+              ]
+            }
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SlackMessage"
+            },
+            "description": "The channel's messages, oldest first. Empty without channel."
+          }
+        },
+        "required": [
+          "team",
+          "users",
+          "channels",
+          "messages"
+        ]
+      },
+      "SlackMessage": {
+        "type": "object",
+        "properties": {
+          "ts": {
+            "type": "string"
+          },
+          "thread_ts": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "reply_count": {
+            "type": "integer"
+          },
+          "reply_users": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reactions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "users": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "count": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "name",
+                "users",
+                "count"
+              ]
+            }
+          },
+          "bot_name": {
+            "type": "string"
+          },
+          "edited": {
+            "type": "boolean"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SlackFileRef"
+            }
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "file_id": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "alt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "alt"
+              ]
+            }
+          }
+        },
+        "required": [
+          "ts",
+          "user",
+          "text",
+          "reply_count",
+          "reply_users",
+          "reactions",
+          "edited",
+          "files",
+          "images"
+        ]
+      },
+      "SlackFileRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "mimetype": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "mimetype",
+          "size"
+        ]
+      },
+      "SlackWebApiResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": {},
+        "description": "The Slack Web API's response, as is: ok false with an error is a Slack error, not a failed request."
+      },
+      "SlackActRequest": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The user who acts: their name or id. Bots can't be acted as.",
+            "example": "alice"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "chat.postMessage",
+              "conversations.create",
+              "conversations.invite",
+              "reactions.add",
+              "reactions.remove"
+            ],
+            "example": "chat.postMessage"
+          },
+          "args": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "The method's arguments, as the Web API takes them.",
+            "example": {
+              "channel": "C0GENERAL001",
+              "text": "Hey <@U0EMPIRICAL1>, can you take a look?"
+            }
+          }
+        },
+        "required": [
+          "user",
+          "method"
+        ]
+      },
+      "SlackUploadRequest": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The user who acts: their name or id. Bots can't be acted as.",
+            "example": "alice"
+          },
+          "channel": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A channel id.",
+            "example": "C0GENERAL001"
+          },
+          "file": {
+            "type": "string",
+            "format": "binary"
+          },
+          "text": {
+            "type": "string",
+            "description": "A message to share the file with."
+          },
+          "thread_ts": {
+            "type": "string",
+            "description": "Share it in this thread."
+          }
+        },
+        "required": [
+          "user",
+          "channel",
+          "file"
         ]
       },
       "JiraWorldState": {
@@ -2487,6 +2929,365 @@
           },
           "404": {
             "description": "No world with that id is visible to you",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_worlds/slack/tokens": {
+      "post": {
+        "tags": [
+          "Slack world"
+        ],
+        "servers": [
+          {
+            "url": "https://{world}-slack.makeworlds.dev",
+            "description": "{world} is the world id without its world_ prefix, as in the world's URLs.",
+            "variables": {
+              "world": {
+                "default": "k2v9x0q1m4",
+                "description": "The world id without its world_ prefix."
+              }
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Get a user token",
+        "description": "A user token to act as the user with any Slack client. Minted on first use, then the same token.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SlackTokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The user's token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SlackToken"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown user, or a bot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials, or not your team's world",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_worlds/slack/state": {
+      "get": {
+        "tags": [
+          "Slack world"
+        ],
+        "servers": [
+          {
+            "url": "https://{world}-slack.makeworlds.dev",
+            "description": "{world} is the world id without its world_ prefix, as in the world's URLs.",
+            "variables": {
+              "world": {
+                "default": "k2v9x0q1m4",
+                "description": "The world id without its world_ prefix."
+              }
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Get the workspace's state",
+        "description": "Users, channels and, with channel, that channel's messages.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "A channel id.",
+              "example": "C0GENERAL001"
+            },
+            "required": false,
+            "description": "A channel id.",
+            "name": "channel",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SlackWorldState"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials, or not your team's world",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_worlds/slack/act": {
+      "post": {
+        "tags": [
+          "Slack world"
+        ],
+        "servers": [
+          {
+            "url": "https://{world}-slack.makeworlds.dev",
+            "description": "{world} is the world id without its world_ prefix, as in the world's URLs.",
+            "variables": {
+              "world": {
+                "default": "k2v9x0q1m4",
+                "description": "The world id without its world_ prefix."
+              }
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Call a Web API method as a user",
+        "description": "Calls method as the user, minting their token if needed, and sends the events Slack would, e.g. app_mention for a message that mentions your app.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SlackActRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The method's response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SlackWebApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A method that can't be called this way, or an unknown user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials, or not your team's world",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_worlds/slack/upload": {
+      "post": {
+        "tags": [
+          "Slack world"
+        ],
+        "servers": [
+          {
+            "url": "https://{world}-slack.makeworlds.dev",
+            "description": "{world} is the world id without its world_ prefix, as in the world's URLs.",
+            "variables": {
+              "world": {
+                "default": "k2v9x0q1m4",
+                "description": "The world id without its world_ prefix."
+              }
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Share a file as a user",
+        "description": "Uploads the file and shares it in the channel, as files.uploadV2 does.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/SlackUploadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "files.completeUploadExternal's response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SlackWebApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing fields or an unknown user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials, or not your team's world",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The upload failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_worlds/slack/files/{fileId}": {
+      "get": {
+        "tags": [
+          "Slack world"
+        ],
+        "servers": [
+          {
+            "url": "https://{world}-slack.makeworlds.dev",
+            "description": "{world} is the world id without its world_ prefix, as in the world's URLs.",
+            "variables": {
+              "world": {
+                "default": "k2v9x0q1m4",
+                "description": "The world id without its world_ prefix."
+              }
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Download a file",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "F0A1B2C3D4"
+            },
+            "required": true,
+            "name": "fileId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The file's bytes, with its mimetype as content-type",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials, or not your team's world",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No file with that id",
             "content": {
               "application/json": {
                 "schema": {

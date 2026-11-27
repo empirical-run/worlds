@@ -6,6 +6,7 @@ import {
   type TokenEntry,
 } from "@emulators/core";
 import { getSlackStore, slackPlugin } from "@emulators/slack";
+import { apiError, routes, type ApiError } from "@worlds/contract";
 
 import {
   acceptRedirect,
@@ -15,11 +16,19 @@ import {
   validateManifest,
   type SlackApp,
 } from "./apps";
+import {
+  actRoute,
+  fileRoute,
+  stateRoute,
+  tokenRoute,
+  uploadRoute,
+  type SlackWebApiResponse,
+} from "./contract";
 import { FileBlobs } from "./file-blobs";
 import { seedWorkspace } from "./seed";
 import { SlackDelivery } from "./slack-delivery";
 import { registerSlackExtensions } from "./slack-extensions";
-import { ACTING_METHODS, fileContent, userToken, worldState } from "./slack-ui";
+import { findHuman, fileContent, userToken, worldState } from "./slack-ui";
 import { DEFAULT_SLACK_SPEC, type SlackAppState, type SlackSpec, type SlackState } from "./spec";
 
 type Persisted = { store: StoreSnapshot; tokens: TokenEntry[] };
@@ -44,6 +53,7 @@ export class SlackService {
   private server: SlackServer | null = null;
   private delivery: SlackDelivery;
   private blobs: FileBlobs;
+  private control = this.controlRoutes();
 
   constructor(private storage: DurableObjectStorage) {
     this.delivery = new SlackDelivery(storage, (appId, event) =>
@@ -52,7 +62,7 @@ export class SlackService {
     this.blobs = new FileBlobs(storage);
   }
 
-  async setup(spec: SlackSpec, baseUrl: string): Promise<SlackState> {
+  async setup(spec: SlackSpec | undefined, baseUrl: string): Promise<SlackState> {
     if (this.server || (await this.storage.get(STATE_KEY))) throw new WorldAlreadySetUp();
     await this.load(baseUrl, spec);
     return (await this.state()) as SlackState;
@@ -64,7 +74,7 @@ export class SlackService {
 
   async fetch(request: Request, baseUrl: string): Promise<Response> {
     const url = new URL(request.url);
-    if (url.pathname.startsWith(CONTROL_PREFIX)) return this.control(request, url, baseUrl);
+    if (url.pathname.startsWith(CONTROL_PREFIX)) return this.control.fetch(request, { baseUrl });
     if (request.method === "GET" && url.pathname === "/oauth/v2/authorize") {
       const slack = await this.load(baseUrl);
       const clientId = url.searchParams.get("client_id");
@@ -98,32 +108,70 @@ export class SlackService {
     return this.delivery.nextDue();
   }
 
-  private async control(request: Request, url: URL, baseUrl: string): Promise<Response> {
-    if (request.method === "POST" && url.pathname === "/_worlds/slack/tokens") {
-      const { user_id: userId } = (await request.json()) as { user_id?: string };
-      const slack = await this.load(baseUrl);
-      const token = userId ? userToken(slack, userId) : null;
-      if (!token) return Response.json({ ok: false, error: "user_not_found" }, { status: 400 });
-      await this.save();
-      return Response.json({ ok: true, token });
-    }
-    if (request.method === "GET" && url.pathname === "/_worlds/slack/state") {
-      const slack = await this.load(baseUrl);
-      return Response.json({ ok: true, ...worldState(slack, url.searchParams.get("channel")) });
-    }
-    if (request.method === "POST" && url.pathname === "/_worlds/slack/act")
-      return this.actAs(request, url, baseUrl);
-    if (request.method === "POST" && url.pathname === "/_worlds/slack/upload")
-      return this.uploadAs(request, url, baseUrl);
-    const fileMatch = url.pathname.match(/^\/_worlds\/slack\/files\/([A-Z0-9]+)$/);
-    if (request.method === "GET" && fileMatch) {
-      const slack = await this.load(baseUrl);
-      return (
-        fileContent(getSlackStore(slack.store), fileMatch[1]) ??
-        Response.json({ ok: false, error: "file_not_found" }, { status: 404 })
-      );
-    }
-    return Response.json({ ok: false, error: "not_found" }, { status: 404 });
+  private controlRoutes() {
+    const app = routes<{ Bindings: { baseUrl: string } }>()
+      .openapi(tokenRoute, async (c) => {
+        const { user } = c.req.valid("json");
+        const slack = await this.load(c.env.baseUrl);
+        const userId = findHuman(slack, user);
+        const token = userId ? userToken(slack, userId) : null;
+        if (!userId || !token) return c.json(unknownUser(user), 400);
+        await this.save();
+        return c.json({ user_id: userId, token }, 200);
+      })
+      .openapi(stateRoute, async (c) => {
+        const slack = await this.load(c.env.baseUrl);
+        return c.json(worldState(slack, c.req.valid("query").channel ?? null), 200);
+      })
+      .openapi(actRoute, async (c) => {
+        const { user, method, args } = c.req.valid("json");
+        const slack = await this.load(c.env.baseUrl);
+        const userId = findHuman(slack, user);
+        const token = userId ? userToken(slack, userId) : null;
+        if (!token) return c.json(unknownUser(user), 400);
+        const result = await callSlack(slack, new URL(c.req.url).origin, token, method, args ?? {});
+        await this.save();
+        return c.json(result, 200);
+      })
+      .openapi(uploadRoute, async (c) => {
+        const { user, channel, file, text, thread_ts: threadTs } = c.req.valid("form");
+        const slack = await this.load(c.env.baseUrl);
+        const userId = findHuman(slack, user);
+        const token = userId ? userToken(slack, userId) : null;
+        if (!token) return c.json(unknownUser(user), 400);
+        const origin = new URL(c.req.url).origin;
+        const target = await callSlack(slack, origin, token, "files.getUploadURLExternal", {
+          filename: file.name,
+          length: file.size,
+        });
+        if (!target.ok || typeof target.upload_url !== "string") return c.json(target, 200);
+        const uploaded = await slack.app.fetch(
+          new Request(`${origin}${pathWithin(c.env.baseUrl, target.upload_url)}`, {
+            method: "POST",
+            body: await file.arrayBuffer(),
+          }),
+        );
+        if (!uploaded.ok)
+          return c.json(apiError("upload_failed", "The file couldn't be uploaded."), 502);
+        const result = await callSlack(slack, origin, token, "files.completeUploadExternal", {
+          files: [{ id: target.file_id, title: file.name }],
+          channel_id: channel,
+          ...(threadTs ? { thread_ts: threadTs } : {}),
+          ...(text ? { initial_comment: text } : {}),
+        });
+        await this.save();
+        return c.json(result, 200);
+      })
+      .openapi(fileRoute, async (c) => {
+        const { fileId } = c.req.valid("param");
+        const slack = await this.load(c.env.baseUrl);
+        return (
+          fileContent(getSlackStore(slack.store), fileId) ??
+          c.json(apiError("file_not_found", `No file ${fileId} in this world.`), 404)
+        );
+      });
+    app.notFound((c) => c.json(apiError("not_found", "No such endpoint."), 404));
+    return app;
   }
 
   private async manifestMethod(
@@ -154,59 +202,6 @@ export class SlackService {
       });
     }
     return Response.json({ ok: false, error: "unknown_method" });
-  }
-
-  private async actAs(request: Request, url: URL, baseUrl: string): Promise<Response> {
-    const {
-      user_id: userId,
-      method,
-      args,
-    } = (await request.json()) as {
-      user_id?: string;
-      method?: string;
-      args?: Record<string, unknown>;
-    };
-    if (!method || !ACTING_METHODS.has(method))
-      return Response.json({ ok: false, error: "method_not_allowed" }, { status: 400 });
-    const slack = await this.load(baseUrl);
-    const token = userId ? userToken(slack, userId) : null;
-    if (!token) return Response.json({ ok: false, error: "user_not_found" }, { status: 400 });
-    const result = await callSlack(slack, url.origin, token, method, args ?? {});
-    await this.save();
-    return Response.json(result);
-  }
-
-  private async uploadAs(request: Request, url: URL, baseUrl: string): Promise<Response> {
-    const form = await request.formData();
-    const file = form.get("file");
-    const userId = form.get("user_id");
-    const channel = form.get("channel");
-    if (!(file instanceof File) || typeof userId !== "string" || typeof channel !== "string") {
-      return Response.json({ ok: false, error: "invalid_arguments" }, { status: 400 });
-    }
-    const slack = await this.load(baseUrl);
-    const token = userToken(slack, userId);
-    if (!token) return Response.json({ ok: false, error: "user_not_found" }, { status: 400 });
-    const target = await callSlack(slack, url.origin, token, "files.getUploadURLExternal", {
-      filename: file.name,
-      length: file.size,
-    });
-    if (!target.ok || typeof target.upload_url !== "string") return Response.json(target);
-    const uploadPath = pathWithin(baseUrl, target.upload_url);
-    const uploaded = await slack.app.fetch(
-      new Request(`${url.origin}${uploadPath}`, { method: "POST", body: await file.arrayBuffer() }),
-    );
-    if (!uploaded.ok) return Response.json({ ok: false, error: "upload_failed" }, { status: 502 });
-    const threadTs = form.get("thread_ts");
-    const text = form.get("text");
-    const result = await callSlack(slack, url.origin, token, "files.completeUploadExternal", {
-      files: [{ id: target.file_id, title: file.name }],
-      channel_id: channel,
-      ...(typeof threadTs === "string" && threadTs ? { thread_ts: threadTs } : {}),
-      ...(typeof text === "string" && text ? { initial_comment: text } : {}),
-    });
-    await this.save();
-    return Response.json(result);
   }
 
   private async inspector(request: Request, url: URL, baseUrl: string): Promise<Response> {
@@ -383,6 +378,10 @@ async function installApp(
   return { bot_token: access.access_token, bot_user_id: access.bot_user_id };
 }
 
+function unknownUser(ref: string): ApiError {
+  return apiError("user_not_found", `No user named ${ref} in this world, or it is a bot.`);
+}
+
 async function slackArgs(request: Request): Promise<Record<string, unknown>> {
   if (request.headers.get("content-type")?.includes("application/json"))
     return ((await request.json().catch(() => ({}))) ?? {}) as Record<string, unknown>;
@@ -410,7 +409,7 @@ async function callSlack(
   token: string,
   method: string,
   args: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
+): Promise<SlackWebApiResponse> {
   const response = await slack.app.fetch(
     new Request(`${origin}/api/${method}`, {
       method: "POST",
@@ -418,5 +417,5 @@ async function callSlack(
       body: JSON.stringify(args),
     }),
   );
-  return (await response.json()) as Record<string, unknown>;
+  return (await response.json()) as SlackWebApiResponse;
 }

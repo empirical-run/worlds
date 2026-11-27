@@ -8,9 +8,8 @@ import {
   worldHost,
   type World,
 } from "@worlds/db";
-import { DEFAULT_JIRA_SPEC, jiraSpecProblems, type JiraSpec } from "@worlds/jira/spec";
-import { validateManifest } from "@worlds/slack/manifest";
-import { DEFAULT_SLACK_SPEC, unknownReferences, type SlackSpec } from "@worlds/slack/spec";
+import { DEFAULT_JIRA_SPEC, jiraSpecProblems } from "@worlds/jira/spec";
+import { DEFAULT_SLACK_SPEC, slackSpecProblems } from "@worlds/slack/spec";
 
 import type { AppEnv } from "../context";
 import {
@@ -143,20 +142,14 @@ export const worlds = new OpenAPIHono<AppEnv>()
     const body = c.req.valid("json") ?? {};
     const [target] = await accessibleTeams(db, caller);
     if (!target) return c.json(apiError("not_found", "You are not in any team."), 404);
-    const problem = slackSpecProblem(body.slack);
-    if (problem) return c.json(apiError("invalid_request", problem), 400);
-    const jiraProblem = body.jira ? jiraSpecProblems(body.jira as JiraSpec)[0] : undefined;
+    const problem = body.slack ? slackSpecProblems(body.slack)[0] : undefined;
+    if (problem) return c.json(apiError("invalid_request", `slack.${problem}`), 400);
+    const jiraProblem = body.jira ? jiraSpecProblems(body.jira)[0] : undefined;
     if (jiraProblem) return c.json(apiError("invalid_request", `jira.${jiraProblem}`), 400);
     const createdBy = caller.kind === "user" ? caller.user.id : null;
     const world = await createWorld(db, target.team.id, createdBy, body.name ?? "Untitled world");
-    const spec = await c.env.SLACK.setupSlack(
-      world.id,
-      (body.slack as SlackSpec | undefined) ?? DEFAULT_SLACK_SPEC,
-    );
-    const jira = await c.env.SLACK.setupJira(
-      world.id,
-      (body.jira as JiraSpec | undefined) ?? DEFAULT_JIRA_SPEC,
-    );
+    const spec = await c.env.SLACK.setupSlack(world.id, body.slack ?? DEFAULT_SLACK_SPEC);
+    const jira = await c.env.SLACK.setupJira(world.id, body.jira ?? DEFAULT_JIRA_SPEC);
     const json = worldJson(world, c.env.WORLDS_DOMAIN);
     return c.json(
       { ...json, slack: { ...json.slack, spec }, jira: { ...json.jira, spec: jira } },
@@ -189,35 +182,4 @@ async function visibleWorld(
   const world = await liveWorld(c.var.db, worldId);
   if (!world) return null;
   return (await accessibleTeam(c.var.db, c.var.caller, world.teamId)) ? world : null;
-}
-
-function slackSpecProblem(
-  spec:
-    | {
-        users?: { name: string }[];
-        channels?: { name: string }[];
-        apps?: { manifest: unknown; credentials?: { client_id?: string } }[];
-      }
-    | undefined,
-): string | null {
-  if (!spec) return null;
-  for (const [index, app] of (spec.apps ?? []).entries()) {
-    const checked = validateManifest(app.manifest);
-    if ("problems" in checked)
-      return `slack.apps[${index}].manifest${checked.problems[0]?.pointer ?? ""}: ${checked.problems[0]?.message}`;
-  }
-  const duplicate = (values: string[]) =>
-    values.find((value, index) => values.indexOf(value) !== index);
-  const user = duplicate((spec.users ?? []).map((entry) => entry.name));
-  if (user) return `slack.users: duplicate name ${user}`;
-  const channel = duplicate((spec.channels ?? []).map((entry) => entry.name));
-  if (channel) return `slack.channels: duplicate name ${channel}`;
-  const clientId = duplicate(
-    (spec.apps ?? []).flatMap((app) =>
-      app.credentials?.client_id ? [app.credentials.client_id] : [],
-    ),
-  );
-  if (clientId) return `slack.apps: duplicate client_id ${clientId}`;
-  const unknown = unknownReferences(spec as SlackSpec)[0];
-  return unknown ? `slack.${unknown}` : null;
 }

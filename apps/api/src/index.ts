@@ -1,6 +1,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { apiError } from "@worlds/contract";
 import { jira } from "@worlds/jira/contract";
+import { slack } from "@worlds/slack/contract";
 import { HTTPException } from "hono/http-exception";
 
 import { authenticate } from "./auth";
@@ -37,7 +38,7 @@ app.route("/", teams);
 app.route("/", apiKeys);
 app.route("/", worlds);
 
-for (const route of jira.routes) app.openAPIRegistry.registerPath(route);
+for (const route of [...slack.routes, ...jira.routes]) app.openAPIRegistry.registerPath(route);
 
 app.doc31("/api/openapi.json", {
   openapi: "3.1.0",

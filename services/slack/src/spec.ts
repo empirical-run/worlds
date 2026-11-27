@@ -1,70 +1,20 @@
-import type { SlackCredentials, SlackManifest } from "./manifest";
+import type { z } from "@hono/zod-openapi";
 
-export type SlackUserSpec = {
-  id?: string;
-  name: string;
-  real_name?: string;
-  email?: string;
-  token?: string;
-};
+import type { SlackSpecSchema, SlackStateSchema } from "./contract";
 
-export type SlackMessageSpec = {
-  user: string;
-  text: string;
-  replies?: { user: string; text: string }[];
-};
+export type SlackSpec = z.output<typeof SlackSpecSchema>;
 
-export type SlackChannelSpec = {
-  id?: string;
-  name: string;
-  private?: boolean;
-  topic?: string;
-  members?: string[];
-  messages?: SlackMessageSpec[];
-};
+export type SlackState = z.output<typeof SlackStateSchema>;
 
-export type SlackInstallSpec = {
-  installer?: string;
-  bot_user_id?: string;
-  bot_token?: string;
-  channels?: string[];
-};
+export type SlackAppState = SlackState["apps"][number];
 
-export type SlackAppSpec = {
-  manifest: SlackManifest;
-  credentials?: Partial<SlackCredentials>;
-  install?: boolean | SlackInstallSpec;
-};
-
-export type SlackSpec = {
-  team?: { id?: string; name?: string; domain?: string };
-  users?: SlackUserSpec[];
-  channels?: SlackChannelSpec[];
-  apps?: SlackAppSpec[];
-};
-
-export type SlackAppState = {
-  app_id: string;
-  manifest: SlackManifest;
-  credentials: SlackCredentials;
-  install:
-    | (Required<Pick<SlackInstallSpec, "installer" | "bot_user_id" | "bot_token">> & {
-        channels: string[];
-      })
-    | null;
-};
-
-export type SlackState = {
-  team: { id: string; name: string; domain: string };
-  users: (Required<Pick<SlackUserSpec, "id" | "name" | "real_name" | "email">> & {
-    token: string | null;
-  })[];
-  channels: (Required<Pick<SlackChannelSpec, "id" | "name" | "private" | "topic">> & {
-    members: string[];
-    messages: SlackMessageSpec[];
-  })[];
-  apps: SlackAppState[];
-};
+export const ACTING_METHODS = [
+  "chat.postMessage",
+  "conversations.create",
+  "conversations.invite",
+  "reactions.add",
+  "reactions.remove",
+] as const;
 
 export const DEFAULT_SLACK_SPEC: SlackSpec = {
   team: { name: "Worlds", domain: "worlds" },
@@ -72,12 +22,24 @@ export const DEFAULT_SLACK_SPEC: SlackSpec = {
   channels: [{ name: "general", topic: "General discussion", members: ["alice"] }],
 };
 
-export function unknownReferences(spec: SlackSpec): string[] {
+export function slackSpecProblems(spec: SlackSpec): string[] {
+  const duplicate = (values: string[]) =>
+    values.find((value, index) => values.indexOf(value) !== index);
+  const problems: string[] = [];
+  const duplicateUser = duplicate((spec.users ?? []).map((entry) => entry.name));
+  if (duplicateUser) problems.push(`users: duplicate name ${duplicateUser}`);
+  const duplicateChannel = duplicate((spec.channels ?? []).map((entry) => entry.name));
+  if (duplicateChannel) problems.push(`channels: duplicate name ${duplicateChannel}`);
+  const clientId = duplicate(
+    (spec.apps ?? []).flatMap((app) =>
+      app.credentials?.client_id ? [app.credentials.client_id] : [],
+    ),
+  );
+  if (clientId) problems.push(`apps: duplicate client_id ${clientId}`);
   const names = new Set(
     (spec.users ?? []).flatMap((user) => [user.name, ...(user.id ? [user.id] : [])]),
   );
   const channelNames = new Set((spec.channels ?? []).map((channel) => channel.name));
-  const problems: string[] = [];
   for (const channel of spec.channels ?? []) {
     for (const member of channel.members ?? [])
       if (!names.has(member))
