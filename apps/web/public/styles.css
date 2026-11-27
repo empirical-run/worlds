@@ -79,6 +79,7 @@ pre {
   top: 0;
   height: 100dvh;
   overflow-y: auto;
+  scrollbar-width: none;
   display: flex;
   flex-direction: column;
   border-inline: 1px solid var(--rule);
