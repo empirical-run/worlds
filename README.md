@@ -32,11 +32,7 @@ All paths below are on the world's Slack host, `https://{id}-slack.makeworlds.de
 - Files: upload with `files.getUploadURLExternal` → upload URL → `files.completeUploadExternal`, download `url_private`/`url_private_download` with a token. A file shared with an @mention sends `app_mention` with `files`, and images report `thumb_*` (both via `patches/@emulators__slack@0.14.0.patch`). File bytes are stored in their own chunked Durable Object keys, outside the world state, so screenshots don't hit the 2 MB value limit. The UI shows images and files, and attaches files from the composer (button, paste or drop).
 - emulate's raw inspector moved to `/_inspector`.
 - Everything in a world's Slack workspace comes from the `slack` spec in `POST /api/worlds`: team, users (optional pinned tokens), channels with members and seeded messages, and apps (Slack app manifests, optional pinned credentials, optional install with pinned bot user, bot token and channels). Generated values are filled in and returned as `slack.spec`, also at `GET /api/worlds/{id}/spec`; a world never changes its spec. `apps.manifest.export/validate` work, `create/update/delete` answer `restricted_action`. OAuth checks the manifest's `redirect_urls` (Slack's matching, plus `*` host wildcards). Events go to each installed app that subscribes to them (`bot_events`), at its `request_url`, signed with its own signing secret.
-- Control routes take the team's API key (`Authorization: Bearer wk_…`) or a makeworlds.dev session:
-  - `POST /_worlds/slack/tokens` with `{ "user_id" }` returns that user's token.
-  - `GET /_worlds/slack/state?channel=C…` returns users, channels and the channel's messages (the UI polls it).
-  - `GET /_worlds/slack/files/F…` returns a file's bytes; `POST /_worlds/slack/upload` (multipart `user_id`, `channel`, `file`, optional `text`, `thread_ts`) shares a file as that user.
-  - `POST /_worlds/slack/act` with `{ "user_id", "method", "args" }` calls a Web API method as that user, minting a user token when the user has none. Allowed methods: `chat.postMessage`, `conversations.create`, `conversations.invite`, `reactions.add`, `reactions.remove`.
+- Control routes (`/_worlds/slack/*`: user tokens, workspace state, act as a user, share and download files) are in the [API reference](https://makeworlds.dev/docs/api) under Slack world. `act` calls `chat.postMessage`, `conversations.create`, `conversations.invite`, `reactions.add` or `reactions.remove`.
 
 ## Specs
 
@@ -61,7 +57,18 @@ Every world has a Jira Cloud site, written for this repo (emulate has no Jira) i
 - The spec (`POST /api/worlds` with `jira: { site, users, projects, issues, apps }`) seeds once. Apps are OAuth 2.0 (3LO) integrations: `name`, `callback_urls` (`*` matches one host label), `scopes`, optional pinned `credentials`. The cloud id is a random UUID per world unless pinned.
 - REST responses are v3 (ADF descriptions and comments); webhook payloads are v2 (plain-text bodies), like Jira's.
 - Dynamic webhooks: one URL per app and user, up to 5, 30-day expiry. JQL supports `labels`, `project`, `status`, `issuekey`, `assignee`, `reporter` with `=`, `!=`, `in`, `not in` joined by `AND`; anything else is refused at registration. Events: `jira:issue_created|updated|deleted`, `comment_created`. Deliveries carry `Authorization: Bearer <JWT HS256 signed with the client secret>` and `X-Atlassian-Webhook-Identifier`, and are retried up to 5 times, 5 to 15 minutes apart (`X-Atlassian-Webhook-Retry`), on 408/409/425/429/5xx or no answer within 10s.
-- Control routes on the site host (team API key or session): `POST /_worlds/jira/issues` (`{ user, project?, summary, description?, labels?, status?, assignee? }`), `PATCH /_worlds/jira/issues/{key}`, `DELETE /_worlds/jira/issues/{key}?user=`, `POST /_worlds/jira/issues/{key}/comments` (`{ user, body }`), `GET /_worlds/jira/state`. Changes send the webhooks Jira would (`issue_assigned` for an assignee-only change, `issue_generic` for a status-only change).
+- Control routes on the site host (`/_worlds/jira/*`: create, change, comment on and delete issues, site state) are in the [API reference](https://makeworlds.dev/docs/api) under Jira world. Changes send the webhooks Jira would (`issue_assigned` for an assignee-only change, `issue_generic` for a status-only change).
+
+## Services
+
+Each service (Slack, Jira) is a package in `services/<name>` with a contract in `src/contract.ts`: zod-openapi schemas for its spec and state, the URLs a world gets, spec checks, and the `/_worlds/<name>/*` control routes. Its runtime serves the same route objects with `OpenAPIHono`, so requests are validated against the published spec.
+
+- `packages/services` lists the contracts. The API builds `World`, `WorldCreate`, `WorldCreated` and `WorldSpec` from it and adds every control route to `/api/openapi.json`, each with its world host as the server.
+- `packages/contract` has what contracts share: the `ApiError` shape, `defineService`, `worldServer`, `userRef` and the validating router.
+- `services/world/src/services.ts` maps each service to its runtime in the world's Durable Object, and `src/pages.ts` maps it to its pages (sign-in gate, UI assets). Both are typed over the contract list, so a new service won't typecheck until it has both.
+- Control routes take the team's API key or a makeworlds.dev session, name the acting user `user` (name or id), and answer errors as `{ "error": { "code", "message" } }`.
+
+To add a service: write its package with a contract and a runtime, add the contract to `packages/services`, and add its runtime and pages in `services/world`.
 
 ## Site
 
