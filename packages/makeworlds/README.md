@@ -51,7 +51,11 @@ The types are generated from the API's routes, so they match it exactly:
 pnpm --filter makeworlds generate
 ```
 
-CI fails when `openapi.json` or `src/openapi.ts` is out of date. Publish with `pnpm --filter makeworlds publish`.
+CI fails when `openapi.json` or `src/openapi.ts` is out of date.
+
+## Release
+
+Bump `version` in `package.json` in the commit that changes the API, and push to `main`. After CI deploys, `.github/workflows/publish-npm.yml` publishes any version that isn't on npm yet (npm trusted publishing, no token), tags it `makeworlds@<version>` and creates a GitHub release listing the commits since the last one. When the API changes without a bump, the run shows a warning. Don't publish from a laptop.
 
 ## License
 
