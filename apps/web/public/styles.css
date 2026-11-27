@@ -545,6 +545,9 @@ pre {
   background: var(--surface-2);
   line-height: 1.55;
 }
+pre code {
+  font-size: inherit;
+}
 
 :not(pre) > code {
   padding: 1px 5px;

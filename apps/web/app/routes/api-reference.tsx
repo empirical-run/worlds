@@ -16,7 +16,7 @@ import {
 import type { Route } from "./+types/api-reference";
 
 export const headers: Route.HeadersFunction = () => ({
-  "Cache-Control": "private, max-age=300",
+  "Cache-Control": "private, max-age=10",
   Vary: "Cookie",
 });
 
