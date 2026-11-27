@@ -1,4 +1,4 @@
-import { RailIndex, type RailHandle } from "../components/Rail";
+import { type RailHandle } from "../components/Rail";
 import { workerContext } from "../../worker/context";
 import {
   endpointsByTag,
@@ -26,22 +26,14 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 export const handle: RailHandle = {
   railIndex: (data) => {
     const { spec } = data as { spec: OpenApiDocument };
-    return (
-      <RailIndex heading="API reference">
-        <a href="#authentication">Authentication</a>
-        {endpointsByTag(spec).map(([tag, endpoints]) => (
-          <div className="rail-group" key={tag}>
-            <p className="rail-heading rail-subheading">{tag}</p>
-            {endpoints.map((endpoint) => (
-              <a key={endpoint.anchor} href={`#${endpoint.anchor}`}>
-                {endpoint.operation.summary ?? endpoint.path}
-              </a>
-            ))}
-          </div>
-        ))}
-        <a href="#objects">Objects</a>
-      </RailIndex>
-    );
+    return [
+      { heading: "Overview", links: [{ id: "authentication", label: "Authentication" }] },
+      ...endpointsByTag(spec).map(([tag, endpoints]) => ({
+        heading: tag,
+        links: endpoints.map((endpoint) => ({ id: endpoint.anchor, label: endpoint.operation.summary ?? endpoint.path })),
+      })),
+      { heading: "Objects", links: Object.keys(spec.components?.schemas ?? {}).map((name) => ({ id: objectAnchor(name), label: name })) },
+    ];
   },
 };
 

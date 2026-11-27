@@ -9,7 +9,7 @@
   --accent: #3b4fd8;
   --accent-ink: #ffffff;
   --accent-wash: #eef0fd;
-  --rail-width: 240px;
+  --rail-width: 272px;
   --frame-width: 1240px;
   --gutter: clamp(32px, 4vw, 64px);
   color-scheme: light dark;
@@ -66,7 +66,7 @@ code, pre { font-family: "Geist Mono", ui-monospace, monospace; font-size: 0.875
   border-inline: 1px solid var(--rule);
 }
 
-.rail > * { padding: 20px 24px; border-bottom: 1px solid var(--rule); }
+.rail > * { padding: 28px 28px; border-bottom: 1px solid var(--rule); }
 
 .brand {
   display: flex;
@@ -77,12 +77,13 @@ code, pre { font-family: "Geist Mono", ui-monospace, monospace; font-size: 0.875
   text-decoration: none;
 }
 
-.rail nav { display: flex; flex-direction: column; gap: 4px; }
+.rail nav { display: flex; flex-direction: column; gap: 10px; }
 
 .rail-link {
   position: relative;
-  padding-left: 12px;
-  font-size: 14px;
+  padding-left: 14px;
+  font-size: 15px;
+  line-height: 1.4;
   color: var(--ink-2);
   text-decoration: none;
   transition: color 0.15s ease;
@@ -106,25 +107,50 @@ code, pre { font-family: "Geist Mono", ui-monospace, monospace; font-size: 0.875
 
 .rail-link[aria-current="page"]::before { opacity: 1; }
 
-.rail-index { display: flex; flex-direction: column; gap: 6px; }
+.rail-sublink { padding-left: 28px; font-size: 14px; }
+.rail-sublink::before { left: 14px; }
+.rail-link:not(.rail-sublink)[aria-current="page"]:has(~ .rail-sublink[aria-current="page"])::before { opacity: 0; }
+
+.rail .rail-index { gap: 0; }
+.rail-group { display: flex; flex-direction: column; gap: 10px; }
+.rail-group + .rail-group { margin-top: 22px; }
 
 .rail-heading {
-  margin: 0 0 4px;
-  font: 500 11px "Geist Mono", monospace;
+  margin: 0 0 12px;
+  font: 500 12px "Geist Mono", monospace;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-3);
 }
 
 .rail-index a {
+  position: relative;
   display: flex;
   gap: 10px;
-  font-size: 13px;
+  padding-left: 14px;
+  font-size: 14px;
+  line-height: 1.4;
   color: var(--ink-2);
   text-decoration: none;
+  transition: color 0.15s ease;
 }
 
-.rail-index a:hover { color: var(--ink); }
+.rail-index a::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 1px;
+  height: 14px;
+  transform: translateY(-50%);
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.rail-index a:hover, .rail-index a[aria-current="location"] { color: var(--ink); }
+.rail-index a[aria-current="location"] { font-weight: 500; }
+.rail-index a[aria-current="location"]::before { opacity: 1; }
 .rail-index .num { font-family: "Geist Mono", monospace; color: var(--ink-3); }
 
 .rail-team-heading { margin: 14px 0 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -298,7 +324,7 @@ button:disabled { opacity: 0.6; cursor: default; }
 .optional { font-size: 12px; color: var(--ink-3); }
 .statuses { list-style: none; padding: 0; }
 .statuses code { margin-right: 6px; }
-.rail-subheading { margin-top: 10px; }
+.rail-group > .rail-subheading { margin: 0 0 2px; }
 .link-button { padding: 0; border: 0; background: none; color: var(--accent); font-size: 14px; }
 .link-button:hover { text-decoration: underline; }
 .empty { color: var(--ink-3); }
@@ -319,8 +345,8 @@ button:disabled { opacity: 0.6; cursor: default; }
   .rail > * { padding: 0 16px; border: 0; }
   .brand { height: auto; }
   .rail nav { flex-direction: row; gap: 16px; }
-  .rail-link { padding-left: 0; }
-  .rail-link::before, .rail-index, .rail-foot, .rail-user-text, .rail-team-heading, .rail-home { display: none; }
+  .rail-link { padding-left: 0; white-space: nowrap; }
+  .rail-link::before, .rail-sublink, .rail-index, .rail-foot, .rail-user-text, .rail-team-heading, .rail-home { display: none; }
   .rail nav { margin-left: auto; }
   .rail-user { padding-left: 0; }
   .content { border: 0; }

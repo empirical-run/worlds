@@ -1,22 +1,23 @@
 import { CodeBlock } from "../components/CodeBlock";
-import { RailIndex, type RailHandle } from "../components/Rail";
+import { type RailHandle } from "../components/Rail";
 import { highlight } from "../highlight.server";
 import type { Route } from "./+types/docs";
 
 export const meta = () => [{ title: "Docs · Worlds" }];
 
 export const handle: RailHandle = {
-  railIndex: () => (
-    <RailIndex heading="Getting started">
-      <a href="#create">Create a world</a>
-      <a href="#base-url">Point your app at a world</a>
-      <a href="#install">Install your app</a>
-      <a href="#events">Receive events</a>
-      <a href="#worlds-api">Worlds API</a>
-      <a href="/docs/api">API reference</a>
-      <a href="#control">World controls</a>
-    </RailIndex>
-  ),
+  railIndex: () => [
+    {
+      links: [
+        { id: "create", label: "Create a world" },
+        { id: "base-url", label: "Point your app at a world" },
+        { id: "install", label: "Install your app" },
+        { id: "events", label: "Receive events" },
+        { id: "worlds-api", label: "Worlds API" },
+        { id: "control", label: "World controls" },
+      ],
+    },
+  ],
 };
 
 const createExample = `curl -X POST https://makeworlds.dev/api/worlds \\

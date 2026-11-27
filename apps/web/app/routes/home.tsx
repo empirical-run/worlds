@@ -1,21 +1,18 @@
-import { RailIndex, type RailHandle } from "../components/Rail";
+import { type RailHandle } from "../components/Rail";
 
 export const meta = () => [{ title: "Worlds" }];
 
 export const handle: RailHandle = {
-  railIndex: () => (
-    <RailIndex heading="On this page">
-      <a href="#what">
-        <span className="num">01</span>What a world is
-      </a>
-      <a href="#services">
-        <span className="num">02</span>Services
-      </a>
-      <a href="#how">
-        <span className="num">03</span>How it works
-      </a>
-    </RailIndex>
-  ),
+  numberedRailIndex: true,
+  railIndex: () => [
+    {
+      links: [
+        { id: "what", label: "What a world is" },
+        { id: "services", label: "Services" },
+        { id: "how", label: "How it works" },
+      ],
+    },
+  ],
 };
 
 export default function Home() {
