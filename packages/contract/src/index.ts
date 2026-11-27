@@ -70,6 +70,7 @@ type ServiceDefinition<
   urls: Urls;
   specProblems(spec: z.output<Spec>): string[];
   urlsFor(origin: (host: Host) => string): z.output<Urls>;
+  uiUrl(origin: (host: Host) => string): string;
   routes: readonly RouteConfig[];
 };
 

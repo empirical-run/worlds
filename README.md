@@ -44,6 +44,8 @@ WORLDS_API_KEY=wk_live_… node scripts/create-world.mjs specs/empirical-preview
 
 `specs/empirical-preview.json` is the world api-preview talks to: the Empirical app with api-preview's credentials (`WORLDS_SLACK_CLIENT_ID`, `WORLDS_SLACK_CLIENT_SECRET`, `WORLDS_SLACK_SIGNING_SECRET`), events to api-preview, and redirect URLs for dashboard previews and localhost.
 
+`services/slack/scripts/preview-mention.mjs` then runs the @mention flow against api-preview: it installs the world's Empirical app on Empirical over OAuth (redirect URI `http://localhost:3000/api/slack/oauth/callback` by default, one of the spec's `redirect_urls`), creates a channel as alice, invites the bot, mentions it and waits for the reply. It needs `WORLDS_API_KEY`, `WORLD_ID` and the `empirical` CLI signed in to staging.
+
 ## Jira
 
 Every world has a Jira Cloud site, written for this repo (emulate has no Jira) in `services/jira`. Like Atlassian it answers on three hosts:

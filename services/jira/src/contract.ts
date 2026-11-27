@@ -389,6 +389,7 @@ export const jira = defineService({
   state: JiraStateSchema,
   urls: JiraUrlsSchema,
   specProblems: jiraSpecProblems,
+  uiUrl: (origin) => origin("jira"),
   urlsFor: (origin) => ({
     site_url: origin("jira"),
     auth_url: origin("jira-auth"),

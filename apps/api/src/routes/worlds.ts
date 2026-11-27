@@ -8,7 +8,7 @@ import {
   worldHost,
   type World,
 } from "@worlds/db";
-import { specProblems, withSpecs, worldUrls } from "@worlds/services";
+import { serviceTitles, specProblems, withSpecs, worldUiUrl, worldUrls } from "@worlds/services";
 
 import type { AppEnv } from "../context";
 import {
@@ -39,18 +39,17 @@ const createWorldRoute = createRoute({
   path: "/api/worlds",
   tags: ["Worlds"],
   summary: "Create a world",
-  description:
-    "A new world with a seeded Slack workspace and Jira site. Point your app at the returned URLs.",
+  description: `A new world with its own ${serviceTitles("and")}. Point your app at the returned URLs.`,
   security,
   request: {
     body: { required: false, content: { "application/json": { schema: WorldCreateSchema } } },
   },
   responses: {
     201: jsonResponse(
-      "The new world, with its effective Slack and Jira specs (generated ids, credentials and tokens filled in)",
+      "The new world, with each service's effective spec (generated ids, credentials and tokens filled in)",
       WorldCreatedSchema,
     ),
-    400: errorResponse("Invalid name, Slack spec or Jira spec"),
+    400: errorResponse(`Invalid name, or an invalid ${serviceTitles("or")} spec`),
     401: errorResponse("Missing or invalid credentials"),
     404: errorResponse("You are not in any team"),
   },
@@ -108,6 +107,7 @@ function worldJson(world: World, domain: string) {
     name: world.name,
     team_id: world.teamId,
     created_by: world.createdBy,
+    ui_url: worldUiUrl(origins(world, domain)),
     ...worldUrls(origins(world, domain)),
     created_at: world.createdAt.toISOString(),
     updated_at: world.updatedAt.toISOString(),

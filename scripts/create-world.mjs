@@ -29,14 +29,12 @@ if (!response.ok) {
   console.error(`create failed (${response.status}): ${JSON.stringify(world)}`);
   process.exit(1);
 }
-console.log(`world:        ${world.id}`);
-console.log(`jira auth:    ${world.jira.auth_url}`);
-console.log(`jira api:     ${world.jira.api_url}`);
-console.log(`jira site:    ${world.jira.site_url} (cloud id ${world.jira.spec.site.cloud_id})`);
-for (const app of world.jira.spec.apps)
-  console.log(`jira app:     ${app.name} ${app.credentials.client_id}`);
-console.log(`slack origin: ${world.slack.api_url.replace(/\/api\/$/, "")}`);
-console.log(`slack ui:     ${world.slack.ui_url}`);
-console.log(`team:         ${world.slack.spec.team.id}`);
-for (const app of world.slack.spec.apps)
-  console.log(`app:          ${app.app_id} ${app.manifest.display_information.name}`);
+console.log(`world: ${world.id}`);
+console.log(`ui:    ${world.ui_url}`);
+for (const [name, service] of Object.entries(world)) {
+  if (typeof service !== "object" || service === null || !("spec" in service)) continue;
+  const { spec, ...urls } = service;
+  for (const [key, url] of Object.entries(urls)) console.log(`${name} ${key}: ${url}`);
+  for (const app of spec.apps ?? [])
+    console.log(`${name} app: ${app.app_id ?? app.name} (client id ${app.credentials.client_id})`);
+}

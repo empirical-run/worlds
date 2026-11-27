@@ -398,6 +398,7 @@ export const slack = defineService({
   state: SlackStateSchema,
   urls: SlackUrlsSchema,
   specProblems: slackSpecProblems,
+  uiUrl: (origin) => `${origin("slack")}/`,
   urlsFor: (origin) => ({
     api_url: `${origin("slack")}/api/`,
     oauth_authorize_url: `${origin("slack")}/oauth/v2/authorize`,

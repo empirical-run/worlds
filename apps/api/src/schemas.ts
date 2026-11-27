@@ -1,6 +1,12 @@
 import { z } from "@hono/zod-openapi";
 import { API_KEY_NAME_MAX, TEAM_NAME_MAX, WORLD_NAME_MAX } from "@worlds/db";
-import { createdShape, specShape, stateShape, urlsShape } from "@worlds/services";
+import {
+  createdShape,
+  specShape,
+  stateShape,
+  urlsShape,
+  worldUiDescription,
+} from "@worlds/services";
 
 const Role = z.enum(["owner", "member"]);
 
@@ -82,6 +88,10 @@ export const WorldSchema = z
     team_id: z.string().openapi({ example: "team_k2v9x0q1m4s7d8f3a6b5" }),
     created_by: z.string().nullable().openapi({
       description: "Id of the user who created the world. null when an API key created it.",
+    }),
+    ui_url: z.url().openapi({
+      description: worldUiDescription,
+      example: "https://k2v9x0q1m4-slack.makeworlds.dev/",
     }),
     ...urlsShape,
     created_at: z.iso.datetime(),

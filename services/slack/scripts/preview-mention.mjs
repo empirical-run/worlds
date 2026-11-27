@@ -2,49 +2,59 @@ import { execFileSync } from "node:child_process";
 
 import { WebClient } from "@slack/web-api";
 
-const base = process.env.WORLDS_URL;
-const adminToken = process.env.WORLDS_ADMIN_TOKEN;
-const userToken = process.env.WORLDS_SLACK_USER_TOKEN;
-const clientId = process.env.WORLDS_SLACK_CLIENT_ID;
+const apiUrl = process.env.WORLDS_API_URL ?? "https://makeworlds.dev";
+const apiKey = process.env.WORLDS_API_KEY;
+const worldId = process.env.WORLD_ID;
+const appName = process.env.WORLDS_SLACK_APP ?? "Empirical";
+const actor = process.env.WORLDS_SLACK_USER ?? "alice";
+const redirectUri =
+  process.env.WORLDS_SLACK_REDIRECT_URI ?? "http://localhost:3000/api/slack/oauth/callback";
 const orgId = Number(process.env.EMPIRICAL_ORG_ID ?? 3);
 const projectSlug = process.env.EMPIRICAL_PROJECT_SLUG ?? "lorem-ipsum";
 const apiWorkerUrl = process.env.EMPIRICAL_API_WORKER_URL ?? "https://api-preview.empirical.run";
-const redirectUri = `${base}/oauth/done`;
-const slackApiUrl = `${base}/api/`;
-const scope = "app_mentions:read,chat:write,channels:history,channels:read,users:read";
+if (!apiKey || !worldId) {
+  console.error(
+    "usage: WORLDS_API_KEY=wk_live_… WORLD_ID=world_… node scripts/preview-mention.mjs",
+  );
+  process.exit(1);
+}
 
 function step(message) {
   console.log(`→ ${message}`);
 }
 
-async function admin(path, body) {
-  const response = await fetch(`${base}${path}`, {
-    method: "POST",
-    headers: { authorization: `Bearer ${adminToken}`, "content-type": "application/json" },
-    body: JSON.stringify(body),
+async function worlds(url, init = {}) {
+  const response = await fetch(url, {
+    ...init,
+    headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
   });
-  if (!response.ok) throw new Error(`${path} failed: ${response.status} ${await response.text()}`);
+  const body = await response.json();
+  if (!response.ok) throw new Error(`${url} failed: ${response.status} ${JSON.stringify(body)}`);
+  return body;
 }
 
+const world = await worlds(`${apiUrl}/api/worlds/${worldId}`);
+const spec = await worlds(`${apiUrl}/api/worlds/${worldId}/spec`);
+const base = new URL(world.slack.ui_url).origin;
+const slackApiUrl = world.slack.api_url;
+const app = spec.slack.apps.find(
+  (candidate) => candidate.manifest.display_information.name === appName,
+);
+if (!app) throw new Error(`no app named ${appName} in ${worldId}`);
+const scope = (app.manifest.oauth_config?.scopes?.bot ?? []).join(",");
+const { user_id: userId, token: userToken } = await worlds(`${base}/_worlds/slack/tokens`, {
+  method: "POST",
+  body: JSON.stringify({ user: actor }),
+});
+step(`acting as ${actor} (${userId}) in ${worldId}`);
+
 async function authorizeCode() {
-  const query = new URLSearchParams({
-    client_id: clientId,
-    scope,
-    redirect_uri: redirectUri,
-    state: "preview",
-  });
-  const html = await (await fetch(`${base}/oauth/v2/authorize?${query}`)).text();
-  const userIds = [...html.matchAll(/name="user_id"[^>]*value="([^"]+)"/g)].map(
-    (match) => match[1],
-  );
-  const alice = (await new WebClient(userToken, { slackApiUrl }).auth.test()).user_id;
-  const userId = userIds.includes(alice) ? alice : userIds[0];
   const callback = await fetch(`${base}/oauth/v2/authorize/callback`, {
     method: "POST",
     redirect: "manual",
     body: new URLSearchParams({
       user_id: userId,
-      client_id: clientId,
+      client_id: app.credentials.client_id,
       redirect_uri: redirectUri,
       scope,
       state: "preview",
@@ -76,29 +86,26 @@ function installOnEmpirical(code) {
   return install.data;
 }
 
-await admin("/_worlds/slack/redirect-uris", { redirect_uri: redirectUri });
-step("redirect URI registered on the world");
-
 const install = installOnEmpirical(await authorizeCode());
 step(
   `installed on ${apiWorkerUrl}: team ${install.team_id}, bot ${install.bot_user_id}, org ${install.org_id}`,
 );
 
-const alice = new WebClient(userToken, { slackApiUrl });
-const channel = (await alice.conversations.create({ name: `mention-${Date.now()}` })).channel;
-await alice.conversations.invite({ channel: channel.id, users: install.bot_user_id });
+const human = new WebClient(userToken, { slackApiUrl });
+const channel = (await human.conversations.create({ name: `mention-${Date.now()}` })).channel;
+await human.conversations.invite({ channel: channel.id, users: install.bot_user_id });
 step(`#${channel.name} created with the bot invited`);
 
-const mention = await alice.chat.postMessage({
+const mention = await human.chat.postMessage({
   channel: channel.id,
   text: `<@${install.bot_user_id}> [${projectSlug}] Say hello and list the test files in this repo. Do not change anything.`,
 });
-step(`Alice mentioned the bot (ts ${mention.ts}); waiting for a reply`);
+step(`${actor} mentioned the bot (ts ${mention.ts}); waiting for a reply`);
 
 const deadline = Date.now() + 180_000;
 let botReplies = [];
 while (Date.now() < deadline) {
-  const thread = await alice.conversations.replies({ channel: channel.id, ts: mention.ts });
+  const thread = await human.conversations.replies({ channel: channel.id, ts: mention.ts });
   botReplies = thread.messages.filter(
     (message) => message.user === install.bot_user_id || message.bot_id,
   );
@@ -107,4 +114,4 @@ while (Date.now() < deadline) {
 }
 if (!botReplies.length) throw new Error("no bot reply within 3 minutes");
 for (const reply of botReplies) console.log(`  bot: ${reply.text}`);
-console.log(`world UI: ${base}/?tab=messages&channel=${channel.id}`);
+console.log(`world UI: ${base}/?channel=${channel.id}`);

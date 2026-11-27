@@ -410,7 +410,7 @@ export interface paths {
         put?: never;
         /**
          * Create a world
-         * @description A new world with a seeded Slack workspace and Jira site. Point your app at the returned URLs.
+         * @description A new world with its own Slack and Jira. Point your app at the returned URLs.
          */
         post: {
             parameters: {
@@ -425,7 +425,7 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description The new world, with its effective Slack and Jira specs (generated ids, credentials and tokens filled in) */
+                /** @description The new world, with each service's effective spec (generated ids, credentials and tokens filled in) */
                 201: {
                     headers: {
                         [name: string]: unknown;
@@ -434,7 +434,7 @@ export interface paths {
                         "application/json": components["schemas"]["WorldCreated"];
                     };
                 };
-                /** @description Invalid name, Slack spec or Jira spec */
+                /** @description Invalid name, or an invalid Slack or Jira spec */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1337,6 +1337,12 @@ export interface components {
             team_id: string;
             /** @description Id of the user who created the world. null when an API key created it. */
             created_by: string | null;
+            /**
+             * Format: uri
+             * @description The world's main page: Slack's UI. Each service's own URLs are under its name.
+             * @example https://k2v9x0q1m4-slack.makeworlds.dev/
+             */
+            ui_url: string;
             slack: {
                 /**
                  * Format: uri

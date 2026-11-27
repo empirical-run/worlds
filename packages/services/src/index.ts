@@ -41,6 +41,20 @@ export function worldUrls(origin: (host: ServiceHost) => string): WorldUrls {
   return byService<WorldUrls>((service) => service.urlsFor(origin));
 }
 
+const [mainService] = SERVICES;
+
+export function worldUiUrl(origin: (host: ServiceHost) => string): string {
+  return mainService.uiUrl(origin);
+}
+
+export const worldUiDescription = `The world's main page: ${mainService.title}'s UI. Each service's own URLs are under its name.`;
+
+export function serviceTitles(conjunction: "and" | "or"): string {
+  const titles = SERVICES.map((service) => service.title);
+  const last = titles.pop();
+  return titles.length ? `${titles.join(", ")} ${conjunction} ${last}` : (last ?? "");
+}
+
 export function specProblems(specs: WorldSpecs): string[] {
   return SERVICES.flatMap((service) =>
     specs[service.name] === undefined

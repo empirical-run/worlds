@@ -42,7 +42,7 @@ export default function Worlds({ loaderData: { worlds }, actionData }: Route.Com
       <header className="section hero">
         <h1>Worlds</h1>
         <p className="lede">
-          Each world is a separate Slack workspace your app can talk to. It keeps its state until
+          Each world is a private copy of the services your app talks to. It keeps its state until
           you archive it.
         </p>
       </header>
@@ -105,7 +105,7 @@ function WorldTable({ worlds }: { worlds: World[] }) {
         {worlds.map((world) => (
           <tr key={world.id}>
             <td>
-              <a href={world.slack.ui_url}>{world.name}</a>
+              <a href={world.ui_url}>{world.name}</a>
             </td>
             <td>
               <code>{world.id}</code>
