@@ -81,7 +81,7 @@ await jira.POST("/_worlds/jira/issues", {
 
 ## Types
 
-Every schema in the [API reference](https://makeworlds.dev/docs/api) is exported as a type of the same name, such as `WorldCreate` (the `POST /api/worlds` body), `SlackSpec`, `SlackTeamSpec`, `JiraSpec`, `World` and `ApiError`. `paths` and `components` are exported for anything else.
+Every [type](https://makeworlds.dev/docs/types) in the API is exported under the same name, such as `WorldCreate` (the `POST /api/worlds` body), `SlackSpec`, `SlackTeamSpec`, `JiraSpec`, `World` and `ApiError`. `paths` and `components` are exported for anything else.
 
 The OpenAPI document is included as `makeworlds/openapi.json`.
 

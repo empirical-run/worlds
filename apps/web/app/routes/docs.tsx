@@ -222,9 +222,9 @@ export default function Docs({ loaderData: { examples } }: Route.ComponentProps)
         </p>
         <p>
           From TypeScript, the <code>makeworlds</code> package is a typed client for the same API
-          (built on <code>openapi-fetch</code>), with types for every request and response,
-          including world specs (<code>WorldCreate</code>, <code>SlackSpec</code>,{" "}
-          <code>SlackState</code>).
+          (built on <code>openapi-fetch</code>), with types for every request and response, named as
+          on the <a href="/docs/types">Types</a> page (<code>WorldCreate</code>,{" "}
+          <code>SlackSpec</code>, <code>SlackState</code>).
         </p>
         <CodeBlock lines={examples.install} />
         <CodeBlock lines={examples.client} />

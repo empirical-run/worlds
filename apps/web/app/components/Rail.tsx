@@ -66,6 +66,9 @@ export function Rail({ account }: { account: RootData["account"] }) {
             <NavLink prefetch="intent" className="rail-link rail-sublink" to="/docs/api">
               API reference
             </NavLink>
+            <NavLink prefetch="intent" className="rail-link rail-sublink" to="/docs/types">
+              Types
+            </NavLink>
           </>
         )}
         {account ? (

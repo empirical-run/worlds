@@ -36,8 +36,11 @@ export type Operation = {
   responses: Record<string, { description: string; content?: Content }>;
 };
 
+export type Tag = { name: string; description?: string };
+
 export type OpenApiDocument = {
   info: { title: string };
+  tags?: Tag[];
   servers?: Server[];
   paths: Record<string, Record<string, Operation>>;
   components?: {
@@ -70,7 +73,8 @@ export function endpointsByTag(spec: OpenApiDocument): [string, Endpoint[]][] {
       groups.set(tag, [...(groups.get(tag) ?? []), endpoint]);
     }
   }
-  return [...groups];
+  const order = (spec.tags ?? []).map((tag) => tag.name);
+  return [...groups].sort(([a], [b]) => order.indexOf(a) - order.indexOf(b));
 }
 
 export function contentSchema(content: Content | undefined): Schema | undefined {
@@ -151,8 +155,69 @@ export function linkedSchema(schema: Schema): string | null {
   return ref ? refName(ref) : null;
 }
 
-export function objectAnchor(name: string): string {
-  return `object-${name.toLowerCase()}`;
+function typesInReadingOrder(spec: OpenApiDocument): string[] {
+  const seen: string[] = [];
+  const visit = (schema: Schema | undefined) => {
+    if (!schema) {
+      return;
+    }
+    if (schema.$ref) {
+      const name = refName(schema.$ref);
+      if (seen.includes(name)) {
+        return;
+      }
+      seen.push(name);
+      visit(spec.components?.schemas?.[name]);
+      return;
+    }
+    for (const part of [...(schema.anyOf ?? []), ...(schema.allOf ?? [])]) {
+      visit(part);
+    }
+    visit(schema.items);
+    for (const property of Object.values(schema.properties ?? {})) {
+      visit(property);
+    }
+  };
+  const endpoints = endpointsByTag(spec).flatMap(([, group]) => group);
+  for (const { operation } of endpoints) {
+    visit(contentSchema(operation.requestBody?.content));
+    for (const [status, response] of Object.entries(operation.responses)) {
+      if (status.startsWith("2")) {
+        visit(contentSchema(response.content));
+      }
+    }
+  }
+  for (const { operation } of endpoints) {
+    for (const response of Object.values(operation.responses)) {
+      visit(contentSchema(response.content));
+    }
+  }
+  for (const name of Object.keys(spec.components?.schemas ?? {})) {
+    if (!seen.includes(name)) {
+      seen.push(name);
+    }
+  }
+  return seen;
+}
+
+export function typeAnchor(name: string): string {
+  return `type-${name.toLowerCase()}`;
+}
+
+export function typeGroups(
+  spec: OpenApiDocument,
+  serviceTitles: readonly string[],
+): { title: string; types: [string, Schema][] }[] {
+  const platform = { title: "Worlds", types: [] as [string, Schema][] };
+  const services = serviceTitles.map((title) => ({ title, types: [] as [string, Schema][] }));
+  const schemas = spec.components?.schemas ?? {};
+  const order = typesInReadingOrder(spec);
+  const entries = Object.entries(schemas).sort(([a], [b]) => order.indexOf(a) - order.indexOf(b));
+  for (const entry of entries) {
+    const service = services.find((group) => entry[0].startsWith(group.title));
+    (service ?? platform).types.push(entry);
+  }
+  return [platform, ...services];
 }
 
 function refName(ref: string): string {

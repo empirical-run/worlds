@@ -9,6 +9,28 @@
       "url": "https://makeworlds.dev"
     }
   ],
+  "tags": [
+    {
+      "name": "Worlds",
+      "description": "Create, list and archive worlds."
+    },
+    {
+      "name": "Slack world",
+      "description": "Act inside a world's Slack, on its own host."
+    },
+    {
+      "name": "Jira world",
+      "description": "Act inside a world's Jira, on its own host."
+    },
+    {
+      "name": "Teams",
+      "description": "Your teams and their members."
+    },
+    {
+      "name": "API keys",
+      "description": "Keys for calling the API from code."
+    }
+  ],
   "components": {
     "securitySchemes": {
       "bearerAuth": {

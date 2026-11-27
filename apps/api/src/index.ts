@@ -38,6 +38,15 @@ app.doc31("/api/openapi.json", {
   openapi: "3.1.0",
   info: { title: "Worlds API", version: "1" },
   servers: [{ url: "https://makeworlds.dev" }],
+  tags: [
+    { name: "Worlds", description: "Create, list and archive worlds." },
+    ...SERVICES.map((service) => ({
+      name: `${service.title} world`,
+      description: `Act inside a world's ${service.title}, on its own host.`,
+    })),
+    { name: "Teams", description: "Your teams and their members." },
+    { name: "API keys", description: "Keys for calling the API from code." },
+  ],
 });
 
 app.notFound((c) => c.json(apiError("not_found", "No such endpoint."), 404));

@@ -36,9 +36,24 @@ for (const [name, schema] of Object.entries(spec.components?.schemas ?? {})) {
   }
 }
 
+const declaredTags = new Map((spec.tags ?? []).map((tag) => [tag.name, tag.description]));
+for (const [name, description] of declaredTags) {
+  if (!description?.trim()) {
+    problems.push(`tag ${name}: no description`);
+  }
+}
+
 for (const [path, operations] of Object.entries(spec.paths ?? {})) {
   for (const [method, operation] of Object.entries(operations)) {
     const where = `${method.toUpperCase()} ${path}`;
+    if (!operation.tags?.length) {
+      problems.push(`${where}: no tag`);
+    }
+    for (const tag of operation.tags ?? []) {
+      if (!declaredTags.has(tag)) {
+        problems.push(`${where}: tag ${tag} is not declared in the spec's tags`);
+      }
+    }
     const bodies = [
       ["request", operation.requestBody?.content],
       ...Object.entries(operation.responses ?? {}).map(([status, response]) => [
@@ -57,7 +72,7 @@ for (const [path, operations] of Object.entries(spec.paths ?? {})) {
 }
 
 if (problems.length) {
-  console.error(`${specPath}: ${problems.length} undocumented schemas\n${problems.join("\n")}`);
+  console.error(`${specPath}: ${problems.length} documentation problems\n${problems.join("\n")}`);
   process.exit(1);
 }
-console.log(`${specPath}: every schema is named and described`);
+console.log(`${specPath}: every schema and tag is named and described`);
