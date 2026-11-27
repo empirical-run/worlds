@@ -33,7 +33,7 @@ jobs:
         working-directory: packages/makeworlds
         run: |
           version=$(jq -r .version package.json)
-          if ! npm view "makeworlds@$version" version > /dev/null 2>&1; then
+          if ! git rev-parse -q --verify "refs/tags/makeworlds@$version" > /dev/null && ! npm view "makeworlds@$version" version > /dev/null 2>&1; then
             echo "version=$version" >> "$GITHUB_OUTPUT"
             exit 0
           fi
