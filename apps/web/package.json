@@ -8,6 +8,7 @@
     "typecheck": "react-router typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@pierre/highlights": "0.6.0",
     "@worlds/db": "workspace:*",
     "isbot": "^5.2.4",
     "react": "^19.3.1",

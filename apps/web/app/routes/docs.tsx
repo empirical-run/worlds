@@ -1,4 +1,7 @@
+import { CodeBlock } from "../components/CodeBlock";
 import { RailIndex, type RailHandle } from "../components/Rail";
+import { highlight } from "../highlight.server";
+import type { Route } from "./+types/docs";
 
 export const meta = () => [{ title: "Docs · Worlds" }];
 
@@ -45,7 +48,16 @@ const webClientExample = `const client = new WebClient(token, {
 const curlExample = `curl https://makeworlds.dev/api/teams \\
   -H "Authorization: Bearer $WORLDS_API_KEY"`;
 
-export default function Docs() {
+export async function loader() {
+  const [create, webClient, curl] = await Promise.all([
+    highlight(createExample, "bash"),
+    highlight(webClientExample, "ts"),
+    highlight(curlExample, "bash"),
+  ]);
+  return { examples: { create, webClient, curl } };
+}
+
+export default function Docs({ loaderData: { examples } }: Route.ComponentProps) {
   return (
     <article>
       <header className="section hero">
@@ -59,9 +71,7 @@ export default function Docs() {
           Create an API key in <a href="/settings">Settings</a>, then create a world (or create one on the <a href="/worlds">Worlds</a> page). Each world is separate and keeps its state until
           you delete it.
         </p>
-        <pre>
-          <code>{createExample}</code>
-        </pre>
+        <CodeBlock lines={examples.create} />
         <p>
           The <code>slack</code> spec describes everything in the workspace: the team, users, channels with their members and messages, and
           apps defined by standard Slack app manifests. Ids, credentials and tokens you leave out are generated; pin them (a team id, a user
@@ -80,9 +90,7 @@ export default function Docs() {
         <p>
           Use the world's <code>slack.api_url</code> as your Slack base URL. With <code>@slack/web-api</code>:
         </p>
-        <pre>
-          <code>{webClientExample}</code>
-        </pre>
+        <CodeBlock lines={examples.webClient} />
       </section>
 
       <section className="section" id="install">
@@ -114,9 +122,7 @@ export default function Docs() {
         <p>
           Create an API key in <a href="/settings">Settings</a> and send it as <code>Authorization: Bearer &lt;key&gt;</code>.
         </p>
-        <pre>
-          <code>{curlExample}</code>
-        </pre>
+        <CodeBlock lines={examples.curl} />
         <p>
           Every endpoint is in the <a href="/docs/api">API reference</a>, generated from{" "}
           <a href="/api/openapi.json">
