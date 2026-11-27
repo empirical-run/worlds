@@ -9,7 +9,7 @@ export const ErrorSchema = z
       message: z.string().openapi({ example: "No team with that id is visible to you." }),
     }),
   })
-  .openapi("Error");
+  .openapi("ApiError");
 
 const Role = z.enum(["owner", "member"]);
 
@@ -329,13 +329,3 @@ export function errorResponse(description: string) {
 export function jsonResponse<T extends z.ZodType>(description: string, schema: T) {
   return { description, content: { "application/json": { schema } } };
 }
-
-export type TeamJson = z.infer<typeof TeamSchema>;
-export type TeamDetailJson = z.infer<typeof TeamDetailSchema>;
-export type ApiKeyJson = z.infer<typeof ApiKeySchema>;
-export type ApiKeyListJson = z.infer<typeof ApiKeyListSchema>;
-export type WorldJson = z.infer<typeof WorldSchema>;
-export type WorldCreatedJson = z.infer<typeof WorldCreatedSchema>;
-export type SlackSpecJson = z.infer<typeof SlackSpecSchema>;
-export type WorldListJson = z.infer<typeof WorldListSchema>;
-export type ApiKeyCreatedJson = z.infer<typeof ApiKeyCreatedSchema>;

@@ -1,0 +1,44 @@
+{
+  "name": "makeworlds",
+  "version": "0.1.0",
+  "description": "Typed client for the Worlds API: hosted, stateful worlds of Slack and other services for testing apps and agents.",
+  "license": "Apache-2.0",
+  "homepage": "https://makeworlds.dev/docs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/empirical-run/worlds.git",
+    "directory": "packages/makeworlds"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./openapi.json": "./openapi.json"
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./openapi.json": "./openapi.json"
+    }
+  },
+  "files": [
+    "dist",
+    "openapi.json"
+  ],
+  "scripts": {
+    "generate": "pnpm --filter @worlds/api openapi \"$PWD/openapi.json\" && openapi-typescript openapi.json -o src/openapi.ts --root-types --root-types-no-schema-prefix",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "prepack": "pnpm build"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.17.0"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.13.0",
+    "typescript": "^5.9.3"
+  }
+}

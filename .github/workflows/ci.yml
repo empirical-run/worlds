@@ -21,6 +21,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
+      - name: makeworlds types match the API
+        run: pnpm --filter makeworlds generate && git diff --exit-code packages/makeworlds
       - name: Smoke test against wrangler dev
         run: |
           cp services/world/.dev.vars.example services/world/.dev.vars

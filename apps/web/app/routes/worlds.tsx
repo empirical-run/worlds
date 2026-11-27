@@ -1,16 +1,16 @@
-import type { WorldJson, WorldListJson } from "@worlds/api/schemas";
 import { WORLD_NAME_MAX } from "@worlds/db";
-import { data, Form, useNavigation } from "react-router";
+import type { World } from "makeworlds";
+import { Form, useNavigation } from "react-router";
 import { requireAccount } from "../account.server";
-import { callApi, requireApi } from "../api.server";
-import { ActionError, dateFormat, useSubmitting, type ActionResult } from "../components/forms";
+import { actionData, api, orThrow } from "../api.server";
+import { ActionError, dateFormat, useSubmitting } from "../components/forms";
 import type { Route } from "./+types/worlds";
 
 export const meta = () => [{ title: "Worlds · Worlds" }, { name: "robots", content: "noindex" }];
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const account = requireAccount(context, request);
-  const { worlds } = await requireApi<WorldListJson>(context, request, "/api/worlds");
+  const { worlds } = orThrow(await api(context, request).GET("/api/worlds"));
   return { worlds: worlds.filter((world) => world.team_id === account.team.id) };
 }
 
@@ -20,15 +20,12 @@ export async function action({ request, context }: Route.ActionArgs) {
   const intent = String(form.get("intent"));
   if (intent === "create-world") {
     const name = String(form.get("name") ?? "").trim();
-    const result = await callApi<WorldJson>(context, request, "/api/worlds", {
-      method: "POST",
-      body: { team_id: account.team.id, ...(name ? { name } : {}) },
-    });
-    return data<ActionResult>(result.ok ? { intent, createdWorld: result.data.id } : { intent, error: result.error.message }, result.ok ? 200 : result.status);
+    const result = await api(context, request).POST("/api/worlds", { body: { team_id: account.team.id, ...(name ? { name } : {}) } });
+    return actionData(intent, result, (world) => ({ createdWorld: world.id }));
   }
   if (intent === "archive-world") {
-    const result = await callApi<void>(context, request, `/api/worlds/${String(form.get("worldId"))}/archive`, { method: "POST" });
-    return data<ActionResult>(result.ok ? { intent } : { intent, error: result.error.message }, result.ok ? 200 : result.status);
+    const worldId = String(form.get("worldId"));
+    return actionData(intent, await api(context, request).POST("/api/worlds/{worldId}/archive", { params: { path: { worldId } } }));
   }
   throw new Response("Unknown action.", { status: 400 });
 }
@@ -68,7 +65,7 @@ function CreateWorldForm({ error }: { error?: string }) {
   );
 }
 
-function WorldTable({ worlds }: { worlds: WorldJson[] }) {
+function WorldTable({ worlds }: { worlds: World[] }) {
   const navigation = useNavigation();
   const archiving = navigation.formData?.get("intent") === "archive-world" ? navigation.formData.get("worldId") : null;
   return (

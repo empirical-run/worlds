@@ -1,16 +1,17 @@
-import type { ApiKeyCreatedJson, ApiKeyJson, ApiKeyListJson, TeamJson } from "@worlds/api/schemas";
 import { API_KEY_NAME_MAX, TEAM_NAME_MAX } from "@worlds/db";
-import { data, Form, useNavigation } from "react-router";
+import type { ApiKey } from "makeworlds";
+import { Form, useNavigation } from "react-router";
 import { requireAccount } from "../account.server";
-import { callApi, requireApi } from "../api.server";
-import { ActionError, dateFormat, useSubmitting, type ActionResult } from "../components/forms";
+import { actionData, api, orThrow } from "../api.server";
+import { ActionError, type ActionResult, dateFormat, useSubmitting } from "../components/forms";
 import type { Route } from "./+types/settings";
 
 export const meta = () => [{ title: "Settings · Worlds" }, { name: "robots", content: "noindex" }];
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const account = requireAccount(context, request);
-  const { api_keys: keys } = await requireApi<ApiKeyListJson>(context, request, `/api/teams/${account.team.id}/api-keys`);
+  const teamId = account.team.id;
+  const { api_keys: keys } = orThrow(await api(context, request).GET("/api/teams/{teamId}/api-keys", { params: { path: { teamId } } }));
   return { team: { id: account.team.id, name: account.team.name }, role: account.role, keys };
 }
 
@@ -18,21 +19,19 @@ export async function action({ request, context }: Route.ActionArgs) {
   const account = requireAccount(context, request);
   const form = await request.formData();
   const intent = String(form.get("intent"));
-  const teamPath = `/api/teams/${account.team.id}`;
+  const client = api(context, request);
+  const teamId = account.team.id;
   if (intent === "rename-team") {
-    const result = await callApi<TeamJson>(context, request, teamPath, { method: "PATCH", body: { name: String(form.get("name") ?? "") } });
-    return data<ActionResult>(result.ok ? { intent, saved: true } : { intent, error: result.error.message }, result.ok ? 200 : result.status);
+    const result = await client.PATCH("/api/teams/{teamId}", { params: { path: { teamId } }, body: { name: String(form.get("name") ?? "") } });
+    return actionData(intent, result, () => ({ saved: true }));
   }
   if (intent === "create-key") {
-    const result = await callApi<ApiKeyCreatedJson>(context, request, `${teamPath}/api-keys`, {
-      method: "POST",
-      body: { name: String(form.get("name") ?? "") },
-    });
-    return data<ActionResult>(result.ok ? { intent, secret: result.data.secret } : { intent, error: result.error.message }, result.ok ? 200 : result.status);
+    const result = await client.POST("/api/teams/{teamId}/api-keys", { params: { path: { teamId } }, body: { name: String(form.get("name") ?? "") } });
+    return actionData(intent, result, (key) => ({ secret: key.secret }));
   }
   if (intent === "revoke-key") {
-    const result = await callApi<void>(context, request, `${teamPath}/api-keys/${String(form.get("keyId"))}`, { method: "DELETE" });
-    return data<ActionResult>(result.ok ? { intent } : { intent, error: result.error.message }, result.ok ? 200 : result.status);
+    const keyId = String(form.get("keyId"));
+    return actionData(intent, await client.DELETE("/api/teams/{teamId}/api-keys/{keyId}", { params: { path: { teamId, keyId } } }));
   }
   throw new Response("Unknown action.", { status: 400 });
 }
@@ -120,7 +119,7 @@ function CreateKeyForm({ error }: { error?: string }) {
   );
 }
 
-function KeyTable({ keys }: { keys: ApiKeyJson[] }) {
+function KeyTable({ keys }: { keys: ApiKey[] }) {
   const navigation = useNavigation();
   const revoking = navigation.formData?.get("intent") === "revoke-key" ? navigation.formData.get("keyId") : null;
   return (

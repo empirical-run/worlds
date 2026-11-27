@@ -49,13 +49,28 @@ const webClientExample = `const client = new WebClient(token, {
 const curlExample = `curl https://makeworlds.dev/api/teams \\
   -H "Authorization: Bearer $WORLDS_API_KEY"`;
 
+const clientExample = `import { createClient, type SlackSpec } from "makeworlds";
+
+const worlds = createClient({ apiKey: process.env.WORLDS_API_KEY });
+
+const slack: SlackSpec = {
+  users: [{ name: "alice" }, { name: "bob" }],
+  channels: [{ name: "general", members: ["alice", "bob"] }],
+};
+
+const { data: world, error } = await worlds.POST("/api/worlds", {
+  body: { name: "My first world", slack },
+});`;
+
 export async function loader() {
-  const [create, webClient, curl] = await Promise.all([
+  const [create, webClient, curl, install, client] = await Promise.all([
     highlight(createExample, "bash"),
     highlight(webClientExample, "ts"),
     highlight(curlExample, "bash"),
+    highlight("npm install makeworlds", "bash"),
+    highlight(clientExample, "ts"),
   ]);
-  return { examples: { create, webClient, curl } };
+  return { examples: { create, webClient, curl, install, client } };
 }
 
 export default function Docs({ loaderData: { examples } }: Route.ComponentProps) {
@@ -151,6 +166,13 @@ export default function Docs({ loaderData: { examples } }: Route.ComponentProps)
           </a>
           .
         </p>
+        <p>
+          From TypeScript, the <code>makeworlds</code> package is a typed client for the same API (built on <code>openapi-fetch</code>), with
+          types for every request and response, including world specs (<code>WorldCreate</code>, <code>SlackSpec</code>,{" "}
+          <code>SlackState</code>).
+        </p>
+        <CodeBlock lines={examples.install} />
+        <CodeBlock lines={examples.client} />
       </section>
 
       <section className="section" id="control">

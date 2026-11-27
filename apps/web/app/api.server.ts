@@ -1,30 +1,23 @@
-import type { RouterContextProvider } from "react-router";
+import { type ApiError, createClient } from "makeworlds";
+import { data, type RouterContextProvider } from "react-router";
 import { workerContext } from "../worker/context";
+import type { ActionResult } from "./components/forms";
 
-export type ApiError = { code: string; message: string };
+type ApiResult<T> = { data: T; error?: never; response: Response } | { data?: never; error: ApiError; response: Response };
 
-export type ApiResult<T> = { ok: true; data: T } | { ok: false; status: number; error: ApiError };
-
-type Call = { method?: "GET" | "POST" | "PATCH" | "DELETE"; body?: unknown };
-
-export async function callApi<T>(context: Readonly<RouterContextProvider>, request: Request, path: string, call: Call = {}): Promise<ApiResult<T>> {
+export function api(context: Readonly<RouterContextProvider>, request: Request) {
   const { env } = context.get(workerContext);
-  const method = call.method ?? "GET";
-  const url = new URL(path, request.url);
-  const headers = new Headers({ accept: "application/json" });
+  const { origin } = new URL(request.url);
   const cookie = request.headers.get("cookie");
-  if (cookie) headers.set("cookie", cookie);
-  if (method !== "GET") headers.set("origin", url.origin);
-  if (call.body !== undefined) headers.set("content-type", "application/json");
-  const response = await env.API.fetch(new Request(url, { method, headers, body: call.body === undefined ? undefined : JSON.stringify(call.body) }));
-  if (response.status === 204) return { ok: true, data: undefined as T };
-  const body = (await response.json()) as T | { error: ApiError };
-  if (!response.ok) return { ok: false, status: response.status, error: (body as { error: ApiError }).error };
-  return { ok: true, data: body as T };
+  return createClient({ baseUrl: origin, fetch: (input) => env.API.fetch(input), headers: { origin, ...(cookie ? { cookie } : {}) } });
 }
 
-export async function requireApi<T>(context: Readonly<RouterContextProvider>, request: Request, path: string): Promise<T> {
-  const result = await callApi<T>(context, request, path);
-  if (!result.ok) throw new Response(result.error.message, { status: result.status });
+export function orThrow<T>(result: ApiResult<T>): T {
+  if (result.error) throw new Response(result.error.error.message, { status: result.response.status });
   return result.data;
+}
+
+export function actionData<T>(intent: string, result: ApiResult<T>, onSuccess: (data: T) => Omit<ActionResult, "intent"> = () => ({})) {
+  if (result.error) return data<ActionResult>({ intent, error: result.error.error.message }, result.response.status);
+  return data<ActionResult>({ intent, ...onSuccess(result.data) });
 }

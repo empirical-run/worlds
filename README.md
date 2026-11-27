@@ -40,7 +40,7 @@ All paths below are on the world's Slack host, `https://{id}-slack.makeworlds.de
 
 ## Specs
 
-`specs/*.json` are world specs (the `POST /api/worlds` body). Secrets are `${ENV}` placeholders. Create a world from one with:
+`specs/*.json` are world specs (the `POST /api/worlds` body, `WorldCreate` in [`makeworlds`](packages/makeworlds), the typed API client on npm). Secrets are `${ENV}` placeholders. Create a world from one with:
 
 ```bash
 WORLDS_API_KEY=wk_live_… node scripts/create-world.mjs specs/empirical-preview.json
@@ -70,3 +70,7 @@ The site at https://makeworlds.dev is `apps/web`: React Router 8 (framework mode
 ## Deploy
 
 Worlds are served on the `*.makeworlds.dev/*` route (a proxied wildcard DNS record on the `makeworlds.dev` zone; the apex stays with the site). Pushes to `main` deploy through GitHub Actions (`.github/workflows/ci.yml`) after typecheck and the smoke test pass. The world Worker needs no secrets (Slack app credentials live in each world) and are kept across deploys. The workflow needs a `CLOUDFLARE_API_TOKEN` repo secret with Workers Scripts: Edit on the empirical.run account.
+
+## License
+
+[Apache 2.0](LICENSE)
