@@ -5,47 +5,37 @@ import {
   type StoreSnapshot,
   type TokenEntry,
 } from "@emulators/core";
-import { getSlackStore, seedFromConfig, slackPlugin } from "@emulators/slack";
+import { getSlackStore, slackPlugin } from "@emulators/slack";
 import { FileBlobs } from "./file-blobs";
 import { SlackDelivery } from "./slack-delivery";
 import { registerSlackExtensions } from "./slack-extensions";
 import {
   acceptRedirect,
-  clientIdTaken,
   createApp,
-  deleteApp,
   eventTarget,
   findApp,
-  updateApp,
   validateManifest,
   type SlackApp,
-  type SlackCredentials,
-  type SlackManifest,
 } from "./apps";
-import { slackSeed } from "./slack-seed";
+import { seedWorkspace } from "./seed";
+import { DEFAULT_SLACK_SPEC, type SlackAppState, type SlackSpec, type SlackState } from "./spec";
 import { ACTING_METHODS, fileContent, userToken, worldState } from "./slack-ui";
-
-export type AppSpec = { manifest: SlackManifest; credentials?: Partial<SlackCredentials>; install?: boolean };
-
-export type Installation = { bot_token: string; bot_user_id: string; team_id: string };
-
-export type CreatedApp = { app_id: string; credentials: SlackCredentials; installation: Installation | null };
 
 type Persisted = { store: StoreSnapshot; tokens: TokenEntry[] };
 
 type SlackServer = ReturnType<typeof createServer>;
 
 const STATE_KEY = "slack";
+const SPEC_STATE_KEY = "slack:state";
 const BASE_URL_KEY = "slack:base-url";
-const EMULATE_TEAM_ID = "T000000001";
 const CONTROL_PREFIX = "/_worlds/";
 const INSPECTOR_PATH = "/_inspector";
 const MANIFEST_PREFIX = "/api/apps.manifest.";
 const EVENTS_OWNER = "worlds";
 
-export class ClientIdTaken extends Error {
+export class WorldAlreadySetUp extends Error {
   constructor() {
-    super("client_id_taken");
+    super("world_already_set_up");
   }
 }
 
@@ -61,19 +51,14 @@ export class SlackService {
     this.blobs = new FileBlobs(storage);
   }
 
-  async createApps(specs: AppSpec[], baseUrl: string): Promise<CreatedApp[]> {
-    const slack = await this.load(baseUrl);
-    const pinnedIds = specs.map((spec) => spec.credentials?.client_id).filter((id): id is string => Boolean(id));
-    if (new Set(pinnedIds).size !== pinnedIds.length || pinnedIds.some((id) => clientIdTaken(slack.store, id))) {
-      throw new ClientIdTaken();
-    }
-    const created: CreatedApp[] = [];
-    for (const spec of specs) {
-      const app = createApp(slack.store, spec.manifest, spec.credentials);
-      created.push({ app_id: app.app_id, credentials: app.credentials, installation: spec.install ? await install(slack, app, baseUrl) : null });
-    }
-    await this.save();
-    return created;
+  async setup(spec: SlackSpec, baseUrl: string): Promise<SlackState> {
+    if (this.server || (await this.storage.get(STATE_KEY))) throw new WorldAlreadySetUp();
+    await this.load(baseUrl, spec);
+    return (await this.state()) as SlackState;
+  }
+
+  async state(): Promise<SlackState | null> {
+    return (await this.storage.get<SlackState>(SPEC_STATE_KEY)) ?? null;
   }
 
   async fetch(request: Request, baseUrl: string): Promise<Response> {
@@ -105,18 +90,6 @@ export class SlackService {
   }
 
   private async control(request: Request, url: URL, baseUrl: string): Promise<Response> {
-    if (request.method === "POST" && url.pathname === "/_worlds/slack/apps") {
-      const spec = (await request.json()) as Partial<AppSpec>;
-      const checked = validateManifest(spec.manifest);
-      if ("problems" in checked) return Response.json({ ok: false, error: "invalid_manifest", errors: checked.problems }, { status: 400 });
-      try {
-        const [created] = await this.createApps([{ manifest: checked.manifest, credentials: spec.credentials, install: spec.install }], baseUrl);
-        return Response.json({ ok: true, ...created });
-      } catch (error) {
-        if (error instanceof ClientIdTaken) return Response.json({ ok: false, error: "client_id_taken" }, { status: 409 });
-        throw error;
-      }
-    }
     if (request.method === "POST" && url.pathname === "/_worlds/slack/tokens") {
       const { user_id: userId } = (await request.json()) as { user_id?: string };
       const slack = await this.load(baseUrl);
@@ -140,30 +113,19 @@ export class SlackService {
   }
 
   private async manifestMethod(method: string, args: Record<string, unknown>, baseUrl: string): Promise<Response> {
-    const slack = await this.load(baseUrl);
-    const appId = typeof args.app_id === "string" ? args.app_id : "";
     if (method === "export") {
-      const app = findApp(slack.store, appId);
+      const slack = await this.load(baseUrl);
+      const app = findApp(slack.store, typeof args.app_id === "string" ? args.app_id : "");
       return Response.json(app ? { ok: true, manifest: app.manifest } : { ok: false, error: "invalid_app_id" });
     }
-    if (method === "delete") {
-      const deleted = deleteApp(slack.store, appId);
-      if (deleted) await this.save();
-      return Response.json(deleted ? { ok: true } : { ok: false, error: "invalid_app_id" });
+    if (method === "validate") {
+      const checked = validateManifest(parseManifest(args.manifest));
+      return Response.json("problems" in checked ? { ok: false, error: "invalid_manifest", errors: checked.problems } : { ok: true });
     }
-    if (method !== "validate" && method !== "create" && method !== "update") return Response.json({ ok: false, error: "unknown_method" });
-    const checked = validateManifest(parseManifest(args.manifest));
-    if ("problems" in checked) return Response.json({ ok: false, error: "invalid_manifest", errors: checked.problems });
-    if (method === "validate") return Response.json({ ok: true });
-    if (method === "update") {
-      const updated = updateApp(slack.store, appId, checked.manifest);
-      if (!updated) return Response.json({ ok: false, error: "invalid_app_id" });
-      await this.save();
-      return Response.json({ ok: true, app_id: updated.app_id, permissions_updated: false });
+    if (method === "create" || method === "update" || method === "delete") {
+      return Response.json({ ok: false, error: "restricted_action", detail: "A world's apps come from its spec. Create a new world with the apps you need." });
     }
-    const app = createApp(slack.store, checked.manifest);
-    await this.save();
-    return Response.json({ ok: true, app_id: app.app_id, credentials: app.credentials, oauth_authorize_url: authorizeUrl(app, baseUrl) });
+    return Response.json({ ok: false, error: "unknown_method" });
   }
 
   private async actAs(request: Request, url: URL, baseUrl: string): Promise<Response> {
@@ -212,7 +174,7 @@ export class SlackService {
     return new Response(html, { status: response.status, headers: response.headers });
   }
 
-  private async load(baseUrl: string): Promise<SlackServer> {
+  private async load(baseUrl: string, spec?: SlackSpec): Promise<SlackServer> {
     if (this.server) return this.server;
     const slack = createServer(slackPlugin, { baseUrl, baseUrlDerived: false });
     registerSlackExtensions(slack.app);
@@ -220,16 +182,15 @@ export class SlackService {
     if (saved) {
       slack.store.restore(await this.blobs.join(saved.store));
       restoreTokenMap(slack.tokenMap, saved.tokens);
-    } else {
-      slackPlugin.seed?.(slack.store, baseUrl);
-      giveTeamItsOwnId(slack.store);
-      seedFromConfig(slack.store, baseUrl, slackSeed());
     }
     const subscription = slack.webhooks.register({ owner: EVENTS_OWNER, url: baseUrl, events: ["*"], active: true });
     await this.delivery.attach(slack.webhooks, subscription.id);
     this.server = slack;
     await this.storage.put(BASE_URL_KEY, baseUrl);
-    if (!saved) await this.save();
+    if (!saved) {
+      await this.storage.put(SPEC_STATE_KEY, await seed(slack, spec ?? DEFAULT_SLACK_SPEC, baseUrl));
+      await this.save();
+    }
     return slack;
   }
 
@@ -242,25 +203,71 @@ export class SlackService {
   }
 }
 
-function giveTeamItsOwnId(store: SlackServer["store"]): void {
-  const slack = getSlackStore(store);
-  const teamId = `T${[...crypto.getRandomValues(new Uint8Array(10))].map((byte) => "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"[byte % 36]).join("")}`;
-  for (const team of slack.teams.findBy("team_id", EMULATE_TEAM_ID)) slack.teams.update(team.id, { team_id: teamId });
-  for (const user of slack.users.findBy("team_id", EMULATE_TEAM_ID)) slack.users.update(user.id, { team_id: teamId });
-  for (const channel of slack.channels.all().filter((channel) => channel.team_id === EMULATE_TEAM_ID)) {
-    slack.channels.update(channel.id, { team_id: teamId });
+async function seed(slack: SlackServer, spec: SlackSpec, baseUrl: string): Promise<SlackState> {
+  const workspace = seedWorkspace(slack.store, spec);
+  const userId = (ref: string) => workspace.users.find((user) => user.name === ref || user.id === ref)?.id ?? "";
+  for (const channel of workspace.channels) {
+    for (const message of channel.messages) {
+      const posted = await callSlack(slack, baseUrl, userToken(slack, userId(message.user)) ?? "", "chat.postMessage", { channel: channel.id, text: message.text });
+      for (const reply of message.replies ?? []) {
+        await callSlack(slack, baseUrl, userToken(slack, userId(reply.user)) ?? "", "chat.postMessage", {
+          channel: channel.id,
+          text: reply.text,
+          thread_ts: posted.ts,
+        });
+      }
+    }
   }
+  const apps: SlackAppState[] = [];
+  for (const appSpec of spec.apps ?? []) {
+    const app = createApp(slack.store, appSpec.manifest, appSpec.credentials);
+    const installSpec = appSpec.install === true ? {} : appSpec.install || null;
+    let install: SlackAppState["install"] = null;
+    if (installSpec) {
+      const installer = installSpec.installer ? userId(installSpec.installer) : (workspace.users[0]?.id ?? "");
+      if (installSpec.bot_user_id) pinBotUser(slack, app.app_id, installSpec.bot_user_id);
+      const installed = await installApp(slack, app, baseUrl, installer);
+      const botToken = installSpec.bot_token ? pinBotToken(slack, installed.bot_token, installSpec.bot_token) : installed.bot_token;
+      const channels = installSpec.channels ?? [];
+      for (const name of channels) addMember(slack, name, installed.bot_user_id);
+      install = { installer, bot_user_id: installed.bot_user_id, bot_token: botToken, channels };
+    }
+    apps.push({ app_id: app.app_id, manifest: app.manifest, credentials: app.credentials, install });
+  }
+  return { ...workspace, apps };
 }
 
-async function install(slack: SlackServer, app: SlackApp, baseUrl: string): Promise<Installation> {
-  const installer = getSlackStore(slack.store).users.all().find((user) => !user.deleted && !user.is_bot);
-  if (!installer) throw new Error("the world has no user to install the app");
+function pinBotUser(slack: SlackServer, appId: string, botUserId: string): void {
+  const record = getSlackStore(slack.store).oauthApps.findOneBy("app_id", appId);
+  if (record) getSlackStore(slack.store).oauthApps.update(record.id, { bot_user_id: botUserId });
+}
+
+function pinBotToken(slack: SlackServer, minted: string, pinned: string): string {
+  const entry = slack.tokenMap.get(minted);
+  if (entry) {
+    slack.tokenMap.delete(minted);
+    slack.tokenMap.set(pinned, entry);
+  }
+  const tokens = getSlackStore(slack.store).tokens;
+  for (const record of tokens.findBy("token", minted)) tokens.update(record.id, { token: pinned });
+  return pinned;
+}
+
+function addMember(slack: SlackServer, channelName: string, userId: string): void {
+  const channels = getSlackStore(slack.store).channels;
+  const channel = channels.findOneBy("name", channelName);
+  if (!channel || channel.members.includes(userId)) return;
+  channels.update(channel.id, { members: [...channel.members, userId], num_members: channel.members.length + 1 });
+}
+
+async function installApp(slack: SlackServer, app: SlackApp, baseUrl: string, installerUserId: string): Promise<{ bot_token: string; bot_user_id: string }> {
+  if (!installerUserId) throw new Error("the world has no user to install the app");
   const redirectUri = `${baseUrl}/_worlds/installed`;
   const callback = await slack.app.fetch(
     new Request(`${baseUrl}/oauth/v2/authorize/callback`, {
       method: "POST",
       body: new URLSearchParams({
-        user_id: installer.user_id,
+        user_id: installerUserId,
         client_id: app.credentials.client_id,
         redirect_uri: redirectUri,
         scope: (app.manifest.oauth_config?.scopes?.bot ?? []).join(","),
@@ -276,9 +283,9 @@ async function install(slack: SlackServer, app: SlackApp, baseUrl: string): Prom
       body: new URLSearchParams({ client_id: app.credentials.client_id, client_secret: app.credentials.client_secret, code, redirect_uri: redirectUri }),
     }),
   );
-  const access = (await response.json()) as { ok: boolean; error?: string; access_token?: string; bot_user_id?: string; team?: { id: string } };
-  if (!access.ok || !access.access_token || !access.bot_user_id || !access.team) throw new Error(`install failed: ${access.error}`);
-  return { bot_token: access.access_token, bot_user_id: access.bot_user_id, team_id: access.team.id };
+  const access = (await response.json()) as { ok: boolean; error?: string; access_token?: string; bot_user_id?: string };
+  if (!access.ok || !access.access_token || !access.bot_user_id) throw new Error(`install failed: ${access.error}`);
+  return { bot_token: access.access_token, bot_user_id: access.bot_user_id };
 }
 
 function authorizeUrl(app: SlackApp, baseUrl: string): string {

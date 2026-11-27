@@ -2,7 +2,8 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { createServer } from "node:http";
 import { WebClient } from "@slack/web-api";
 
-const base = process.env.WORLDS_URL ?? "http://smoketest0000000000-slack.localhost:8787";
+const apiUrl = process.env.WORLDS_API_URL ?? "http://localhost:8791";
+const worldsOrigin = (worldId) => `http://${worldId.slice("world_".length)}-slack.localhost:8787`;
 const redirectUri = "http://localhost:8788/oauth/callback";
 const manifest = {
   display_information: { name: "Smoke" },
@@ -10,11 +11,39 @@ const manifest = {
   oauth_config: { redirect_urls: [redirectUri], scopes: { bot: ["app_mentions:read", "chat:write", "channels:history", "files:read"] } },
   settings: { event_subscriptions: { request_url: "http://localhost:8788/slack/events", bot_events: ["app_mention"] } },
 };
-let clientId = "";
-let clientSecret = "";
-let signingSecret = "";
+const run = Date.now();
+const credentials = { client_id: `smoke-${run}`, client_secret: "smoke-client-secret", signing_secret: "smoke-signing-secret" };
+const clientId = credentials.client_id;
+const clientSecret = credentials.client_secret;
+const signingSecret = credentials.signing_secret;
 const apiKey = process.env.WORLDS_API_KEY ?? "wk_live_smoke0smoke0smoke0smoke0smoke0smoke00";
-const slackApiUrl = `${base}/api/`;
+const userToken = `xoxp-smoke-alice-${run}`;
+const pinnedBotToken = `xoxb-smoke-pinned-${run}`;
+const spec = {
+  team: { name: "Smoke" },
+  users: [{ name: "alice", real_name: "Alice Tester", token: userToken }, { name: "bob" }],
+  channels: [
+    {
+      name: "general",
+      members: ["alice", "bob"],
+      messages: [{ user: "bob", text: "hello from the spec", replies: [{ user: "alice", text: "a seeded reply" }] }],
+    },
+  ],
+  apps: [
+    { manifest, credentials },
+    {
+      manifest: { display_information: { name: "Pinned" }, oauth_config: { scopes: { bot: ["chat:write", "channels:read"] } } },
+      credentials: { client_id: `pinned-${run}` },
+      install: { bot_user_id: "U0PINNED0001", bot_token: pinnedBotToken, channels: ["general"] },
+    },
+    {
+      manifest: { display_information: { name: "Wildcard" }, oauth_config: { redirect_urls: ["https://*-dashboard.example.com/api/slack/oauth/callback"] } },
+      credentials: { client_id: `wildcard-${run}` },
+    },
+  ],
+};
+let base = "";
+let slackApiUrl = "";
 
 const events = [];
 
@@ -87,33 +116,61 @@ async function install() {
   return new WebClient(undefined, { slackApiUrl }).oauth.v2.access({ client_id: clientId, client_secret: clientSecret, code, redirect_uri: redirectUri });
 }
 
+let worldId = "";
 try {
+  const invalid = await fetch(`${apiUrl}/api/worlds`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+    body: JSON.stringify({ slack: { users: [{ name: "alice" }], channels: [{ name: "general", members: ["nobody"] }] } }),
+  });
+  assert(invalid.status === 400, "a spec that names an unknown user is refused");
+  const createdWorld = await fetch(`${apiUrl}/api/worlds`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+    body: JSON.stringify({ name: "Smoke", slack: spec }),
+  });
+  const world = await createdWorld.json();
+  assert(createdWorld.status === 201 && /^T[0-9A-Z]{10}$/.test(world.slack.spec.team.id), "POST /api/worlds seeds the world from its spec, with a generated team id");
+  worldId = world.id;
+  base = worldsOrigin(worldId);
+  slackApiUrl = `${base}/api/`;
+  const exported = await (await fetch(`${apiUrl}/api/worlds/${worldId}/spec`, { headers: { authorization: `Bearer ${apiKey}` } })).json();
+  assert(
+    exported.slack.team.id === world.slack.spec.team.id && exported.slack.apps[0].credentials.client_id === clientId && exported.slack.users[0].token === userToken,
+    "GET /api/worlds/{id}/spec returns the effective spec",
+  );
+
   const anonymous = await fetch(`${base}/_worlds/slack/state`);
   assert(anonymous.status === 401, "control routes refuse requests without the team's key");
   const state = await fetch(`${base}/_worlds/slack/state`, { headers: { authorization: `Bearer ${apiKey}` } });
   assert(state.ok, "the team's API key opens the world's control routes");
-  const missing = await fetch(`${base.replace("smoketest0000000000", "doesnotexist0")}/api/auth.test`, { method: "POST" });
+  const missing = await fetch(`${worldsOrigin("world_doesnotexist0")}/api/auth.test`, { method: "POST" });
   assert(missing.status === 404, "an unknown world answers world_not_found");
-  const config = new WebClient(apiKey, { slackApiUrl });
-  const app = await config.apiCall("apps.manifest.create", { manifest: JSON.stringify(manifest) });
-  assert(app.ok && app.credentials.client_id && app.credentials.signing_secret, "apps.manifest.create returns the app's credentials");
-  ({ client_id: clientId, client_secret: clientSecret, signing_secret: signingSecret } = app.credentials);
-  const exported = await config.apiCall("apps.manifest.export", { app_id: app.app_id });
-  assert(exported.manifest.display_information.name === "Smoke", "apps.manifest.export returns the manifest");
-  const keyless = await fetch(`${slackApiUrl}apps.manifest.create`, { method: "POST" });
-  assert(keyless.status === 401, "apps.manifest.* needs the team's key as the configuration token");
-  const access = await install();
-  assert(access.ok && access.access_token.startsWith("xoxb-"), "OAuth install returns a bot token");
-  assert(/^T[0-9A-Z]{10}$/.test(access.team.id), "the world's workspace has its own team id, not emulate's T000000001");
 
-  const wildcard = await config.apiCall("apps.manifest.create", {
-    manifest: JSON.stringify({
-      display_information: { name: "Wildcard" },
-      oauth_config: { redirect_urls: ["https://*-dashboard.example.com/api/slack/oauth/callback"] },
-    }),
-  });
+  const human = new WebClient(userToken, { slackApiUrl });
+  assert((await human.auth.test()).user === "alice", "a pinned user token acts as that user");
+  const general = world.slack.spec.channels.find((channel) => channel.name === "general");
+  const history = await human.conversations.history({ channel: general.id });
+  const seeded = history.messages.find((message) => message.text === "hello from the spec");
+  assert(seeded?.reply_count === 1, "seeded messages and replies are in the channel");
+  const pinnedBot = new WebClient(pinnedBotToken, { slackApiUrl });
+  const pinnedAuth = await pinnedBot.auth.test();
+  assert(pinnedAuth.ok && pinnedAuth.user_id === "U0PINNED0001", "a preinstalled app uses its pinned bot user and token");
+  assert((await human.conversations.members({ channel: general.id })).members.includes("U0PINNED0001"), "the preinstalled bot is in its channels");
+
+  const config = new WebClient(apiKey, { slackApiUrl });
+  const restricted = await config.apiCall("apps.manifest.create", { manifest: JSON.stringify(manifest) }).catch((error) => error.data);
+  assert(restricted.error === "restricted_action", "apps come only from the world's spec");
+  const appId = world.slack.spec.apps[0].app_id;
+  const exportedManifest = await config.apiCall("apps.manifest.export", { app_id: appId });
+  assert(exportedManifest.manifest.display_information.name === "Smoke", "apps.manifest.export returns the manifest");
+
+  const access = await install();
+  assert(access.ok && access.access_token.startsWith("xoxb-") && access.team.id === world.slack.spec.team.id, "OAuth install returns a bot token for the world's team");
+
+  const wildcardClient = world.slack.spec.apps[2].credentials.client_id;
   const authorizeWith = (uri) =>
-    fetch(`${base}/oauth/v2/authorize?client_id=${wildcard.credentials.client_id}&scope=chat:write&redirect_uri=${encodeURIComponent(uri)}`).then((r) => r.status);
+    fetch(`${base}/oauth/v2/authorize?client_id=${wildcardClient}&scope=chat:write&redirect_uri=${encodeURIComponent(uri)}`).then((r) => r.status);
   assert(
     (await authorizeWith("https://feat-x-dashboard.example.com/api/slack/oauth/callback")) === 200 &&
       (await authorizeWith("https://feat-x-dashboard.example.com/api/slack/oauth/callback/next")) === 200,
@@ -125,37 +182,7 @@ try {
     "redirect URIs outside the manifest are refused",
   );
 
-  const pinnedClientId = `pinned-${Date.now()}`;
-  const preinstalled = await (
-    await fetch(`${base}/_worlds/slack/apps`, {
-      method: "POST",
-      headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
-      body: JSON.stringify({ manifest: { display_information: { name: "Pinned" } }, credentials: { client_id: pinnedClientId }, install: true }),
-    })
-  ).json();
-  assert(
-    preinstalled.credentials.client_id === pinnedClientId && (await new WebClient(preinstalled.installation.bot_token, { slackApiUrl }).auth.test()).ok,
-    "a world app can pin its credentials and be preinstalled",
-  );
-  const duplicate = await fetch(`${base}/_worlds/slack/apps`, {
-    method: "POST",
-    headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
-    body: JSON.stringify({ manifest: { display_information: { name: "Again" } }, credentials: { client_id: pinnedClientId } }),
-  });
-  assert(duplicate.status === 409, "a pinned client_id already used in the world is refused");
-
-  const worldState = await (await fetch(`${base}/_worlds/slack/state`, { headers: { authorization: `Bearer ${apiKey}` } })).json();
-  const alice = worldState.users.find((user) => user.name === "alice");
-  const { token: userToken } = await (
-    await fetch(`${base}/_worlds/slack/tokens`, {
-      method: "POST",
-      headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
-      body: JSON.stringify({ user_id: alice.id }),
-    })
-  ).json();
-
   const bot = new WebClient(access.access_token, { slackApiUrl });
-  const human = new WebClient(userToken, { slackApiUrl });
   const channel = `smoke-${Date.now()}`;
   const created = await human.conversations.create({ name: channel });
   await bot.conversations.join({ channel: created.channel.id });
@@ -204,6 +231,9 @@ try {
   await sleep(1000);
   assert(mentionAttempts("run the login tests").length === 1, "a 200 is not retried");
   assert(events.every((event) => event.valid), "every event carries a valid Slack signature");
+  const deleted = await fetch(`${apiUrl}/api/worlds/${worldId}`, { method: "DELETE", headers: { authorization: `Bearer ${apiKey}` } });
+  const gone = await fetch(`${slackApiUrl}auth.test`, { method: "POST", headers: { authorization: `Bearer ${userToken}` } });
+  assert(deleted.status === 204 && gone.status === 404, "DELETE /api/worlds/{id} wipes the world");
 } finally {
   receiver.close();
 }

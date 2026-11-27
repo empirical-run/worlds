@@ -1,9 +1,10 @@
 import type { ApiKey, Db, Membership, Team, User } from "@worlds/db";
-import type { AppSpec, CreatedApp } from "@worlds/slack/service";
+import type { SlackSpec, SlackState } from "@worlds/slack/spec";
 
 export type WorldsControl = {
   purge(worldId: string): Promise<void>;
-  setupSlack(worldId: string, apps: AppSpec[]): Promise<CreatedApp[]>;
+  setupSlack(worldId: string, spec: SlackSpec): Promise<SlackState>;
+  slackState(worldId: string): Promise<SlackState | null>;
 };
 
 export type Caller = { kind: "key"; key: ApiKey } | { kind: "user"; user: User };

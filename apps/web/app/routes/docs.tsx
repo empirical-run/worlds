@@ -63,10 +63,15 @@ export default function Docs() {
           <code>{createExample}</code>
         </pre>
         <p>
+          The <code>slack</code> spec describes everything in the workspace: the team, users, channels with their members and messages, and
+          apps defined by standard Slack app manifests. Ids, credentials and tokens you leave out are generated; pin them (a team id, a user
+          token, an app's client secret or a bot token) to match what your app already stores. Without a spec the world gets one user, alice,
+          and #general.
+        </p>
+        <p>
           The response has the world's Slack URLs (<code>slack.api_url</code>, <code>slack.oauth_authorize_url</code>,{" "}
-          <code>slack.ui_url</code>) and, for each app, its credentials and, with <code>install</code>, a bot token. Apps are defined by a
-          standard Slack app manifest. Pass <code>credentials</code> to pin a client id, client secret or signing secret your app already
-          uses.
+          <code>slack.ui_url</code>) and <code>slack.spec</code>: the spec with everything generated filled in, also at{" "}
+          <code>GET /api/worlds/:id/spec</code>. A world never changes its spec; to change it, create a new world. Worlds are cheap.
         </p>
       </section>
 
@@ -90,8 +95,8 @@ export default function Docs() {
           for a bot token as usual.
         </p>
         <p>
-          To change apps later, call <code>apps.manifest.create</code>, <code>update</code>, <code>export</code>, <code>delete</code> or{" "}
-          <code>validate</code> on the world's API URL with your team's API key as the configuration token.
+          <code>apps.manifest.export</code> and <code>validate</code> work as on Slack. <code>create</code>, <code>update</code> and{" "}
+          <code>delete</code> answer <code>restricted_action</code>: a world's apps come from its spec.
         </p>
       </section>
 
@@ -128,10 +133,6 @@ export default function Docs() {
           makeworlds.dev session.
         </p>
         <ul>
-          <li>
-            <code>POST /_worlds/slack/apps</code> creates an app from <code>{'{"manifest", "credentials", "install"}'}</code>, like the
-            create-world option.
-          </li>
           <li>
             <code>POST /_worlds/slack/tokens</code> returns a user token for <code>{'{"user_id"}'}</code>, to act as that user with any Slack
             client.

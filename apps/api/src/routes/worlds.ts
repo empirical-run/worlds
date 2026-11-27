@@ -1,7 +1,8 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { createWorld, listWorlds, liveWorld, markWorldDeleted, worldHost, type World } from "@worlds/db";
 import { apiError, type AppEnv } from "../context";
-import { validateManifest, type SlackManifest } from "@worlds/slack/manifest";
+import { validateManifest } from "@worlds/slack/manifest";
+import { DEFAULT_SLACK_SPEC, unknownReferences, type SlackSpec } from "@worlds/slack/spec";
 import {
   errorResponse,
   jsonResponse,
@@ -11,6 +12,7 @@ import {
   WorldListSchema,
   WorldParamsSchema,
   WorldSchema,
+  WorldSpecSchema,
 } from "../schemas";
 import { accessibleTeam, accessibleTeams } from "../teams";
 
@@ -36,8 +38,8 @@ const createWorldRoute = createRoute({
   security,
   request: { body: { required: false, content: { "application/json": { schema: WorldCreateSchema } } } },
   responses: {
-    201: jsonResponse("The new world, with credentials and bot tokens for its Slack apps", WorldCreatedSchema),
-    400: errorResponse("Invalid name or Slack app manifest"),
+    201: jsonResponse("The new world, with its effective Slack spec (generated ids, credentials and tokens filled in)", WorldCreatedSchema),
+    400: errorResponse("Invalid name or Slack spec"),
     401: errorResponse("Missing or invalid credentials"),
     404: errorResponse("No team with that id is visible to you"),
   },
@@ -54,6 +56,21 @@ const getWorldRoute = createRoute({
     200: jsonResponse("The world", WorldSchema),
     401: errorResponse("Missing or invalid credentials"),
     404: errorResponse("No world with that id is visible to you"),
+  },
+});
+
+const getWorldSpecRoute = createRoute({
+  method: "get",
+  path: "/api/worlds/{worldId}/spec",
+  tags: ["Worlds"],
+  summary: "Get a world's spec",
+  description: "The spec the world was created from, with generated ids, credentials and tokens filled in. Create a world from it to get an identical one.",
+  security,
+  request: { params: WorldParamsSchema },
+  responses: {
+    200: jsonResponse("The world's spec", WorldSpecSchema),
+    401: errorResponse("Missing or invalid credentials"),
+    404: errorResponse("No world with that id is visible to you, or it predates world specs"),
   },
 });
 
@@ -99,35 +116,24 @@ export const worlds = new OpenAPIHono<AppEnv>()
     const teams = await accessibleTeams(db, caller);
     const target = body.team_id ? await accessibleTeam(db, caller, body.team_id) : teams[0];
     if (!target) return c.json(apiError("not_found", "No team with that id is visible to you."), 404);
-    const specs = body.slack?.apps ?? [];
-    const manifests: SlackManifest[] = [];
-    for (const [index, spec] of specs.entries()) {
-      const checked = validateManifest(spec.manifest);
-      if ("problems" in checked) {
-        const problem = checked.problems[0];
-        return c.json(apiError("invalid_request", `slack.apps[${index}].manifest${problem?.pointer ?? ""}: ${problem?.message}`), 400);
-      }
-      manifests.push(checked.manifest);
-    }
-    const pinnedIds = specs.map((spec) => spec.credentials?.client_id).filter(Boolean);
-    if (new Set(pinnedIds).size !== pinnedIds.length) {
-      return c.json(apiError("invalid_request", "slack.apps: each pinned client_id must be unique."), 400);
-    }
+    const problem = slackSpecProblem(body.slack);
+    if (problem) return c.json(apiError("invalid_request", problem), 400);
     const createdBy = caller.kind === "user" ? caller.user.id : null;
     const world = await createWorld(db, target.team.id, createdBy, body.name ?? "Untitled world");
-    const apps = specs.length
-      ? await c.env.SLACK.setupSlack(
-          world.id,
-          specs.map((spec, index) => ({ manifest: manifests[index] as SlackManifest, credentials: spec.credentials, install: spec.install })),
-        )
-      : [];
+    const spec = await c.env.SLACK.setupSlack(world.id, (body.slack as SlackSpec | undefined) ?? DEFAULT_SLACK_SPEC);
     const json = worldJson(world, c.env.WORLDS_DOMAIN);
-    return c.json({ ...json, slack: { ...json.slack, apps } }, 201);
+    return c.json({ ...json, slack: { ...json.slack, spec } }, 201);
   })
   .openapi(getWorldRoute, async (c) => {
     const world = await visibleWorld(c, c.req.valid("param").worldId);
     if (!world) return c.json(apiError("not_found", NOT_VISIBLE), 404);
     return c.json(worldJson(world, c.env.WORLDS_DOMAIN), 200);
+  })
+  .openapi(getWorldSpecRoute, async (c) => {
+    const world = await visibleWorld(c, c.req.valid("param").worldId);
+    const spec = world ? await c.env.SLACK.slackState(world.id) : null;
+    if (!spec) return c.json(apiError("not_found", NOT_VISIBLE), 404);
+    return c.json({ slack: spec }, 200);
   })
   .openapi(deleteWorldRoute, async (c) => {
     const world = await visibleWorld(c, c.req.valid("param").worldId);
@@ -141,4 +147,21 @@ async function visibleWorld(c: { var: AppEnv["Variables"] }, worldId: string): P
   const world = await liveWorld(c.var.db, worldId);
   if (!world) return null;
   return (await accessibleTeam(c.var.db, c.var.caller, world.teamId)) ? world : null;
+}
+
+function slackSpecProblem(spec: { users?: { name: string }[]; channels?: { name: string }[]; apps?: { manifest: unknown; credentials?: { client_id?: string } }[] } | undefined): string | null {
+  if (!spec) return null;
+  for (const [index, app] of (spec.apps ?? []).entries()) {
+    const checked = validateManifest(app.manifest);
+    if ("problems" in checked) return `slack.apps[${index}].manifest${checked.problems[0]?.pointer ?? ""}: ${checked.problems[0]?.message}`;
+  }
+  const duplicate = (values: string[]) => values.find((value, index) => values.indexOf(value) !== index);
+  const user = duplicate((spec.users ?? []).map((entry) => entry.name));
+  if (user) return `slack.users: duplicate name ${user}`;
+  const channel = duplicate((spec.channels ?? []).map((entry) => entry.name));
+  if (channel) return `slack.channels: duplicate name ${channel}`;
+  const clientId = duplicate((spec.apps ?? []).flatMap((app) => (app.credentials?.client_id ? [app.credentials.client_id] : [])));
+  if (clientId) return `slack.apps: duplicate client_id ${clientId}`;
+  const unknown = unknownReferences(spec as SlackSpec)[0];
+  return unknown ? `slack.${unknown}` : null;
 }

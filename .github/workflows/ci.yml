@@ -27,13 +27,14 @@ jobs:
           pnpm --filter @worlds/world exec wrangler d1 migrations apply worlds-db --local
           pnpm --filter @worlds/world exec wrangler d1 execute worlds-db --local --file scripts/seed-smoke.sql
           pnpm dev > wrangler-dev.log 2>&1 &
-          for attempt in $(seq 1 60); do
-            curl -s -o /dev/null http://localhost:8787/ && break
+          pnpm dev:api > wrangler-api.log 2>&1 &
+          for attempt in $(seq 1 90); do
+            curl -s -o /dev/null http://localhost:8787/ && curl -s -o /dev/null http://localhost:8791/api/openapi.json && break
             sleep 1
           done
           pnpm smoke
       - if: failure()
-        run: cat wrangler-dev.log
+        run: cat wrangler-dev.log wrangler-api.log
 
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'

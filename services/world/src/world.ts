@@ -1,5 +1,5 @@
-import type { AppSpec, CreatedApp } from "@worlds/slack/service";
 import { SlackService } from "@worlds/slack/service";
+import type { SlackSpec, SlackState } from "@worlds/slack/spec";
 import { DurableObject } from "cloudflare:workers";
 import type { Env } from "./env";
 
@@ -21,8 +21,12 @@ export class World extends DurableObject<Env> {
     await this.slack().alarm();
   }
 
-  async createSlackApps(specs: AppSpec[], baseUrl: string): Promise<CreatedApp[]> {
-    return this.slack().createApps(specs, baseUrl);
+  async setupSlack(spec: SlackSpec, baseUrl: string): Promise<SlackState> {
+    return this.slack().setup(spec, baseUrl);
+  }
+
+  async slackState(): Promise<SlackState | null> {
+    return this.slack().state();
   }
 
   async purge(): Promise<void> {

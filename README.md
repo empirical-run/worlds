@@ -11,13 +11,15 @@ Service behaviour comes from [emulate](https://github.com/vercel-labs/emulate) (
 ```bash
 pnpm install
 cp services/world/.dev.vars.example services/world/.dev.vars
+# world Worker on :8787, API on :8791 (shared local D1)
 pnpm --filter @worlds/world exec wrangler d1 migrations apply worlds-db --local
 pnpm --filter @worlds/world exec wrangler d1 execute worlds-db --local --file scripts/seed-smoke.sql
-pnpm dev
+pnpm dev &
+pnpm dev:api &
 pnpm smoke
 ```
 
-`pnpm smoke` runs against the seeded smoke world: it checks the world's access rules, installs the app over OAuth, posts an @mention as a user, replies as the bot and checks the signed `app_mention` callback.
+`pnpm smoke` creates a world through the API from a full spec, checks the spec landed (pinned ids and tokens, seeded threads, preinstalled bot), the world's access rules, installs the app over OAuth, posts an @mention as a user, replies as the bot and checks the signed `app_mention` callback.
 
 `services/world` is the `worlds` Worker on `*.makeworlds.dev`. Every world is one `World` Durable Object holding all of its services. Each service of a world has its own host, `{id}-{service}.makeworlds.dev` with the id minus its `world_` prefix (`https://k2v9x0q1m4-slack.makeworlds.dev`, `http://k2v9x0q1m4-slack.localhost:8787` in dev), so services sit at the root like the real ones; the Worker checks the world exists in D1 before routing to its Durable Object. `services/slack` is the Slack service module (`SlackService`) and its UI (`ui/`), which the world Worker serves; `wrangler dev` and `wrangler deploy` build the UI first.
 
@@ -29,9 +31,8 @@ All paths below are on the world's Slack host, `https://{id}-slack.makeworlds.de
 - A Slack-style UI at `/`, for members of the world's team (makeworlds.dev session): channels, threads, mrkdwn, live updates. Pick a user under "Acting as" and post as them; `@name` becomes a real mention, so `@empirical` fires `app_mention` at the app under test. Create channels and add people (or the app) from the UI too.
 - Files: upload with `files.getUploadURLExternal` → upload URL → `files.completeUploadExternal`, download `url_private`/`url_private_download` with a token. A file shared with an @mention sends `app_mention` with `files`, and images report `thumb_*` (both via `patches/@emulators__slack@0.14.0.patch`). File bytes are stored in their own chunked Durable Object keys, outside the world state, so screenshots don't hit the 2 MB value limit. The UI shows images and files, and attaches files from the composer (button, paste or drop).
 - emulate's raw inspector moved to `/_inspector`.
-- Apps live in the world, defined by Slack app manifests: create them with the world (`POST /api/worlds` with `slack.apps: [{ manifest, credentials?, install? }]`, credentials can be pinned and `install` returns a bot token) or later with `apps.manifest.create/update/export/delete/validate` using the team's API key as the configuration token. OAuth checks the manifest's `redirect_urls`. Events go to each installed app that subscribes to them (`bot_events`), at its `request_url`, signed with its own signing secret. Delivery works like Slack's: API calls return without waiting for the receiver; a non-2xx (unless `x-slack-no-retry: 1`), a connection failure or no response within 3s is retried with `X-Slack-Retry-Num`/`X-Slack-Retry-Reason`, right away, after 1 minute and after 5 minutes. Pending retries and the delivery log live in Durable Object storage and alarms, so they survive eviction.
+- Everything in a world's Slack workspace comes from the `slack` spec in `POST /api/worlds`: team, users (optional pinned tokens), channels with members and seeded messages, and apps (Slack app manifests, optional pinned credentials, optional install with pinned bot user, bot token and channels). Generated values are filled in and returned as `slack.spec`, also at `GET /api/worlds/{id}/spec`; a world never changes its spec. `apps.manifest.export/validate` work, `create/update/delete` answer `restricted_action`. OAuth checks the manifest's `redirect_urls` (Slack's matching, plus `*` host wildcards). Events go to each installed app that subscribes to them (`bot_events`), at its `request_url`, signed with its own signing secret.
 - Control routes take the team's API key (`Authorization: Bearer wk_…`) or a makeworlds.dev session:
-  - `POST /_worlds/slack/apps` with `{ manifest, credentials?, install? }` creates an app.
   - `POST /_worlds/slack/tokens` with `{ "user_id" }` returns that user's token.
   - `GET /_worlds/slack/state?channel=C…` returns users, channels and the channel's messages (the UI polls it).
   - `GET /_worlds/slack/files/F…` returns a file's bytes; `POST /_worlds/slack/upload` (multipart `user_id`, `channel`, `file`, optional `text`, `thread_ts`) shares a file as that user.

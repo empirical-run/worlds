@@ -19,10 +19,6 @@ export function findApp(store: Store, appId: string): SlackApp | undefined {
   return listApps(store).find((app) => app.app_id === appId);
 }
 
-export function clientIdTaken(store: Store, clientId: string | undefined): boolean {
-  return Boolean(clientId) && listApps(store).some((app) => app.credentials.client_id === clientId);
-}
-
 export function createApp(store: Store, manifest: SlackManifest, pinned?: Partial<SlackCredentials>): SlackApp {
   const app: SlackApp = {
     app_id: `A${randomCode(10)}`,
@@ -37,31 +33,6 @@ export function createApp(store: Store, manifest: SlackManifest, pinned?: Partia
   store.setData(APPS_KEY, [...listApps(store), app]);
   mirror(store, app);
   return app;
-}
-
-export function updateApp(store: Store, appId: string, manifest: SlackManifest): SlackApp | undefined {
-  const app = findApp(store, appId);
-  if (!app) return undefined;
-  const updated = { ...app, manifest };
-  store.setData(
-    APPS_KEY,
-    listApps(store).map((existing) => (existing.app_id === appId ? updated : existing)),
-  );
-  mirror(store, updated);
-  return updated;
-}
-
-export function deleteApp(store: Store, appId: string): boolean {
-  if (!findApp(store, appId)) return false;
-  store.setData(
-    APPS_KEY,
-    listApps(store).filter((app) => app.app_id !== appId),
-  );
-  const slack = getSlackStore(store);
-  for (const record of slack.oauthApps.findBy("app_id", appId)) slack.oauthApps.delete(record.id);
-  for (const record of slack.installations.findBy("app_id", appId)) slack.installations.delete(record.id);
-  for (const record of slack.tokens.findBy("app_id", appId)) slack.tokens.delete(record.id);
-  return true;
 }
 
 export function eventTarget(store: Store, appId: string | undefined, eventType: string): EventTarget | null {
