@@ -19,6 +19,10 @@ export function findApp(store: Store, appId: string): SlackApp | undefined {
   return listApps(store).find((app) => app.app_id === appId);
 }
 
+export function clientIdTaken(store: Store, clientId: string | undefined): boolean {
+  return Boolean(clientId) && listApps(store).some((app) => app.credentials.client_id === clientId);
+}
+
 export function createApp(store: Store, manifest: SlackManifest, pinned?: Partial<SlackCredentials>): SlackApp {
   const app: SlackApp = {
     app_id: `A${randomCode(10)}`,
@@ -101,4 +105,31 @@ function randomDigits(length: number): string {
 
 function randomHex(length: number): string {
   return [...crypto.getRandomValues(new Uint8Array(length / 2))].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+export function acceptRedirect(store: Store, clientId: string, redirectUri: string): void {
+  const app = listApps(store).find((candidate) => candidate.credentials.client_id === clientId);
+  const record = getSlackStore(store).oauthApps.findOneBy("client_id", clientId);
+  if (!app || !record || record.redirect_uris.includes(redirectUri)) return;
+  if (!(app.manifest.oauth_config?.redirect_urls ?? []).some((registered) => redirectMatches(registered, redirectUri))) return;
+  getSlackStore(store).oauthApps.update(record.id, { redirect_uris: [...record.redirect_uris, redirectUri] });
+}
+
+function redirectMatches(registered: string, incoming: string): boolean {
+  const pattern = /^(https?):\/\/([^/:]+)(:\d+)?(\/[^?#]*)?/.exec(registered);
+  if (!pattern || !URL.canParse(incoming)) return false;
+  const [, scheme, host = "", port = "", path = "/"] = pattern;
+  const url = new URL(incoming);
+  const hostPattern = new RegExp(`^${host.split("*").map(escapeRegExp).join("[a-z0-9-]+")}$`);
+  const basePath = path.replace(/\/$/, "");
+  return (
+    url.protocol === `${scheme}:` &&
+    hostPattern.test(url.hostname) &&
+    (url.port ? `:${url.port}` : "") === port &&
+    (url.pathname === path || url.pathname === basePath || url.pathname.startsWith(`${basePath}/`))
+  );
+}
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

@@ -84,8 +84,10 @@ export default function Docs() {
         <h2>Install your app</h2>
         <p>
           Apps with <code>install: true</code> are installed already. Otherwise send users to the world's <code>slack.oauth_authorize_url</code>{" "}
-          instead of slack.com: redirect URIs must be in the manifest's <code>redirect_urls</code>, and <code>oauth.v2.access</code> exchanges
-          the code for a bot token as usual.
+          instead of slack.com. Redirect URIs match the manifest's <code>redirect_urls</code> the way Slack matches them (same scheme, host and
+          port; the path equal or below). Worlds also accepts a <code>*</code> in the host, such as{" "}
+          <code>https://*-preview.example.com/oauth/callback</code>, for preview deployments. <code>oauth.v2.access</code> exchanges the code
+          for a bot token as usual.
         </p>
         <p>
           To change apps later, call <code>apps.manifest.create</code>, <code>update</code>, <code>export</code>, <code>delete</code> or{" "}

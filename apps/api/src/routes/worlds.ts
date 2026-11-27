@@ -109,6 +109,10 @@ export const worlds = new OpenAPIHono<AppEnv>()
       }
       manifests.push(checked.manifest);
     }
+    const pinnedIds = specs.map((spec) => spec.credentials?.client_id).filter(Boolean);
+    if (new Set(pinnedIds).size !== pinnedIds.length) {
+      return c.json(apiError("invalid_request", "slack.apps: each pinned client_id must be unique."), 400);
+    }
     const createdBy = caller.kind === "user" ? caller.user.id : null;
     const world = await createWorld(db, target.team.id, createdBy, body.name ?? "Untitled world");
     const apps = specs.length

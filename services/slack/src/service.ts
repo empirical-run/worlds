@@ -10,6 +10,8 @@ import { FileBlobs } from "./file-blobs";
 import { SlackDelivery } from "./slack-delivery";
 import { registerSlackExtensions } from "./slack-extensions";
 import {
+  acceptRedirect,
+  clientIdTaken,
   createApp,
   deleteApp,
   eventTarget,
@@ -39,6 +41,12 @@ const INSPECTOR_PATH = "/_inspector";
 const MANIFEST_PREFIX = "/api/apps.manifest.";
 const EVENTS_OWNER = "worlds";
 
+export class ClientIdTaken extends Error {
+  constructor() {
+    super("client_id_taken");
+  }
+}
+
 export class SlackService {
   private server: SlackServer | null = null;
   private delivery: SlackDelivery;
@@ -53,6 +61,10 @@ export class SlackService {
 
   async createApps(specs: AppSpec[], baseUrl: string): Promise<CreatedApp[]> {
     const slack = await this.load(baseUrl);
+    const pinnedIds = specs.map((spec) => spec.credentials?.client_id).filter((id): id is string => Boolean(id));
+    if (new Set(pinnedIds).size !== pinnedIds.length || pinnedIds.some((id) => clientIdTaken(slack.store, id))) {
+      throw new ClientIdTaken();
+    }
     const created: CreatedApp[] = [];
     for (const spec of specs) {
       const app = createApp(slack.store, spec.manifest, spec.credentials);
@@ -65,6 +77,15 @@ export class SlackService {
   async fetch(request: Request, baseUrl: string): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname.startsWith(CONTROL_PREFIX)) return this.control(request, url, baseUrl);
+    if (request.method === "GET" && url.pathname === "/oauth/v2/authorize") {
+      const slack = await this.load(baseUrl);
+      const clientId = url.searchParams.get("client_id");
+      const redirectUri = url.searchParams.get("redirect_uri");
+      if (clientId && redirectUri) {
+        acceptRedirect(slack.store, clientId, redirectUri);
+        await this.save();
+      }
+    }
     if (request.method === "POST" && url.pathname.startsWith(MANIFEST_PREFIX)) {
       return this.manifestMethod(url.pathname.slice(MANIFEST_PREFIX.length), await slackArgs(request), baseUrl);
     }
@@ -84,8 +105,13 @@ export class SlackService {
       const spec = (await request.json()) as Partial<AppSpec>;
       const checked = validateManifest(spec.manifest);
       if ("problems" in checked) return Response.json({ ok: false, error: "invalid_manifest", errors: checked.problems }, { status: 400 });
-      const [created] = await this.createApps([{ manifest: checked.manifest, credentials: spec.credentials, install: spec.install }], baseUrl);
-      return Response.json({ ok: true, ...created });
+      try {
+        const [created] = await this.createApps([{ manifest: checked.manifest, credentials: spec.credentials, install: spec.install }], baseUrl);
+        return Response.json({ ok: true, ...created });
+      } catch (error) {
+        if (error instanceof ClientIdTaken) return Response.json({ ok: false, error: "client_id_taken" }, { status: 409 });
+        throw error;
+      }
     }
     if (request.method === "POST" && url.pathname === "/_worlds/slack/tokens") {
       const { user_id: userId } = (await request.json()) as { user_id?: string };

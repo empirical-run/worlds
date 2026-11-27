@@ -105,17 +105,43 @@ try {
   const access = await install();
   assert(access.ok && access.access_token.startsWith("xoxb-"), "OAuth install returns a bot token");
 
+  const wildcard = await config.apiCall("apps.manifest.create", {
+    manifest: JSON.stringify({
+      display_information: { name: "Wildcard" },
+      oauth_config: { redirect_urls: ["https://*-dashboard.example.com/api/slack/oauth/callback"] },
+    }),
+  });
+  const authorizeWith = (uri) =>
+    fetch(`${base}/oauth/v2/authorize?client_id=${wildcard.credentials.client_id}&scope=chat:write&redirect_uri=${encodeURIComponent(uri)}`).then((r) => r.status);
+  assert(
+    (await authorizeWith("https://feat-x-dashboard.example.com/api/slack/oauth/callback")) === 200 &&
+      (await authorizeWith("https://feat-x-dashboard.example.com/api/slack/oauth/callback/next")) === 200,
+    "redirect_urls accept a * host wildcard and sub-paths, like Slack's matching",
+  );
+  assert(
+    (await authorizeWith("https://evil.example.com/api/slack/oauth/callback")) === 400 &&
+      (await authorizeWith("http://feat-x-dashboard.example.com/api/slack/oauth/callback")) === 400,
+    "redirect URIs outside the manifest are refused",
+  );
+
+  const pinnedClientId = `pinned-${Date.now()}`;
   const preinstalled = await (
     await fetch(`${base}/_worlds/slack/apps`, {
       method: "POST",
       headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
-      body: JSON.stringify({ manifest: { display_information: { name: "Pinned" } }, credentials: { client_id: "pinned-client" }, install: true }),
+      body: JSON.stringify({ manifest: { display_information: { name: "Pinned" } }, credentials: { client_id: pinnedClientId }, install: true }),
     })
   ).json();
   assert(
-    preinstalled.credentials.client_id === "pinned-client" && (await new WebClient(preinstalled.installation.bot_token, { slackApiUrl }).auth.test()).ok,
+    preinstalled.credentials.client_id === pinnedClientId && (await new WebClient(preinstalled.installation.bot_token, { slackApiUrl }).auth.test()).ok,
     "a world app can pin its credentials and be preinstalled",
   );
+  const duplicate = await fetch(`${base}/_worlds/slack/apps`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+    body: JSON.stringify({ manifest: { display_information: { name: "Again" } }, credentials: { client_id: pinnedClientId } }),
+  });
+  assert(duplicate.status === 409, "a pinned client_id already used in the world is refused");
 
   const worldState = await (await fetch(`${base}/_worlds/slack/state`, { headers: { authorization: `Bearer ${apiKey}` } })).json();
   const alice = worldState.users.find((user) => user.name === "alice");
