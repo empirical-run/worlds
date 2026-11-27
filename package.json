@@ -7,7 +7,7 @@
     "dev": "pnpm --filter @worlds/world dev",
     "dev:site": "wrangler d1 migrations apply worlds-db --local -c apps/web/wrangler.jsonc --persist-to apps/web/.wrangler/state && pnpm --filter @worlds/web dev",
     "typecheck": "pnpm -r typecheck",
-    "smoke": "pnpm --filter @worlds/world smoke",
+    "smoke": "pnpm --filter \"./services/*\" --workspace-concurrency=1 run --if-present smoke",
     "db:generate": "pnpm --filter @worlds/db generate",
     "dev:api": "wrangler dev -c apps/api/wrangler.jsonc --port 8791 --persist-to services/world/.wrangler/state",
     "format": "oxfmt",

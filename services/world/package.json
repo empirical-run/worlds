@@ -4,8 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler d1 migrations apply worlds-db --local && wrangler dev --port 8787 --infer-origin-from-routes=false",
-    "typecheck": "tsc --noEmit",
-    "smoke": "node scripts/smoke.mjs && node scripts/jira-smoke.mjs"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@worlds/contract": "workspace:*",
@@ -16,7 +15,6 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261125.1",
-    "@slack/web-api": "^8.5.0",
     "typescript": "^5.9.3",
     "wrangler": "^4.168.0"
   }

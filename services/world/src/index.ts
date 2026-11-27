@@ -1,17 +1,17 @@
 import { apiError } from "@worlds/contract";
 import { database, liveWorld, parseWorldHost } from "@worlds/db";
 import { resolveHost, type WorldSpecs, type WorldStates } from "@worlds/services";
+import { HOSTING } from "@worlds/services/hosting";
 import { WorkerEntrypoint } from "cloudflare:workers";
 
 import { canControl } from "./access";
 import { signInPage, withBanner } from "./banner";
 import type { Env } from "./env";
-import { PAGES } from "./pages";
 import { HOST_HEADER, WORLD_ID_HEADER } from "./world";
 
 export { World } from "./world";
 
-const CONTROL_PATHS = ["/_worlds/", "/_inspector"];
+const CONTROL_PREFIX = "/_worlds/";
 
 export class WorldsControl extends WorkerEntrypoint<Env> {
   async archive(worldId: string): Promise<void> {
@@ -37,24 +37,24 @@ export default {
     const target = parseWorldHost(url.hostname, env.WORLDS_DOMAIN);
     if (!target) return Response.redirect(`${env.MAKEWORLDS_URL}/account`, 302);
     const resolved = resolveHost(target.service);
-    if (!resolved) return slackError(404, "unknown_service");
+    if (!resolved)
+      return Response.json(apiError("unknown_service", `No service at ${url.hostname}.`), {
+        status: 404,
+      });
     const { service, host } = resolved;
-    if (url.pathname.startsWith("/assets/")) return env.ASSETS.fetch(request);
+    const hosting = HOSTING[service.name];
+    const page = hosting.page(request, url, host);
+    if (page === "asset") return env.ASSETS.fetch(uiAsset(service.name, url.pathname, request));
     const db = database(env.DB);
     const world = await liveWorld(db, target.worldId);
-    if (!world) return slackError(404, "world_not_found");
+    if (!world) return hosting.error(404, "world_not_found", "No such world, or it was archived.");
 
     const banner = (response: Response) =>
-      withBanner(response, service.title, world, env.MAKEWORLDS_URL);
-    const page = PAGES[service.name](request, url, host);
+      withBanner(response, service.title, world, env.MAKEWORLDS_URL, hosting.bannerStyle);
     if (page === "members-only" && !(await canControl(request, db, world)))
       return banner(signInPage(service.title, world, env.MAKEWORLDS_URL));
-    if (page === "slack-ui")
-      return banner(await env.ASSETS.fetch(new Request(new URL("/", url), request)));
-    if (
-      CONTROL_PATHS.some((prefix) => url.pathname.startsWith(prefix)) &&
-      !(await canControl(request, db, world))
-    ) {
+    if (page === "ui") return banner(await env.ASSETS.fetch(uiAsset(service.name, "/", request)));
+    if (url.pathname.startsWith(CONTROL_PREFIX) && !(await canControl(request, db, world))) {
       return Response.json(
         apiError(
           "unauthorized",
@@ -71,6 +71,6 @@ export default {
   },
 } satisfies ExportedHandler<Env>;
 
-function slackError(status: number, error: string): Response {
-  return Response.json({ ok: false, error }, { status });
+function uiAsset(service: string, pathname: string, request: Request): Request {
+  return new Request(new URL(`/${service}${pathname}`, request.url), request);
 }

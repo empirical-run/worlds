@@ -39,7 +39,7 @@ const STATE_KEY = "slack";
 const SPEC_STATE_KEY = "slack:state";
 const BASE_URL_KEY = "slack:base-url";
 const CONTROL_PREFIX = "/_worlds/";
-const INSPECTOR_PATH = "/_inspector";
+export const INSPECTOR_PATH = "/_inspector";
 const MANIFEST_PREFIX = "/api/apps.manifest.";
 const EVENTS_OWNER = "worlds";
 

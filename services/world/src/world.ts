@@ -1,3 +1,4 @@
+import type { WorldContext } from "@worlds/contract/hosting";
 import {
   SERVICES,
   resolveHost,
@@ -6,11 +7,11 @@ import {
   type WorldSpecs,
   type WorldStates,
 } from "@worlds/services";
+import { serviceRuntimes, type ServiceRuntimes } from "@worlds/services/hosting";
 import { DurableObject } from "cloudflare:workers";
 
 import type { Env } from "./env";
 import { serviceOrigin } from "./origins";
-import { serviceRuntimes, type ServiceRuntimes, type WorldContext } from "./services";
 
 export const HOST_HEADER = "x-worlds-host";
 export const WORLD_ID_HEADER = "x-worlds-world-id";
