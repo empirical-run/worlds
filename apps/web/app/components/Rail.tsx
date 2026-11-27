@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation, useMatches } from "react-router";
 
 import type { RootData } from "../root";
+import { Logo } from "./Logo";
 
 export type RailIndexLink = { id: string; label: string };
 export type RailIndexGroup = { heading?: string; links: RailIndexLink[] };
@@ -30,7 +31,7 @@ export function Rail({ account }: { account: RootData["account"] }) {
     <aside id="rail" className="rail" data-sheet={sheetOpen ? "open" : undefined}>
       <div className="rail-top">
         <a className="brand" href="/">
-          <img src="/favicon.svg" alt="" width="18" height="18" />
+          <Logo />
           Worlds
         </a>
         <button

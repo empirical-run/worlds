@@ -97,10 +97,14 @@ pre {
 }
 .brand {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 10px;
   font-weight: 600;
   text-decoration: none;
+}
+.logo {
+  flex-shrink: 0;
+  fill: var(--accent);
 }
 .rail-toggle {
   display: none;

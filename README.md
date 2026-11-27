@@ -1,4 +1,4 @@
-# worlds
+# <img src="apps/web/public/logo.svg" alt="" height="22"> worlds
 
 Hosted, stateful worlds of the third-party services an app depends on, for testing apps and agents end to end. Slack and Jira; GitHub next.
 
