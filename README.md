@@ -1,6 +1,6 @@
 # worlds
 
-Hosted, stateful worlds of the third-party services an app depends on, for testing apps and agents end to end. Slack first; GitHub next.
+Hosted, stateful worlds of the third-party services an app depends on, for testing apps and agents end to end. Slack and Jira; GitHub next.
 
 A world is a Durable Object that holds the state of every service in it. Services in a world speak the real wire protocol (Web API, OAuth, signed event callbacks), so an app under test only needs its base URL pointed at the world.
 
@@ -19,7 +19,7 @@ pnpm dev:api &
 pnpm smoke
 ```
 
-`pnpm smoke` creates a world through the API from a full spec, checks the spec landed (pinned ids and tokens, seeded threads, preinstalled bot), the world's access rules, installs the app over OAuth, posts an @mention as a user, replies as the bot and checks the signed `app_mention` callback.
+`pnpm smoke` runs two scripts. `smoke.mjs` creates a world through the API from a full spec, checks the spec landed (pinned ids and tokens, seeded threads, preinstalled bot), the world's access rules, installs the app over OAuth, posts an @mention as a user, replies as the bot and checks the signed `app_mention` callback. `jira-smoke.mjs` installs a Jira app over 3LO, registers a dynamic webhook and checks signed issue and comment deliveries.
 
 `services/world` is the `worlds` Worker on `*.makeworlds.dev`. Every world is one `World` Durable Object holding all of its services. Each service of a world has its own host, `{id}-{service}.makeworlds.dev` with the id minus its `world_` prefix (`https://k2v9x0q1m4-slack.makeworlds.dev`, `http://k2v9x0q1m4-slack.localhost:8787` in dev), so services sit at the root like the real ones; the Worker checks the world exists in D1 before routing to its Durable Object. `services/slack` is the Slack service module (`SlackService`) and its UI (`ui/`), which the world Worker serves; `wrangler dev` and `wrangler deploy` build the UI first.
 
@@ -47,6 +47,21 @@ WORLDS_API_KEY=wk_live_… node scripts/create-world.mjs specs/empirical-preview
 ```
 
 `specs/empirical-preview.json` is the world api-preview talks to: the Empirical app with api-preview's credentials (`WORLDS_SLACK_CLIENT_ID`, `WORLDS_SLACK_CLIENT_SECRET`, `WORLDS_SLACK_SIGNING_SECRET`), events to api-preview, and redirect URLs for dashboard previews and localhost.
+
+## Jira
+
+Every world has a Jira Cloud site, written for this repo (emulate has no Jira) in `services/jira`. Like Atlassian it answers on three hosts:
+
+| Atlassian | World host | Serves |
+|---|---|---|
+| `auth.atlassian.com` | `{id}-jira-auth.makeworlds.dev` | `/authorize` (consent page: pick the user), `/oauth/token` (authorization_code, rotating refresh tokens with a 10-minute reuse window) |
+| `api.atlassian.com` | `{id}-jira-api.makeworlds.dev` | `/oauth/token/accessible-resources`, `/ex/jira/{cloudId}/rest/api/3/…`: `GET issue/{key}`, `POST issue/{key}/comment` (ADF), `GET user?accountId=`, `GET myself`, `GET/POST/DELETE webhook`, `PUT webhook/refresh` |
+| `{site}.atlassian.net` | `{id}-jira.makeworlds.dev` | the site URL in `issue.self` and webhooks; `/` and `/browse/{key}` for the world's team; `/rest/*` refuses OAuth tokens |
+
+- The spec (`POST /api/worlds` with `jira: { site, users, projects, issues, apps }`) seeds once. Apps are OAuth 2.0 (3LO) integrations: `name`, `callback_urls` (`*` matches one host label), `scopes`, optional pinned `credentials`. The cloud id is a random UUID per world unless pinned.
+- REST responses are v3 (ADF descriptions and comments); webhook payloads are v2 (plain-text bodies), like Jira's.
+- Dynamic webhooks: one URL per app and user, up to 5, 30-day expiry. JQL supports `labels`, `project`, `status`, `issuekey`, `assignee`, `reporter` with `=`, `!=`, `in`, `not in` joined by `AND`; anything else is refused at registration. Events: `jira:issue_created|updated|deleted`, `comment_created`. Deliveries carry `Authorization: Bearer <JWT HS256 signed with the client secret>` and `X-Atlassian-Webhook-Identifier`, and are retried up to 5 times, 5 to 15 minutes apart (`X-Atlassian-Webhook-Retry`), on 408/409/425/429/5xx or no answer within 10s.
+- Control routes on the site host (team API key or session): `POST /_worlds/jira/issues` (`{ user, project?, summary, description?, labels?, status?, assignee? }`), `PATCH /_worlds/jira/issues/{key}`, `DELETE /_worlds/jira/issues/{key}?user=`, `POST /_worlds/jira/issues/{key}/comments` (`{ user, body }`), `GET /_worlds/jira/state`. Changes send the webhooks Jira would (`issue_assigned` for an assignee-only change, `issue_generic` for a status-only change).
 
 ## Site
 

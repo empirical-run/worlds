@@ -89,6 +89,10 @@ export class SlackService {
     await this.delivery.run();
   }
 
+  nextDue(): Promise<number | null> {
+    return this.delivery.nextDue();
+  }
+
   private async control(request: Request, url: URL, baseUrl: string): Promise<Response> {
     if (request.method === "POST" && url.pathname === "/_worlds/slack/tokens") {
       const { user_id: userId } = (await request.json()) as { user_id?: string };

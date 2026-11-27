@@ -3,6 +3,7 @@ import { archiveWorld, createWorld, listWorlds, liveWorld, worldHost, type World
 import { apiError, type AppEnv } from "../context";
 import { validateManifest } from "@worlds/slack/manifest";
 import { DEFAULT_SLACK_SPEC, unknownReferences, type SlackSpec } from "@worlds/slack/spec";
+import { DEFAULT_JIRA_SPEC, jiraSpecProblems, type JiraSpec } from "@worlds/jira/spec";
 import {
   errorResponse,
   jsonResponse,
@@ -34,12 +35,12 @@ const createWorldRoute = createRoute({
   path: "/api/worlds",
   tags: ["Worlds"],
   summary: "Create a world",
-  description: "A new, empty world with a seeded Slack workspace. Point your app at the returned URLs.",
+  description: "A new world with a seeded Slack workspace and Jira site. Point your app at the returned URLs.",
   security,
   request: { body: { required: false, content: { "application/json": { schema: WorldCreateSchema } } } },
   responses: {
-    201: jsonResponse("The new world, with its effective Slack spec (generated ids, credentials and tokens filled in)", WorldCreatedSchema),
-    400: errorResponse("Invalid name or Slack spec"),
+    201: jsonResponse("The new world, with its effective Slack and Jira specs (generated ids, credentials and tokens filled in)", WorldCreatedSchema),
+    400: errorResponse("Invalid name, Slack spec or Jira spec"),
     401: errorResponse("Missing or invalid credentials"),
     404: errorResponse("No team with that id is visible to you"),
   },
@@ -91,12 +92,14 @@ const archiveWorldRoute = createRoute({
 
 function worldJson(world: World, domain: string) {
   const base = `https://${worldHost(world.id, "slack", domain)}`;
+  const jiraOrigin = (service: string) => `https://${worldHost(world.id, service, domain)}`;
   return {
     id: world.id,
     name: world.name,
     team_id: world.teamId,
     created_by: world.createdBy,
     slack: { api_url: `${base}/api/`, oauth_authorize_url: `${base}/oauth/v2/authorize`, ui_url: `${base}/` },
+    jira: { site_url: jiraOrigin("jira"), auth_url: jiraOrigin("jira-auth"), api_url: jiraOrigin("jira-api") },
     created_at: world.createdAt.toISOString(),
     updated_at: world.updatedAt.toISOString(),
   };
@@ -118,11 +121,14 @@ export const worlds = new OpenAPIHono<AppEnv>()
     if (!target) return c.json(apiError("not_found", "No team with that id is visible to you."), 404);
     const problem = slackSpecProblem(body.slack);
     if (problem) return c.json(apiError("invalid_request", problem), 400);
+    const jiraProblem = body.jira ? jiraSpecProblems(body.jira as JiraSpec)[0] : undefined;
+    if (jiraProblem) return c.json(apiError("invalid_request", `jira.${jiraProblem}`), 400);
     const createdBy = caller.kind === "user" ? caller.user.id : null;
     const world = await createWorld(db, target.team.id, createdBy, body.name ?? "Untitled world");
     const spec = await c.env.SLACK.setupSlack(world.id, (body.slack as SlackSpec | undefined) ?? DEFAULT_SLACK_SPEC);
+    const jira = await c.env.SLACK.setupJira(world.id, (body.jira as JiraSpec | undefined) ?? DEFAULT_JIRA_SPEC);
     const json = worldJson(world, c.env.WORLDS_DOMAIN);
-    return c.json({ ...json, slack: { ...json.slack, spec } }, 201);
+    return c.json({ ...json, slack: { ...json.slack, spec }, jira: { ...json.jira, spec: jira } }, 201);
   })
   .openapi(getWorldRoute, async (c) => {
     const world = await visibleWorld(c, c.req.valid("param").worldId);
@@ -132,8 +138,8 @@ export const worlds = new OpenAPIHono<AppEnv>()
   .openapi(getWorldSpecRoute, async (c) => {
     const world = await visibleWorld(c, c.req.valid("param").worldId);
     const spec = world ? await c.env.SLACK.slackState(world.id) : null;
-    if (!spec) return c.json(apiError("not_found", NOT_VISIBLE), 404);
-    return c.json({ slack: spec }, 200);
+    if (!world || !spec) return c.json(apiError("not_found", NOT_VISIBLE), 404);
+    return c.json({ slack: spec, jira: await c.env.SLACK.jiraState(world.id) }, 200);
   })
   .openapi(archiveWorldRoute, async (c) => {
     const world = await visibleWorld(c, c.req.valid("param").worldId);

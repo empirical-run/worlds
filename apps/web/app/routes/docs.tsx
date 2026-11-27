@@ -118,6 +118,26 @@ export default function Docs({ loaderData: { examples } }: Route.ComponentProps)
         </p>
       </section>
 
+      <section className="section" id="jira">
+        <h2>Jira</h2>
+        <p>
+          Every world also has a Jira Cloud site. The <code>jira</code> spec describes its users, projects, issues and OAuth 2.0 (3LO) apps
+          (name, <code>callback_urls</code>, <code>scopes</code>, optional pinned <code>credentials</code>). Like Atlassian, the site answers on
+          three hosts, returned as <code>jira.auth_url</code> (in place of auth.atlassian.com), <code>jira.api_url</code> (api.atlassian.com) and{" "}
+          <code>jira.site_url</code> (your-site.atlassian.net). Point your app's two Atlassian base URLs at the first two; it learns the site URL
+          and cloud id from <code>/oauth/token/accessible-resources</code>, as it would in production.
+        </p>
+        <p>
+          Supported: <code>/authorize</code> (a consent page where you pick the user), <code>/oauth/token</code> with rotating refresh tokens,
+          and under <code>/ex/jira/{"{cloudId}"}/rest/api/3</code>: <code>GET issue</code>, <code>POST issue/{"{key}"}/comment</code>,{" "}
+          <code>GET user</code>, <code>GET myself</code> and dynamic webhooks (<code>GET/POST/DELETE webhook</code>,{" "}
+          <code>PUT webhook/refresh</code>). Webhook JQL supports <code>labels</code>, <code>project</code>, <code>status</code>,{" "}
+          <code>issuekey</code>, <code>assignee</code> and <code>reporter</code> with <code>=</code>, <code>!=</code>, <code>in</code> and{" "}
+          <code>not in</code>, joined by <code>AND</code>. Deliveries are signed with a JWT (HS256, the app's client secret) and retried up to 5
+          times, 5 to 15 minutes apart, on 408, 409, 425, 429, 5xx or no answer within 10 seconds.
+        </p>
+      </section>
+
       <section className="section" id="worlds-api">
         <h2>Worlds API</h2>
         <p>
@@ -149,6 +169,13 @@ export default function Docs({ loaderData: { examples } }: Route.ComponentProps)
           </li>
           <li>
             <code>POST /_worlds/slack/act</code> calls a Web API method as a user, e.g. to post an @mention.
+          </li>
+          <li>
+            On the Jira site host, <code>POST /_worlds/jira/issues</code> creates an issue as a user (
+            <code>{'{"user", "summary", "description", "labels", "status", "assignee"}'}</code>), <code>PATCH /_worlds/jira/issues/:key</code>{" "}
+            changes it, <code>DELETE</code> removes it and <code>POST /_worlds/jira/issues/:key/comments</code> comments. Each sends the webhooks
+            Jira would. <code>GET /_worlds/jira/state</code> returns the spec, issues and webhooks; the site's <code>/</code> and{" "}
+            <code>/browse/:key</code> show issues and comments.
           </li>
         </ul>
         <p>

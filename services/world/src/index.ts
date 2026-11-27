@@ -1,13 +1,14 @@
-import { database, liveWorld, parseWorldHost, worldHost } from "@worlds/db";
+import { database, liveWorld, parseWorldHost } from "@worlds/db";
+import type { JiraSpec, JiraState } from "@worlds/jira/spec";
 import type { SlackSpec, SlackState } from "@worlds/slack/spec";
 import { WorkerEntrypoint } from "cloudflare:workers";
 import { canControl } from "./access";
 import type { Env } from "./env";
-import { BASE_URL_HEADER, SERVICE_HEADER } from "./world";
+import { SERVICES, serviceOrigin, type Service } from "./origins";
+import { BASE_URL_HEADER, SERVICE_HEADER, WORLD_ID_HEADER } from "./world";
 
 export { World } from "./world";
 
-const SERVICES = ["slack"] as const;
 const CONTROL_PATHS = ["/_worlds/", "/_inspector"];
 
 export class WorldsControl extends WorkerEntrypoint<Env> {
@@ -16,12 +17,19 @@ export class WorldsControl extends WorkerEntrypoint<Env> {
   }
 
   async setupSlack(worldId: string, spec: SlackSpec): Promise<SlackState> {
-    const origin = `${this.env.WORLDS_SCHEME}://${worldHost(worldId, "slack", this.env.WORLDS_DOMAIN)}${this.env.WORLDS_PORT ? `:${this.env.WORLDS_PORT}` : ""}`;
-    return this.env.WORLD.get(this.env.WORLD.idFromName(worldId)).setupSlack(spec, origin);
+    return this.env.WORLD.get(this.env.WORLD.idFromName(worldId)).setupSlack(spec, serviceOrigin(this.env, worldId, "slack"));
   }
 
   async slackState(worldId: string): Promise<SlackState | null> {
     return this.env.WORLD.get(this.env.WORLD.idFromName(worldId)).slackState();
+  }
+
+  async setupJira(worldId: string, spec: JiraSpec): Promise<JiraState> {
+    return this.env.WORLD.get(this.env.WORLD.idFromName(worldId)).setupJira(worldId, spec);
+  }
+
+  async jiraState(worldId: string): Promise<JiraState | null> {
+    return this.env.WORLD.get(this.env.WORLD.idFromName(worldId)).jiraState();
   }
 }
 
@@ -36,7 +44,10 @@ export default {
     const world = await liveWorld(db, target.worldId);
     if (!world) return slackError(404, "world_not_found");
 
-    if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")) {
+    if (target.service === "jira" && isSitePage(url.pathname) && !(await canControl(request, db, world))) {
+      return new Response(`Sign in at ${env.MAKEWORLDS_URL}/account with a member of this world's team to see its Jira site.`, { status: 401 });
+    }
+    if (target.service === "slack" && request.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")) {
       return env.ASSETS.fetch(new Request(new URL("/", url), request));
     }
     if (CONTROL_PATHS.some((prefix) => url.pathname.startsWith(prefix)) && !(await canControl(request, db, world))) {
@@ -46,12 +57,17 @@ export default {
     const forwarded = new Request(request);
     forwarded.headers.set(SERVICE_HEADER, target.service);
     forwarded.headers.set(BASE_URL_HEADER, url.origin);
+    forwarded.headers.set(WORLD_ID_HEADER, world.id);
     return env.WORLD.get(env.WORLD.idFromName(world.id)).fetch(forwarded);
   },
 } satisfies ExportedHandler<Env>;
 
-function isService(value: string): value is (typeof SERVICES)[number] {
+function isService(value: string): value is Service {
   return SERVICES.some((service) => service === value);
+}
+
+function isSitePage(pathname: string): boolean {
+  return pathname === "/" || pathname.startsWith("/browse/");
 }
 
 function slackError(status: number, error: string): Response {

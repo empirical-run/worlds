@@ -1,0 +1,19 @@
+{
+  "name": "@worlds/jira",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "^4.13.22"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261125.1",
+    "typescript": "^5.9.3"
+  },
+  "exports": {
+    "./service": "./src/service.ts",
+    "./spec": "./src/spec.ts"
+  }
+}

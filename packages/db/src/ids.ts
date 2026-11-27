@@ -28,6 +28,6 @@ export function worldHost(worldId: string, service: string, domain: string): str
 }
 
 export function parseWorldHost(hostname: string, domain: string): { worldId: string; service: string } | null {
-  const match = new RegExp(`^([0-9a-z]+)-([a-z]+)\\.${domain.replaceAll(".", "\\.")}$`).exec(hostname);
+  const match = new RegExp(`^([0-9a-z]+)-([a-z]+(?:-[a-z]+)*)\\.${domain.replaceAll(".", "\\.")}$`).exec(hostname);
   return match?.[1] && match[2] ? { worldId: `${WORLD_ID_PREFIX}${match[1]}`, service: match[2] } : null;
 }

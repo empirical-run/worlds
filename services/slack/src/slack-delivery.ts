@@ -75,7 +75,11 @@ export class SlackDelivery {
       ([, pending]) => pending.dueAt <= now,
     );
     await Promise.all(due.map(([key, pending]) => this.attempt(key, pending)));
-    await this.scheduleNext();
+  }
+
+  async nextDue(): Promise<number | null> {
+    const pending = [...(await this.storage.list<Pending>({ prefix: PENDING_PREFIX })).values()];
+    return pending.length ? Math.min(...pending.map((p) => p.dueAt)) : null;
   }
 
   private async attempt(key: string, pending: Pending): Promise<void> {
@@ -162,12 +166,6 @@ export class SlackDelivery {
     await this.storage.put(logKey(delivery.id), delivery);
     const overflow = this.log.splice(0, Math.max(0, this.log.length - MAX_LOGGED));
     if (overflow.length > 0) await this.storage.delete(overflow.map((d) => logKey(d.id)));
-  }
-
-  private async scheduleNext(): Promise<void> {
-    const pending = [...(await this.storage.list<Pending>({ prefix: PENDING_PREFIX })).values()];
-    if (pending.length === 0) return;
-    await this.storage.setAlarm(Math.min(...pending.map((p) => p.dueAt)));
   }
 
   private async nextId(): Promise<number> {

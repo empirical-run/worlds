@@ -31,6 +31,9 @@ importers:
       '@worlds/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@worlds/jira':
+        specifier: workspace:*
+        version: link:../../services/jira
       '@worlds/slack':
         specifier: workspace:*
         version: link:../../services/slack
@@ -119,6 +122,19 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  services/jira:
+    dependencies:
+      hono:
+        specifier: ^4.13.22
+        version: 4.13.22
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^5.20261125.1
+        version: 5.20261125.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   services/slack:
     dependencies:
       '@emulators/core':
@@ -161,6 +177,9 @@ importers:
       '@worlds/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@worlds/jira':
+        specifier: workspace:*
+        version: link:../jira
       '@worlds/slack':
         specifier: workspace:*
         version: link:../slack

@@ -9,6 +9,7 @@
   "dependencies": {
     "@hono/zod-openapi": "^1.6.3",
     "@worlds/db": "workspace:*",
+    "@worlds/jira": "workspace:*",
     "@worlds/slack": "workspace:*",
     "hono": "^4.13.22",
     "zod": "^4.6.7"

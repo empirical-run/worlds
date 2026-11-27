@@ -1,0 +1,26 @@
+{
+  "name": "Empirical preview Jira (api-preview)",
+  "jira": {
+    "site": { "name": "empirical-preview" },
+    "users": [
+      { "name": "alice", "display_name": "Alice Tester", "email": "alice@empirical-preview.test" },
+      { "name": "bob", "display_name": "Bob Tester", "email": "bob@empirical-preview.test" }
+    ],
+    "projects": [{ "key": "WRLD", "name": "Worlds" }],
+    "apps": [
+      {
+        "name": "Empirical",
+        "callback_urls": [
+          "https://*-dashboard-v2.empirical-run.workers.dev/api/integrations/jira/callback",
+          "https://*.vercel.app/api/integrations/jira/callback",
+          "http://localhost:3000/api/integrations/jira/callback"
+        ],
+        "scopes": ["read:jira-work", "write:jira-work", "read:jira-user", "manage:jira-webhook"],
+        "credentials": {
+          "client_id": "${WORLDS_JIRA_CLIENT_ID}",
+          "client_secret": "${WORLDS_JIRA_CLIENT_SECRET}"
+        }
+      }
+    ]
+  }
+}

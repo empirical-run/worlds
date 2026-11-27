@@ -30,6 +30,10 @@ if (!response.ok) {
   process.exit(1);
 }
 console.log(`world:        ${world.id}`);
+console.log(`jira auth:    ${world.jira.auth_url}`);
+console.log(`jira api:     ${world.jira.api_url}`);
+console.log(`jira site:    ${world.jira.site_url} (cloud id ${world.jira.spec.site.cloud_id})`);
+for (const app of world.jira.spec.apps) console.log(`jira app:     ${app.name} ${app.credentials.client_id}`);
 console.log(`slack origin: ${world.slack.api_url.replace(/\/api\/$/, "")}`);
 console.log(`slack ui:     ${world.slack.ui_url}`);
 console.log(`team:         ${world.slack.spec.team.id}`);
