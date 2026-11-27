@@ -42,7 +42,7 @@ const createWorldRoute = createRoute({
     201: jsonResponse("The new world, with its effective Slack and Jira specs (generated ids, credentials and tokens filled in)", WorldCreatedSchema),
     400: errorResponse("Invalid name, Slack spec or Jira spec"),
     401: errorResponse("Missing or invalid credentials"),
-    404: errorResponse("No team with that id is visible to you"),
+    404: errorResponse("You are not in any team"),
   },
 });
 
@@ -116,9 +116,8 @@ export const worlds = new OpenAPIHono<AppEnv>()
   .openapi(createWorldRoute, async (c) => {
     const { caller, db } = c.var;
     const body = c.req.valid("json") ?? {};
-    const teams = await accessibleTeams(db, caller);
-    const target = body.team_id ? await accessibleTeam(db, caller, body.team_id) : teams[0];
-    if (!target) return c.json(apiError("not_found", "No team with that id is visible to you."), 404);
+    const [target] = await accessibleTeams(db, caller);
+    if (!target) return c.json(apiError("not_found", "You are not in any team."), 404);
     const problem = slackSpecProblem(body.slack);
     if (problem) return c.json(apiError("invalid_request", problem), 400);
     const jiraProblem = body.jira ? jiraSpecProblems(body.jira as JiraSpec)[0] : undefined;

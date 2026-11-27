@@ -917,10 +917,6 @@
           },
           "jira": {
             "$ref": "#/components/schemas/JiraSpec"
-          },
-          "team_id": {
-            "type": "string",
-            "description": "The team to create the world in. API keys always use their own team; signed-in users default to their first team."
           }
         }
       },
@@ -1828,7 +1824,7 @@
             }
           },
           "404": {
-            "description": "No team with that id is visible to you",
+            "description": "You are not in any team",
             "content": {
               "application/json": {
                 "schema": {

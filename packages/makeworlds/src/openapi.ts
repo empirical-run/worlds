@@ -452,7 +452,7 @@ export interface paths {
                         "application/json": components["schemas"]["ApiError"];
                     };
                 };
-                /** @description No team with that id is visible to you */
+                /** @description You are not in any team */
                 404: {
                     headers: {
                         [name: string]: unknown;
@@ -945,8 +945,6 @@ export interface components {
             name?: string;
             slack?: components["schemas"]["SlackSpec"];
             jira?: components["schemas"]["JiraSpec"];
-            /** @description The team to create the world in. API keys always use their own team; signed-in users default to their first team. */
-            team_id?: string;
         };
         /** @description Everything in the world's Slack workspace. Omitted ids, credentials and tokens are generated. Without a spec the world gets one user (alice) and #general. */
         SlackSpec: {

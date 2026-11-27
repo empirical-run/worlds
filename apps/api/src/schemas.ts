@@ -304,7 +304,6 @@ export const WorldCreateSchema = z
     name: name(WORLD_NAME_MAX).optional().openapi({ description: "Defaults to Untitled world.", example: "Thread routing eval" }),
     slack: SlackSpecSchema.optional(),
     jira: JiraSpecSchema.optional(),
-    team_id: z.string().optional().openapi({ description: "The team to create the world in. API keys always use their own team; signed-in users default to their first team." }),
   })
   .openapi("WorldCreate");
 

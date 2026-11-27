@@ -15,12 +15,12 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
-  const account = requireAccount(context, request);
+  requireAccount(context, request);
   const form = await request.formData();
   const intent = String(form.get("intent"));
   if (intent === "create-world") {
     const name = String(form.get("name") ?? "").trim();
-    const result = await api(context, request).POST("/api/worlds", { body: { team_id: account.team.id, ...(name ? { name } : {}) } });
+    const result = await api(context, request).POST("/api/worlds", { body: name ? { name } : {} });
     return actionData(intent, result, (world) => ({ createdWorld: world.id }));
   }
   if (intent === "archive-world") {
