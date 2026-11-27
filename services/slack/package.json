@@ -6,7 +6,8 @@
     "./service": "./src/service.ts",
     "./manifest": "./src/manifest.ts",
     "./spec": "./src/spec.ts",
-    "./contract": "./src/contract.ts"
+    "./contract": "./src/contract.ts",
+    "./hosting": "./src/hosting.ts"
   },
   "scripts": {
     "build": "vite build",

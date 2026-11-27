@@ -1,12 +1,12 @@
 import { apiError } from "@worlds/contract";
 import { database, liveWorld, parseWorldHost } from "@worlds/db";
 import { resolveHost, type WorldSpecs, type WorldStates } from "@worlds/services";
+import { HOSTING } from "@worlds/services/hosting";
 import { WorkerEntrypoint } from "cloudflare:workers";
 
 import { canControl } from "./access";
 import { signInPage, withBanner } from "./banner";
 import type { Env } from "./env";
-import { PAGES } from "./pages";
 import { HOST_HEADER, WORLD_ID_HEADER } from "./world";
 
 export { World } from "./world";
@@ -46,10 +46,10 @@ export default {
 
     const banner = (response: Response) =>
       withBanner(response, service.title, world, env.MAKEWORLDS_URL);
-    const page = PAGES[service.name](request, url, host);
+    const page = HOSTING[service.name].page(request, url, host);
     if (page === "members-only" && !(await canControl(request, db, world)))
       return banner(signInPage(service.title, world, env.MAKEWORLDS_URL));
-    if (page === "slack-ui")
+    if (page === "ui")
       return banner(await env.ASSETS.fetch(new Request(new URL("/", url), request)));
     if (
       CONTROL_PATHS.some((prefix) => url.pathname.startsWith(prefix)) &&

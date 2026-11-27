@@ -61,14 +61,19 @@ Every world has a Jira Cloud site, written for this repo (emulate has no Jira) i
 
 ## Services
 
-Each service (Slack, Jira) is a package in `services/<name>` with a contract in `src/contract.ts`: zod-openapi schemas for its spec and state, the URLs a world gets, spec checks, and the `/_worlds/<name>/*` control routes. Its runtime serves the same route objects with `OpenAPIHono`, so requests are validated against the published spec.
+Each service (Slack, Jira) is a package in `services/<name>` with two entry points:
 
-- `packages/services` lists the contracts. The API builds `World`, `WorldCreate`, `WorldCreated` and `WorldSpec` from it and adds every control route to `/api/openapi.json`, each with its world host as the server.
-- `packages/contract` has what contracts share: the `ApiError` shape, `defineService`, `worldServer`, `userRef` and the validating router.
-- `services/world/src/services.ts` maps each service to its runtime in the world's Durable Object, and `src/pages.ts` maps it to its pages (sign-in gate, UI assets). Both are typed over the contract list, so a new service won't typecheck until it has both.
-- Control routes take the team's API key or a makeworlds.dev session, name the acting user `user` (name or id), and answer errors as `{ "error": { "code", "message" } }`.
+- `src/contract.ts`: zod-openapi schemas for its spec and state, the URLs a world gets, spec checks, and the `/_worlds/<name>/*` control routes. The service serves the same route objects with `OpenAPIHono`, so requests are validated against the published spec.
+- `src/hosting.ts`: its runtime in the world's Durable Object (setup, state, fetch, alarms) and its page rules (sign-in gate, UI assets).
 
-To add a service: write its package with a contract and a runtime, add the contract to `packages/services`, and add its runtime and pages in `services/world`.
+`packages/services` lists them, with an entry point per side:
+
+- `@worlds/services` lists the contracts. The API builds `World`, `WorldCreate`, `WorldCreated` and `WorldSpec` from it and adds every control route to `/api/openapi.json`, each with its world host as the server. It loads no service runtime code.
+- `@worlds/services/hosting` lists the hosting, typed over the contract list, so a service with a contract but no hosting won't typecheck. The world worker runs whatever it lists.
+
+`packages/contract` has what services share: the `ApiError` shape, `defineService`, `worldServer`, `userRef`, the validating router and (in `@worlds/contract/hosting`) the runtime types. Control routes take the team's API key or a makeworlds.dev session, name the acting user `user` (name or id), and answer errors as `{ "error": { "code", "message" } }`.
+
+To add a service: write its package with `contract.ts` and `hosting.ts`, and add one line to each list in `packages/services`.
 
 ## Site
 

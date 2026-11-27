@@ -5,7 +5,8 @@
   "exports": {
     "./service": "./src/service.ts",
     "./spec": "./src/spec.ts",
-    "./contract": "./src/contract.ts"
+    "./contract": "./src/contract.ts",
+    "./hosting": "./src/hosting.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
