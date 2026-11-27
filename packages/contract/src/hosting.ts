@@ -8,9 +8,11 @@ export type ServiceRuntime<Spec, State> = {
   nextDue(): Promise<number | null>;
 };
 
-export type Page = "members-only" | "ui" | null;
+export type Page = "members-only" | "ui" | "asset" | null;
 
 export type ServiceHosting<Spec, State> = {
   runtime(storage: DurableObjectStorage): ServiceRuntime<Spec, State>;
   page(request: Request, url: URL, host: string): Page;
+  error(status: number, code: string, message: string): Response;
+  bannerStyle?: string;
 };

@@ -1,6 +1,6 @@
 import type { ServiceHosting } from "@worlds/contract/hosting";
 
-import { SlackService } from "./service";
+import { INSPECTOR_PATH, SlackService } from "./service";
 import type { SlackSpec, SlackState } from "./spec";
 
 export const slackHosting: ServiceHosting<SlackSpec, SlackState> = {
@@ -14,8 +14,14 @@ export const slackHosting: ServiceHosting<SlackSpec, SlackState> = {
       nextDue: () => slack.nextDue(),
     };
   },
-  page: (request, url) =>
-    request.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")
+  page(request, url) {
+    if (url.pathname.startsWith("/assets/")) return "asset";
+    if (url.pathname === INSPECTOR_PATH) return "members-only";
+    return request.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")
       ? "ui"
-      : null,
+      : null;
+  },
+  error: (status, code) => Response.json({ ok: false, error: code }, { status }),
+  bannerStyle:
+    "body > .content, body > .checkout-layout { min-height: calc(100vh - 42px - var(--worlds-banner-height)); }",
 };

@@ -19,9 +19,9 @@ pnpm dev:api &
 pnpm smoke
 ```
 
-`pnpm smoke` runs two scripts. `smoke.mjs` creates a world through the API from a full spec, checks the spec landed (pinned ids and tokens, seeded threads, preinstalled bot), the world's access rules, installs the app over OAuth, posts an @mention as a user, replies as the bot and checks the signed `app_mention` callback. `jira-smoke.mjs` installs a Jira app over 3LO, registers a dynamic webhook and checks signed issue and comment deliveries.
+`pnpm smoke` runs each service's `scripts/smoke.mjs`, one at a time. Slack's creates a world through the API from a full spec, checks the spec landed (pinned ids and tokens, seeded threads, preinstalled bot), the world's access rules, installs the app over OAuth, posts an @mention as a user, replies as the bot and checks the signed `app_mention` callback. Jira's installs a Jira app over 3LO, registers a dynamic webhook and checks signed issue and comment deliveries.
 
-`services/world` is the `worlds` Worker on `*.makeworlds.dev`. Every world is one `World` Durable Object holding all of its services. Each service of a world has its own host, `{id}-{service}.makeworlds.dev` with the id minus its `world_` prefix (`https://k2v9x0q1m4-slack.makeworlds.dev`, `http://k2v9x0q1m4-slack.localhost:8787` in dev), so services sit at the root like the real ones; the Worker checks the world exists in D1 before routing to its Durable Object. `services/slack` is the Slack service module (`SlackService`) and its UI (`ui/`), which the world Worker serves; `wrangler dev` and `wrangler deploy` build the UI first.
+`services/world` is the `worlds` Worker on `*.makeworlds.dev`. Every world is one `World` Durable Object holding all of its services. Each service of a world has its own host, `{id}-{service}.makeworlds.dev` with the id minus its `world_` prefix (`https://k2v9x0q1m4-slack.makeworlds.dev`, `http://k2v9x0q1m4-slack.localhost:8787` in dev), so services sit at the root like the real ones; the Worker checks the world exists in D1 before routing to its Durable Object. `services/slack` is the Slack service module (`SlackService`) and its UI (`ui/`). `wrangler dev` and `wrangler deploy` run `scripts/build-ui.mjs`, which builds every service with a `build:ui` script and copies its `ui/dist` to `dist/ui/<service>`; the world Worker serves a service's UI and `/assets/*` from there on that service's host. A new UI also needs its `ui/src` in `build.watch_dir` in `services/world/wrangler.jsonc`.
 
 ## Slack
 
@@ -64,7 +64,8 @@ Every world has a Jira Cloud site, written for this repo (emulate has no Jira) i
 Each service (Slack, Jira) is a package in `services/<name>` with two entry points:
 
 - `src/contract.ts`: zod-openapi schemas for its spec and state, the URLs a world gets, spec checks, and the `/_worlds/<name>/*` control routes. The service serves the same route objects with `OpenAPIHono`, so requests are validated against the published spec.
-- `src/hosting.ts`: its runtime in the world's Durable Object (setup, state, fetch, alarms) and its page rules (sign-in gate, UI assets).
+- `src/hosting.ts`: its runtime in the world's Durable Object (setup, state, fetch, alarms), its page rules (sign-in gate, UI page and assets), its error shape for requests the world Worker answers itself (an unknown or archived world), and any banner CSS its pages need.
+- `scripts/smoke.mjs`: its end-to-end smoke test against `wrangler dev`.
 
 `packages/services` lists them, with an entry point per side:
 

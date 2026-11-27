@@ -5,7 +5,6 @@ const STYLE = `
 .worlds-banner { box-sizing: border-box; height: var(--worlds-banner-height); display: flex; align-items: center; gap: 10px; padding: 0 16px; background: #1f2328; color: #e6edf3; font: 500 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; white-space: nowrap; overflow: hidden; position: relative; z-index: 2147483647; }
 .worlds-banner .worlds-text { overflow: hidden; text-overflow: ellipsis; color: #c9d1d9; }
 .worlds-banner .worlds-text strong { color: #fff; font-weight: 600; }
-body > .content, body > .checkout-layout { min-height: calc(100vh - 42px - var(--worlds-banner-height)); }
 .worlds-banner a { margin-left: auto; flex-shrink: 0; color: #fff; text-decoration: underline; text-underline-offset: 2px; }
 `;
 
@@ -22,13 +21,14 @@ export function withBanner(
   name: string,
   world: World,
   makeworldsUrl: string,
+  serviceStyle = "",
 ): Response {
   if (!response.headers.get("content-type")?.includes("text/html")) return response;
   const banner = bannerHtml(name, world, makeworldsUrl);
   return new HTMLRewriter()
     .on("head", {
       element(element) {
-        element.append(`<style>${STYLE}</style>`, { html: true });
+        element.append(`<style>${STYLE}${serviceStyle}</style>`, { html: true });
       },
     })
     .on("body", {

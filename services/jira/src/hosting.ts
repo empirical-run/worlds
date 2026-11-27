@@ -30,4 +30,7 @@ export const jiraHosting: ServiceHosting<JiraSpec, JiraState> = {
     host === "jira" && (url.pathname === "/" || url.pathname.startsWith("/browse/"))
       ? "members-only"
       : null,
+  error: (status, _code, message) =>
+    Response.json({ errorMessages: [message], errors: {} }, { status }),
+  bannerStyle: "body > .content { min-height: calc(100vh - 42px - var(--worlds-banner-height)); }",
 };

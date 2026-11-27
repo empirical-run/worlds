@@ -10,8 +10,9 @@
     "./hosting": "./src/hosting.ts"
   },
   "scripts": {
-    "build": "vite build",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p ui"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p ui",
+    "build:ui": "vite build",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@emulators/core": "0.14.0",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261125.1",
+    "@slack/web-api": "^8.5.0",
     "@types/react": "^19.3.2",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.3.0",

@@ -9,7 +9,8 @@
     "./hosting": "./src/hosting.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.6.3",
