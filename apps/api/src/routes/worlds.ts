@@ -1,5 +1,5 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
-import { createWorld, listWorlds, liveWorld, markWorldDeleted, worldHost, type World } from "@worlds/db";
+import { archiveWorld, createWorld, listWorlds, liveWorld, worldHost, type World } from "@worlds/db";
 import { apiError, type AppEnv } from "../context";
 import { validateManifest } from "@worlds/slack/manifest";
 import { DEFAULT_SLACK_SPEC, unknownReferences, type SlackSpec } from "@worlds/slack/spec";
@@ -21,7 +21,7 @@ const listWorldsRoute = createRoute({
   path: "/api/worlds",
   tags: ["Worlds"],
   summary: "List worlds",
-  description: "Worlds in the teams you can see, newest first. Deleted worlds are not listed.",
+  description: "Worlds in the teams you can see, newest first. Archived worlds are not listed.",
   security,
   responses: {
     200: jsonResponse("Your worlds", WorldListSchema),
@@ -74,16 +74,16 @@ const getWorldSpecRoute = createRoute({
   },
 });
 
-const deleteWorldRoute = createRoute({
-  method: "delete",
-  path: "/api/worlds/{worldId}",
+const archiveWorldRoute = createRoute({
+  method: "post",
+  path: "/api/worlds/{worldId}/archive",
   tags: ["Worlds"],
-  summary: "Delete a world",
-  description: "Wipes everything in the world right away. Its URLs stop working and the id is never reused.",
+  summary: "Archive a world",
+  description: "Takes the world offline for good: it leaves the list, its URLs stop working and pending event deliveries are dropped. Archiving cannot be undone.",
   security,
   request: { params: WorldParamsSchema },
   responses: {
-    204: { description: "Deleted" },
+    204: { description: "Archived" },
     401: errorResponse("Missing or invalid credentials"),
     404: errorResponse("No world with that id is visible to you"),
   },
@@ -135,11 +135,11 @@ export const worlds = new OpenAPIHono<AppEnv>()
     if (!spec) return c.json(apiError("not_found", NOT_VISIBLE), 404);
     return c.json({ slack: spec }, 200);
   })
-  .openapi(deleteWorldRoute, async (c) => {
+  .openapi(archiveWorldRoute, async (c) => {
     const world = await visibleWorld(c, c.req.valid("param").worldId);
     if (!world) return c.json(apiError("not_found", NOT_VISIBLE), 404);
-    await c.env.SLACK.purge(world.id);
-    await markWorldDeleted(c.var.db, world.id);
+    await archiveWorld(c.var.db, world.id);
+    await c.env.SLACK.archive(world.id);
     return c.body(null, 204);
   });
 

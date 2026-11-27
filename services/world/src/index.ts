@@ -11,8 +11,8 @@ const SERVICES = ["slack"] as const;
 const CONTROL_PATHS = ["/_worlds/", "/_inspector"];
 
 export class WorldsControl extends WorkerEntrypoint<Env> {
-  async purge(worldId: string): Promise<void> {
-    await this.env.WORLD.get(this.env.WORLD.idFromName(worldId)).purge();
+  async archive(worldId: string): Promise<void> {
+    await this.env.WORLD.get(this.env.WORLD.idFromName(worldId)).archive();
   }
 
   async setupSlack(worldId: string, spec: SlackSpec): Promise<SlackState> {

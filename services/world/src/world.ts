@@ -5,6 +5,7 @@ import type { Env } from "./env";
 
 export const SERVICE_HEADER = "x-worlds-service";
 export const BASE_URL_HEADER = "x-worlds-base-url";
+const ARCHIVED_KEY = "world:archived";
 
 export class World extends DurableObject<Env> {
   private slackService: SlackService | null = null;
@@ -18,6 +19,7 @@ export class World extends DurableObject<Env> {
   }
 
   async alarm(): Promise<void> {
+    if (await this.ctx.storage.get<boolean>(ARCHIVED_KEY)) return;
     await this.slack().alarm();
   }
 
@@ -29,10 +31,9 @@ export class World extends DurableObject<Env> {
     return this.slack().state();
   }
 
-  async purge(): Promise<void> {
+  async archive(): Promise<void> {
+    await this.ctx.storage.put(ARCHIVED_KEY, true);
     await this.ctx.storage.deleteAlarm();
-    await this.ctx.storage.deleteAll();
-    this.slackService = null;
   }
 
   private slack(): SlackService {

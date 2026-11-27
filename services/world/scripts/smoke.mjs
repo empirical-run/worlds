@@ -231,9 +231,9 @@ try {
   await sleep(1000);
   assert(mentionAttempts("run the login tests").length === 1, "a 200 is not retried");
   assert(events.every((event) => event.valid), "every event carries a valid Slack signature");
-  const deleted = await fetch(`${apiUrl}/api/worlds/${worldId}`, { method: "DELETE", headers: { authorization: `Bearer ${apiKey}` } });
+  const archived = await fetch(`${apiUrl}/api/worlds/${worldId}/archive`, { method: "POST", headers: { authorization: `Bearer ${apiKey}` } });
   const gone = await fetch(`${slackApiUrl}auth.test`, { method: "POST", headers: { authorization: `Bearer ${userToken}` } });
-  assert(deleted.status === 204 && gone.status === 404, "DELETE /api/worlds/{id} wipes the world");
+  assert(archived.status === 204 && gone.status === 404, "POST /api/worlds/{id}/archive takes the world offline");
 } finally {
   receiver.close();
 }

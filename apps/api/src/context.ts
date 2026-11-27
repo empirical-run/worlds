@@ -2,7 +2,7 @@ import type { ApiKey, Db, Membership, Team, User } from "@worlds/db";
 import type { SlackSpec, SlackState } from "@worlds/slack/spec";
 
 export type WorldsControl = {
-  purge(worldId: string): Promise<void>;
+  archive(worldId: string): Promise<void>;
   setupSlack(worldId: string, spec: SlackSpec): Promise<SlackState>;
   slackState(worldId: string): Promise<SlackState | null>;
 };

@@ -26,8 +26,8 @@ export async function action({ request, context }: Route.ActionArgs) {
     });
     return data<ActionResult>(result.ok ? { intent, createdWorld: result.data.id } : { intent, error: result.error.message }, result.ok ? 200 : result.status);
   }
-  if (intent === "delete-world") {
-    const result = await callApi<void>(context, request, `/api/worlds/${String(form.get("worldId"))}`, { method: "DELETE" });
+  if (intent === "archive-world") {
+    const result = await callApi<void>(context, request, `/api/worlds/${String(form.get("worldId"))}/archive`, { method: "POST" });
     return data<ActionResult>(result.ok ? { intent } : { intent, error: result.error.message }, result.ok ? 200 : result.status);
   }
   throw new Response("Unknown action.", { status: 400 });
@@ -38,11 +38,11 @@ export default function Worlds({ loaderData: { worlds }, actionData }: Route.Com
     <article>
       <header className="section hero">
         <h1>Worlds</h1>
-        <p className="lede">Each world is a separate Slack workspace your app can talk to. It keeps its state until you delete it.</p>
+        <p className="lede">Each world is a separate Slack workspace your app can talk to. It keeps its state until you archive it.</p>
       </header>
       <section className="section">
         <CreateWorldForm key={actionData?.createdWorld} error={actionData?.intent === "create-world" ? actionData.error : undefined} />
-        <ActionError result={actionData} intent="delete-world" />
+        <ActionError result={actionData} intent="archive-world" />
         {worlds.length ? <WorldTable worlds={worlds} /> : <p className="empty">No worlds yet.</p>}
       </section>
     </article>
@@ -70,7 +70,7 @@ function CreateWorldForm({ error }: { error?: string }) {
 
 function WorldTable({ worlds }: { worlds: WorldJson[] }) {
   const navigation = useNavigation();
-  const deleting = navigation.formData?.get("intent") === "delete-world" ? navigation.formData.get("worldId") : null;
+  const archiving = navigation.formData?.get("intent") === "archive-world" ? navigation.formData.get("worldId") : null;
   return (
     <table className="keys">
       <thead>
@@ -95,10 +95,10 @@ function WorldTable({ worlds }: { worlds: WorldJson[] }) {
             <td>{dateFormat.format(new Date(world.created_at))}</td>
             <td>
               <Form method="post">
-                <input type="hidden" name="intent" value="delete-world" />
+                <input type="hidden" name="intent" value="archive-world" />
                 <input type="hidden" name="worldId" value={world.id} />
-                <button className="link-button" type="submit" disabled={deleting === world.id}>
-                  Delete
+                <button className="link-button" type="submit" disabled={archiving === world.id}>
+                  Archive
                 </button>
               </Form>
             </td>

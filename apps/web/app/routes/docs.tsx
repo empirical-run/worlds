@@ -69,7 +69,7 @@ export default function Docs({ loaderData: { examples } }: Route.ComponentProps)
         <h2>Create a world</h2>
         <p>
           Create an API key in <a href="/settings">Settings</a>, then create a world (or create one on the <a href="/worlds">Worlds</a> page). Each world is separate and keeps its state until
-          you delete it.
+          you archive it.
         </p>
         <CodeBlock lines={examples.create} />
         <p>
@@ -151,7 +151,7 @@ export default function Docs({ loaderData: { examples } }: Route.ComponentProps)
           </li>
         </ul>
         <p>
-          Delete a world with <code>DELETE /api/worlds/:id</code>.
+          Archive a world with <code>POST /api/worlds/:id/archive</code>. Archiving takes it offline for good.
         </p>
       </section>
     </article>

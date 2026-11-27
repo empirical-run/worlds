@@ -1,0 +1,1 @@
+ALTER TABLE `worlds` RENAME COLUMN "deleted_at" TO "archived_at";

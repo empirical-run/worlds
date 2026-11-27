@@ -196,7 +196,7 @@ export async function listWorlds(db: Db, teamIds: string[]): Promise<World[]> {
   return db
     .select()
     .from(worlds)
-    .where(and(inArray(worlds.teamId, teamIds), isNull(worlds.deletedAt)))
+    .where(and(inArray(worlds.teamId, teamIds), isNull(worlds.archivedAt)))
     .orderBy(desc(worlds.createdAt));
 }
 
@@ -204,11 +204,11 @@ export async function liveWorld(db: Db, worldId: string): Promise<World | null> 
   const [world] = await db
     .select()
     .from(worlds)
-    .where(and(eq(worlds.id, worldId), isNull(worlds.deletedAt)))
+    .where(and(eq(worlds.id, worldId), isNull(worlds.archivedAt)))
     .limit(1);
   return world ?? null;
 }
 
-export async function markWorldDeleted(db: Db, worldId: string): Promise<void> {
-  await db.update(worlds).set({ deletedAt: new Date() }).where(eq(worlds.id, worldId));
+export async function archiveWorld(db: Db, worldId: string): Promise<void> {
+  await db.update(worlds).set({ archivedAt: new Date() }).where(eq(worlds.id, worldId));
 }

@@ -42,8 +42,8 @@ export default function Privacy() {
           a world with real data, such as recorded conversations, you are responsible for having the right to use it.
         </p>
         <p>
-          Worlds and their snapshots are private to your team. When you delete a world, everything in it is wiped right away; we keep only
-          its id, name and timestamps so the id is never reused.
+          Worlds and their snapshots are private to your team. When you archive a world it goes offline for good: its URLs stop working
+          and nobody, including your team, can reach what is in it.
         </p>
       </section>
 
@@ -58,7 +58,8 @@ export default function Privacy() {
       <section className="section">
         <h2>Deleting your data</h2>
         <p>
-          You can delete any world or API key yourself. To delete your account and everything in it, email{" "}
+          You can delete any API key and archive any world yourself. To delete an archived world's data, or your account and everything in
+          it, email{" "}
           <a href="mailto:company@empirical.run">company@empirical.run</a>.
         </p>
       </section>

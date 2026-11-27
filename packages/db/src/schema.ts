@@ -102,7 +102,7 @@ export const worlds = sqliteTable(
       .references(() => teams.id, { onDelete: "cascade" }),
     createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
     name: text("name").notNull(),
-    deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
+    archivedAt: integer("archived_at", { mode: "timestamp_ms" }),
     ...timestamps(),
   },
   (table) => [index("worlds_team_id_idx").on(table.teamId)],
