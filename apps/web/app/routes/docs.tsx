@@ -19,7 +19,24 @@ export const handle: RailHandle = {
 const createExample = `curl -X POST https://makeworlds.dev/api/worlds \\
   -H "Authorization: Bearer $WORLDS_API_KEY" \\
   -H "content-type: application/json" \\
-  -d '{"name": "My first world"}'`;
+  -d '{
+    "name": "My first world",
+    "slack": {
+      "apps": [{
+        "manifest": {
+          "display_information": { "name": "My app" },
+          "oauth_config": { "scopes": { "bot": ["app_mentions:read", "chat:write"] } },
+          "settings": {
+            "event_subscriptions": {
+              "request_url": "https://example.com/slack/events",
+              "bot_events": ["app_mention"]
+            }
+          }
+        },
+        "install": true
+      }]
+    }
+  }'`;
 
 const webClientExample = `const client = new WebClient(token, {
   slackApiUrl: world.slack.api_url,
@@ -46,8 +63,10 @@ export default function Docs() {
           <code>{createExample}</code>
         </pre>
         <p>
-          The response has the world's Slack URLs: <code>slack.api_url</code>, <code>slack.oauth_authorize_url</code> and{" "}
-          <code>slack.ui_url</code>.
+          The response has the world's Slack URLs (<code>slack.api_url</code>, <code>slack.oauth_authorize_url</code>,{" "}
+          <code>slack.ui_url</code>) and, for each app, its credentials and, with <code>install</code>, a bot token. Apps are defined by a
+          standard Slack app manifest. Pass <code>credentials</code> to pin a client id, client secret or signing secret your app already
+          uses.
         </p>
       </section>
 
@@ -64,15 +83,21 @@ export default function Docs() {
       <section className="section" id="install">
         <h2>Install your app</h2>
         <p>
-          Send users to the world's <code>slack.oauth_authorize_url</code> instead of slack.com. The callback hands your app a code, and{" "}
-          <code>oauth.v2.access</code> exchanges it for a bot token as usual.
+          Apps with <code>install: true</code> are installed already. Otherwise send users to the world's <code>slack.oauth_authorize_url</code>{" "}
+          instead of slack.com: redirect URIs must be in the manifest's <code>redirect_urls</code>, and <code>oauth.v2.access</code> exchanges
+          the code for a bot token as usual.
+        </p>
+        <p>
+          To change apps later, call <code>apps.manifest.create</code>, <code>update</code>, <code>export</code>, <code>delete</code> or{" "}
+          <code>validate</code> on the world's API URL with your team's API key as the configuration token.
         </p>
       </section>
 
       <section className="section" id="events">
         <h2>Receive events</h2>
         <p>
-          The world posts event callbacks to your events URL, signed with your signing secret. A non-2xx response, a connection failure or
+          The world posts the events your manifest subscribes to (<code>settings.event_subscriptions.bot_events</code>) to its{" "}
+          <code>request_url</code>, signed with the app's signing secret, for every app installed in the world. A non-2xx response, a connection failure or
           no answer within 3 seconds is retried with <code>X-Slack-Retry-Num</code> right away, after 1 minute and after 5 minutes.
         </p>
       </section>
@@ -102,7 +127,12 @@ export default function Docs() {
         </p>
         <ul>
           <li>
-            <code>POST /_worlds/slack/redirect-uris</code> registers an OAuth redirect URI.
+            <code>POST /_worlds/slack/apps</code> creates an app from <code>{'{"manifest", "credentials", "install"}'}</code>, like the
+            create-world option.
+          </li>
+          <li>
+            <code>POST /_worlds/slack/tokens</code> returns a user token for <code>{'{"user_id"}'}</code>, to act as that user with any Slack
+            client.
           </li>
           <li>
             <code>GET /_worlds/slack/state</code> returns users, channels and messages.

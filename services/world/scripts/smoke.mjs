@@ -3,11 +3,16 @@ import { createServer } from "node:http";
 import { WebClient } from "@slack/web-api";
 
 const base = process.env.WORLDS_URL ?? "http://smoketest0000000000-slack.localhost:8787";
-const signingSecret = process.env.SLACK_SIGNING_SECRET ?? "worlds-signing-secret";
-const clientId = process.env.SLACK_CLIENT_ID ?? "worlds-client-id";
-const clientSecret = process.env.SLACK_CLIENT_SECRET ?? "worlds-client-secret";
 const redirectUri = "http://localhost:8788/oauth/callback";
-const userToken = process.env.SLACK_USER_TOKEN ?? "xoxp-alice";
+const manifest = {
+  display_information: { name: "Smoke" },
+  features: { bot_user: { display_name: "smoke" } },
+  oauth_config: { redirect_urls: [redirectUri], scopes: { bot: ["app_mentions:read", "chat:write", "channels:history", "files:read"] } },
+  settings: { event_subscriptions: { request_url: "http://localhost:8788/slack/events", bot_events: ["app_mention"] } },
+};
+let clientId = "";
+let clientSecret = "";
+let signingSecret = "";
 const apiKey = process.env.WORLDS_API_KEY ?? "wk_live_smoke0smoke0smoke0smoke0smoke0smoke00";
 const slackApiUrl = `${base}/api/`;
 
@@ -89,8 +94,38 @@ try {
   assert(state.ok, "the team's API key opens the world's control routes");
   const missing = await fetch(`${base.replace("smoketest0000000000", "doesnotexist0")}/api/auth.test`, { method: "POST" });
   assert(missing.status === 404, "an unknown world answers world_not_found");
+  const config = new WebClient(apiKey, { slackApiUrl });
+  const app = await config.apiCall("apps.manifest.create", { manifest: JSON.stringify(manifest) });
+  assert(app.ok && app.credentials.client_id && app.credentials.signing_secret, "apps.manifest.create returns the app's credentials");
+  ({ client_id: clientId, client_secret: clientSecret, signing_secret: signingSecret } = app.credentials);
+  const exported = await config.apiCall("apps.manifest.export", { app_id: app.app_id });
+  assert(exported.manifest.display_information.name === "Smoke", "apps.manifest.export returns the manifest");
+  const keyless = await fetch(`${slackApiUrl}apps.manifest.create`, { method: "POST" });
+  assert(keyless.status === 401, "apps.manifest.* needs the team's key as the configuration token");
   const access = await install();
   assert(access.ok && access.access_token.startsWith("xoxb-"), "OAuth install returns a bot token");
+
+  const preinstalled = await (
+    await fetch(`${base}/_worlds/slack/apps`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+      body: JSON.stringify({ manifest: { display_information: { name: "Pinned" } }, credentials: { client_id: "pinned-client" }, install: true }),
+    })
+  ).json();
+  assert(
+    preinstalled.credentials.client_id === "pinned-client" && (await new WebClient(preinstalled.installation.bot_token, { slackApiUrl }).auth.test()).ok,
+    "a world app can pin its credentials and be preinstalled",
+  );
+
+  const worldState = await (await fetch(`${base}/_worlds/slack/state`, { headers: { authorization: `Bearer ${apiKey}` } })).json();
+  const alice = worldState.users.find((user) => user.name === "alice");
+  const { token: userToken } = await (
+    await fetch(`${base}/_worlds/slack/tokens`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+      body: JSON.stringify({ user_id: alice.id }),
+    })
+  ).json();
 
   const bot = new WebClient(access.access_token, { slackApiUrl });
   const human = new WebClient(userToken, { slackApiUrl });

@@ -31,6 +31,9 @@ importers:
       '@worlds/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@worlds/slack':
+        specifier: workspace:*
+        version: link:../../services/slack
       hono:
         specifier: ^4.13.22
         version: 4.13.22

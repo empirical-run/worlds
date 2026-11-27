@@ -27,9 +27,9 @@
     }
   ],
   "vars": {
-    "SLACK_EVENTS_URL": "",
-    "SLACK_REDIRECT_URIS": "",
     "WORLDS_DOMAIN": "makeworlds.dev",
+    "WORLDS_SCHEME": "https",
+    "WORLDS_PORT": "",
     "MAKEWORLDS_URL": "https://makeworlds.dev"
   }
 }

@@ -1,4 +1,5 @@
 import type { WebhookDelivery, WebhookDispatcher } from "@emulators/core";
+import type { EventTarget } from "./apps";
 
 const TIMEOUT_MS = 3000;
 const RETRY_DELAYS_MS = [0, 60_000, 300_000];
@@ -11,6 +12,7 @@ type RetryReason = "http_timeout" | "http_error" | "connection_failed";
 
 type Pending = {
   id: number;
+  appId: string | null;
   event: string;
   body: string;
   retryNum: number;
@@ -32,6 +34,8 @@ function logKey(id: number): string {
   return `${LOG_PREFIX}${String(id).padStart(12, "0")}`;
 }
 
+export type ResolveTarget = (appId: string | null, event: string) => EventTarget | null;
+
 export class SlackDelivery {
   private log: WebhookDelivery[] = [];
   private loaded = false;
@@ -39,14 +43,13 @@ export class SlackDelivery {
 
   constructor(
     private readonly storage: DurableObjectStorage,
-    private readonly url: string,
-    private readonly signingSecret: string,
+    private readonly resolveTarget: ResolveTarget,
   ) {}
 
   async attach(webhooks: WebhookDispatcher, hookId: number): Promise<void> {
     this.hookId = hookId;
     await this.load();
-    webhooks.dispatch = (event, _action, payload) => this.enqueue(event, JSON.stringify(payload));
+    webhooks.dispatch = (event, _action, payload) => this.enqueue(event, payload);
     webhooks.getDeliveries = (id) => (id === undefined ? [...this.log] : this.log.filter((d) => d.hook_id === id));
     webhooks.redeliver = async (deliveryId, options) => {
       const original = this.log.find((d) => d.id === deliveryId);
@@ -54,13 +57,14 @@ export class SlackDelivery {
       const retryNum = (original.redelivery_count ?? 0) + 1;
       const pending: Pending = {
         id: await this.nextId(),
+        appId: appIdOf(original.payload),
         event: original.event,
         body: JSON.stringify(original.payload),
         retryNum,
         dueAt: Date.now(),
         firstLogId: original.redelivery_of ?? original.id,
       };
-      return (await this.send(pending, options?.headers ?? {})).delivery;
+      return (await this.send(pending, options?.headers ?? {}))?.delivery;
     };
   }
 
@@ -79,7 +83,12 @@ export class SlackDelivery {
       pending.retryNum > 0 && pending.reason
         ? { "X-Slack-Retry-Num": String(pending.retryNum), "X-Slack-Retry-Reason": pending.reason }
         : {};
-    const { delivery, retry } = await this.send(pending, headers);
+    const outcome = await this.send(pending, headers);
+    if (!outcome) {
+      await this.storage.delete(key);
+      return;
+    }
+    const { delivery, retry } = outcome;
     const delay = RETRY_DELAYS_MS[pending.retryNum];
     if (retry && delay !== undefined) {
       await this.storage.put<Pending>(key, {
@@ -94,22 +103,26 @@ export class SlackDelivery {
     }
   }
 
-  private async enqueue(event: string, body: string): Promise<void> {
+  private async enqueue(event: string, payload: unknown): Promise<void> {
+    const appId = appIdOf(payload);
+    if (!this.resolveTarget(appId, event)) return;
     const id = await this.nextId();
     const dueAt = Date.now();
-    await this.storage.put<Pending>(`${PENDING_PREFIX}${id}`, { id, event, body, retryNum: 0, dueAt });
+    await this.storage.put<Pending>(`${PENDING_PREFIX}${id}`, { id, appId, event, body: JSON.stringify(payload), retryNum: 0, dueAt });
     const alarm = await this.storage.getAlarm();
     if (alarm === null || dueAt < alarm) await this.storage.setAlarm(dueAt);
   }
 
-  private async send(pending: Pending, extraHeaders: Record<string, string>): Promise<Outcome> {
+  private async send(pending: Pending, extraHeaders: Record<string, string>): Promise<Outcome | null> {
+    const target = this.resolveTarget(pending.appId, pending.event);
+    if (!target) return null;
     const timestamp = Math.floor(Date.now() / 1000);
-    const signature = await sign(this.signingSecret, `v0:${timestamp}:${pending.body}`);
+    const signature = await sign(target.signingSecret, `v0:${timestamp}:${pending.body}`);
     const started = Date.now();
     let status: number | null = null;
     let retry: RetryReason | null = null;
     try {
-      const response = await fetch(this.url, {
+      const response = await fetch(target.url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -168,4 +181,9 @@ export class SlackDelivery {
     this.log = [...(await this.storage.list<WebhookDelivery>({ prefix: LOG_PREFIX })).values()];
     this.loaded = true;
   }
+}
+
+function appIdOf(payload: unknown): string | null {
+  const appId = (payload as { api_app_id?: unknown } | null)?.api_app_id;
+  return typeof appId === "string" ? appId : null;
 }

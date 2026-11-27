@@ -95,9 +95,55 @@ export const WorldSchema = z
 
 export const WorldListSchema = z.object({ worlds: z.array(WorldSchema) }).openapi("WorldList");
 
+const SlackCredentialsSchema = z
+  .object({
+    client_id: z.string(),
+    client_secret: z.string(),
+    signing_secret: z.string(),
+    verification_token: z.string(),
+  })
+  .openapi("SlackCredentials");
+
+const SlackAppSpecSchema = z
+  .object({
+    manifest: z.record(z.string(), z.unknown()).openapi({
+      description: "A Slack app manifest (JSON). Its redirect_urls, scopes, event_subscriptions and interactivity apply in this world.",
+      example: {
+        display_information: { name: "My app" },
+        features: { bot_user: { display_name: "my-app" } },
+        oauth_config: { scopes: { bot: ["app_mentions:read", "chat:write", "channels:history"] } },
+        settings: { event_subscriptions: { request_url: "https://example.com/slack/events", bot_events: ["app_mention"] } },
+      },
+    }),
+    credentials: SlackCredentialsSchema.partial().optional().openapi({
+      description: "Pin some or all credentials, e.g. to match secrets your app already has. Real Slack generates them; worlds lets you choose.",
+    }),
+    install: z.boolean().optional().openapi({ description: "Install the app into the world's workspace and return its bot token." }),
+  })
+  .openapi("SlackAppSpec");
+
+const SlackAppCreatedSchema = z
+  .object({
+    app_id: z.string().openapi({ example: "A0K4Q8R1ZT3" }),
+    credentials: SlackCredentialsSchema,
+    installation: z
+      .object({ bot_token: z.string().openapi({ example: "xoxb-…" }), bot_user_id: z.string(), team_id: z.string() })
+      .nullable()
+      .openapi({ description: "Present when install was true." }),
+  })
+  .openapi("SlackAppCreated");
+
+export const WorldCreatedSchema = WorldSchema.extend({
+  slack: WorldSchema.shape.slack.extend({ apps: z.array(SlackAppCreatedSchema) }),
+}).openapi("WorldCreated");
+
 export const WorldCreateSchema = z
   .object({
     name: name(WORLD_NAME_MAX).optional().openapi({ description: "Defaults to Untitled world.", example: "Thread routing eval" }),
+    slack: z
+      .object({ apps: z.array(SlackAppSpecSchema).max(10).optional() })
+      .optional()
+      .openapi({ description: "Slack apps to create in the world. Credentials appear only in this response." }),
     team_id: z.string().optional().openapi({ description: "The team to create the world in. API keys always use their own team; signed-in users default to their first team." }),
   })
   .openapi("WorldCreate");
@@ -129,5 +175,6 @@ export type TeamDetailJson = z.infer<typeof TeamDetailSchema>;
 export type ApiKeyJson = z.infer<typeof ApiKeySchema>;
 export type ApiKeyListJson = z.infer<typeof ApiKeyListSchema>;
 export type WorldJson = z.infer<typeof WorldSchema>;
+export type WorldCreatedJson = z.infer<typeof WorldCreatedSchema>;
 export type WorldListJson = z.infer<typeof WorldListSchema>;
 export type ApiKeyCreatedJson = z.infer<typeof ApiKeyCreatedSchema>;

@@ -21,6 +21,8 @@
     "vite": "^8.3.8"
   },
   "exports": {
-    "./service": "./src/service.ts"
+    "./service": "./src/service.ts",
+    "./apps": "./src/apps.ts",
+    "./manifest": "./src/manifest.ts"
   }
 }

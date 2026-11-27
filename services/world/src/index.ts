@@ -1,4 +1,5 @@
-import { database, liveWorld, parseWorldHost } from "@worlds/db";
+import { database, liveWorld, parseWorldHost, worldHost } from "@worlds/db";
+import type { AppSpec, CreatedApp } from "@worlds/slack/service";
 import { WorkerEntrypoint } from "cloudflare:workers";
 import { canControl } from "./access";
 import type { Env } from "./env";
@@ -7,11 +8,16 @@ import { BASE_URL_HEADER, SERVICE_HEADER } from "./world";
 export { World } from "./world";
 
 const SERVICES = ["slack"] as const;
-const CONTROL_PATHS = ["/_worlds/", "/_inspector"];
+const CONTROL_PATHS = ["/_worlds/", "/_inspector", "/api/apps.manifest."];
 
 export class WorldsControl extends WorkerEntrypoint<Env> {
   async purge(worldId: string): Promise<void> {
     await this.env.WORLD.get(this.env.WORLD.idFromName(worldId)).purge();
+  }
+
+  async setupSlack(worldId: string, apps: AppSpec[]): Promise<CreatedApp[]> {
+    const origin = `${this.env.WORLDS_SCHEME}://${worldHost(worldId, "slack", this.env.WORLDS_DOMAIN)}${this.env.WORLDS_PORT ? `:${this.env.WORLDS_PORT}` : ""}`;
+    return this.env.WORLD.get(this.env.WORLD.idFromName(worldId)).createSlackApps(apps, origin);
   }
 }
 

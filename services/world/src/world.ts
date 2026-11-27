@@ -1,3 +1,4 @@
+import type { AppSpec, CreatedApp } from "@worlds/slack/service";
 import { SlackService } from "@worlds/slack/service";
 import { DurableObject } from "cloudflare:workers";
 import type { Env } from "./env";
@@ -20,6 +21,10 @@ export class World extends DurableObject<Env> {
     await this.slack().alarm();
   }
 
+  async createSlackApps(specs: AppSpec[], baseUrl: string): Promise<CreatedApp[]> {
+    return this.slack().createApps(specs, baseUrl);
+  }
+
   async purge(): Promise<void> {
     await this.ctx.storage.deleteAlarm();
     await this.ctx.storage.deleteAll();
@@ -27,14 +32,7 @@ export class World extends DurableObject<Env> {
   }
 
   private slack(): SlackService {
-    this.slackService ??= new SlackService(this.ctx.storage, {
-      signingSecret: this.env.SLACK_SIGNING_SECRET,
-      clientId: this.env.SLACK_CLIENT_ID,
-      clientSecret: this.env.SLACK_CLIENT_SECRET,
-      userToken: this.env.SLACK_USER_TOKEN,
-      redirectUris: this.env.SLACK_REDIRECT_URIS.split(",").filter(Boolean),
-      eventsUrl: this.env.SLACK_EVENTS_URL || null,
-    });
+    this.slackService ??= new SlackService(this.ctx.storage);
     return this.slackService;
   }
 }
