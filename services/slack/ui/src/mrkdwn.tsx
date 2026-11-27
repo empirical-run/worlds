@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
+import { Emoji, emojiFor } from "./emoji";
 
 export type Lookup = { userName: (id: string) => string; channelName: (id: string) => string };
 
 const INLINE =
-  /(`[^`\n]+`)|(<[^>\n]+>)|((?<![\w*])\*(?!\s)[^*\n]+?(?<!\s)\*(?![\w*]))|((?<![\w_])_(?!\s)[^_\n]+?(?<!\s)_(?![\w_]))|((?<![\w~])~(?!\s)[^~\n]+?(?<!\s)~(?![\w~]))/g;
+  /(:[a-z0-9_+'-]+(?:::skin-tone-[2-6])?:)|(`[^`\n]+`)|(<[^>\n]+>)|((?<![\w*])\*(?!\s)[^*\n]+?(?<!\s)\*(?![\w*]))|((?<![\w_])_(?!\s)[^_\n]+?(?<!\s)_(?![\w_]))|((?<![\w~])~(?!\s)[^~\n]+?(?<!\s)~(?![\w~]))/g;
 
 function decode(text: string): string {
   return text.replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&amp;", "&");
@@ -48,10 +49,11 @@ function inline(text: string, lookup: Lookup, prefix: string): ReactNode[] {
     const token = match[0];
     const key = `${prefix}-${index}`;
     const inner = token.slice(1, -1);
-    if (match[1]) nodes.push(<code key={key}>{decode(inner)}</code>);
-    else if (match[2]) nodes.push(angle(token, lookup, key));
-    else if (match[3]) nodes.push(<strong key={key}>{inline(inner, lookup, key)}</strong>);
-    else if (match[4]) nodes.push(<em key={key}>{inline(inner, lookup, key)}</em>);
+    if (match[1]) nodes.push(emojiFor(inner) ? <Emoji key={key} name={inner} /> : token);
+    else if (match[2]) nodes.push(<code key={key}>{decode(inner)}</code>);
+    else if (match[3]) nodes.push(angle(token, lookup, key));
+    else if (match[4]) nodes.push(<strong key={key}>{inline(inner, lookup, key)}</strong>);
+    else if (match[5]) nodes.push(<em key={key}>{inline(inner, lookup, key)}</em>);
     else nodes.push(<s key={key}>{inline(inner, lookup, key)}</s>);
     last = index + token.length;
   }

@@ -25,6 +25,7 @@ import {
   type User,
   type WorldState,
 } from "./api";
+import { Emoji } from "./emoji";
 import { Mrkdwn, type Lookup } from "./mrkdwn";
 
 const ACTOR_KEY = "worlds-acting-user";
@@ -530,7 +531,7 @@ function MessageRow(props: {
           <div className="reactions">
             {message.reactions.map((reaction) => (
               <span key={reaction.name} className="reaction" title={reaction.users.map(props.lookup.userName).join(", ")}>
-                :{reaction.name}: {reaction.count}
+                <Emoji name={reaction.name} /> {reaction.count}
               </span>
             ))}
           </div>
