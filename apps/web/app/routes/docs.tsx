@@ -32,7 +32,7 @@ const createExample = `curl -X POST https://makeworlds.dev/api/worlds \\
     "name": "My first world",
     "slack": {
       "team": { "name": "Acme", "domain": "acme" },
-      "users": [{ "name": "alice" }],
+      "users": [{ "name": "alice", "real_name": "Alice Tester", "email": "alice@acme.test" }],
       "channels": [{ "name": "general", "members": ["alice"] }],
       "apps": [{
         "manifest": {
@@ -63,7 +63,10 @@ const worlds = createClient({ apiKey: process.env.WORLDS_API_KEY });
 
 const slack: SlackSpec = {
   team: { name: "Acme", domain: "acme" },
-  users: [{ name: "alice" }, { name: "bob" }],
+  users: [
+    { name: "alice", real_name: "Alice Tester", email: "alice@acme.test" },
+    { name: "bob", real_name: "Bob Tester", email: "bob@acme.test" },
+  ],
   channels: [{ name: "general", members: ["alice", "bob"] }],
 };
 
@@ -81,7 +84,13 @@ const jira = createClient({
 });
 
 await jira.POST("/_worlds/jira/issues", {
-  body: { user: "alice", summary: "Checkout fails", labels: ["triage"] },
+  body: {
+    user: "alice",
+    project: "ACME",
+    summary: "Checkout fails",
+    status: "To Do",
+    labels: ["triage"],
+  },
 });`;
 
 export async function loader() {

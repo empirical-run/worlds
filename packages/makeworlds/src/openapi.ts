@@ -1666,7 +1666,7 @@ export interface components {
             description?: string;
             labels?: string[];
             /** @enum {string} */
-            status?: "To Do" | "In Progress" | "Done";
+            status: "To Do" | "In Progress" | "Done";
             /**
              * @description A user's name or id.
              * @example alice
@@ -1693,11 +1693,8 @@ export interface components {
         };
         /** @description A new world. Give a spec for each service it should have. */
         WorldCreate: {
-            /**
-             * @description Defaults to Untitled world.
-             * @example Thread routing eval
-             */
-            name?: string;
+            /** @example Thread routing eval */
+            name: string;
             slack?: components["schemas"]["SlackSpec"];
             jira?: components["schemas"]["JiraSpec"];
         };
@@ -1721,7 +1718,7 @@ export interface components {
              */
             name: string;
             /**
-             * @description The workspace subdomain. Users without an email get <name>@<domain>.test.
+             * @description The workspace subdomain.
              * @example acme
              */
             domain: string;
@@ -1733,9 +1730,12 @@ export interface components {
             /** @example alice */
             name: string;
             /** @example Alice Tester */
-            real_name?: string;
-            /** Format: email */
-            email?: string;
+            real_name: string;
+            /**
+             * Format: email
+             * @example alice@acme.test
+             */
+            email: string;
             /** @description Pin the user's token, to act as them with any Slack client. */
             token?: string;
         };
@@ -1793,7 +1793,7 @@ export interface components {
              */
             cloud_id?: string;
             /**
-             * @description The site's subdomain, as in <name>.atlassian.net. Users without an email get <user>@<name>.test.
+             * @description The site's subdomain, as in <name>.atlassian.net.
              * @example acme
              */
             name: string;
@@ -1805,9 +1805,12 @@ export interface components {
             /** @example alice */
             name: string;
             /** @example Alice Tester */
-            display_name?: string;
-            /** Format: email */
-            email?: string;
+            display_name: string;
+            /**
+             * Format: email
+             * @example alice@acme.test
+             */
+            email: string;
             /** @description Hide the email from apps, like a profile with email visibility off. GET /user then has no emailAddress. */
             hide_email?: boolean;
         };
@@ -1879,7 +1882,7 @@ export interface components {
         SlackWorldTeam: {
             id: string;
             name: string;
-        } | null;
+        };
         /** @description A user or bot in the workspace now. */
         SlackWorldUser: {
             id: string;
@@ -2060,15 +2063,18 @@ export interface components {
              * @example alice
              */
             user: string;
-            /** @description A project key. Defaults to the first project. */
-            project?: string;
+            /**
+             * @description A project key.
+             * @example WRLD
+             */
+            project: string;
             /** @example Checkout fails for guest users */
             summary: string;
             /** @description Plain text, or an Atlassian Document Format document. */
             description?: string | components["schemas"]["JiraAdf"];
             labels?: string[];
             /** @enum {string} */
-            status?: "To Do" | "In Progress" | "Done";
+            status: "To Do" | "In Progress" | "Done";
             /**
              * @description A user's name or id.
              * @example alice

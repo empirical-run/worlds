@@ -34,7 +34,10 @@ const userToken = `xoxp-smoke-alice-${run}`;
 const pinnedBotToken = `xoxb-smoke-pinned-${run}`;
 const spec = {
   team: { name: "Smoke", domain: "smoke" },
-  users: [{ name: "alice", real_name: "Alice Tester", token: userToken }, { name: "bob" }],
+  users: [
+    { name: "alice", real_name: "Alice Tester", email: "alice@smoke.test", token: userToken },
+    { name: "bob", real_name: "Bob Tester", email: "bob@smoke.test" },
+  ],
   channels: [
     {
       name: "general",
@@ -173,20 +176,29 @@ try {
     method: "POST",
     headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
     body: JSON.stringify({
-      slack: {
-        team: { name: "Smoke", domain: "smoke" },
-        users: [{ name: "alice" }],
-        channels: [{ name: "general", members: ["nobody"] }],
-      },
+      name: "Invalid",
+      slack: { ...spec, channels: [{ name: "general", members: ["nobody"] }] },
     }),
   });
-  assert(invalid.status === 400, "a spec that names an unknown user is refused");
+  assert(
+    invalid.status === 400 && (await invalid.json()).error.message.includes("unknown user nobody"),
+    "a spec that names an unknown user is refused",
+  );
   const noTeam = await fetch(`${apiUrl}/api/worlds`, {
     method: "POST",
     headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
-    body: JSON.stringify({ slack: { users: [{ name: "alice" }] } }),
+    body: JSON.stringify({ name: "No team", slack: { ...spec, team: undefined } }),
   });
-  assert(noTeam.status === 400, "a Slack spec without a team is refused");
+  assert(
+    noTeam.status === 400 && (await noTeam.json()).error.message.startsWith("slack.team"),
+    "a Slack spec without a team is refused",
+  );
+  const noName = await fetch(`${apiUrl}/api/worlds`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+    body: JSON.stringify({ slack: spec }),
+  });
+  assert(noName.status === 400, "a world without a name is refused");
   const noService = await fetch(`${apiUrl}/api/worlds`, {
     method: "POST",
     headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },

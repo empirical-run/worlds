@@ -24,10 +24,10 @@ export async function action({ request, context }: Route.ActionArgs) {
   const form = await request.formData();
   const intent = formText(form, "intent");
   if (intent === "create-world") {
-    const name = formText(form, "name").trim();
+    const name = formText(form, "name");
     const services = form.getAll("service").filter((value) => typeof value === "string");
     const result = await api(context, request).POST("/api/worlds", {
-      body: { ...(name ? { name } : {}), ...starterSpecs(services) },
+      body: { name, ...starterSpecs(services) },
     });
     return actionData(intent, result, (world) => ({ createdWorld: world.id }));
   }
@@ -65,7 +65,7 @@ export default function Worlds({
             id: "world-name",
             name: "name",
             maxLength: WORLD_NAME_MAX,
-            placeholder: "Untitled world",
+            required: true,
           }}
           submitLabel="Create world"
           variant="primary"

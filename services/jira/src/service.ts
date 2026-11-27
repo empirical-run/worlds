@@ -10,7 +10,15 @@ import {
   type JiraHost,
 } from "./contract";
 import { JiraDelivery } from "./delivery";
-import { findUser, isAdf, type AccessToken, type Adf, type JiraData, type Origins } from "./model";
+import {
+  findUser,
+  isAdf,
+  textToAdf,
+  type AccessToken,
+  type Adf,
+  type JiraData,
+  type Origins,
+} from "./model";
 import { consentPage, errorPage, issueListPage, issuePage } from "./pages";
 import { JiraSite, randomToken, textOrAdf, type IssuePatch } from "./site";
 import { OFFLINE_ACCESS, type IssueStatus, type JiraSpec, type JiraState } from "./spec";
@@ -109,8 +117,8 @@ function emptyData(spec: JiraSpec, origins: Origins): JiraData {
   const users = (spec.users ?? []).map((user) => ({
     account_id: user.account_id ?? `712020:${crypto.randomUUID()}`,
     name: user.name,
-    display_name: user.display_name ?? user.name,
-    email: user.email ?? `${user.name}@${spec.site.name}.test`,
+    display_name: user.display_name,
+    email: user.email,
     hide_email: user.hide_email ?? false,
   }));
   return {
@@ -164,11 +172,7 @@ function seedIssues(site: JiraSite, spec: JiraSpec): void {
       assignee: issueSpec.assignee ? accountId(issueSpec.assignee) : null,
     });
     for (const comment of issueSpec.comments ?? []) {
-      site.seedComment(
-        issue,
-        accountId(comment.author),
-        textOrAdf(comment.body) ?? { type: "doc", version: 1, content: [] },
-      );
+      site.seedComment(issue, accountId(comment.author), textToAdf(comment.body));
     }
     site.state.issues.push({ ...issueSpec, key: issue.key });
   }
@@ -503,8 +507,8 @@ function controlRoutes() {
       if (!actor) {
         return c.json(unknownUser(body.user), 400);
       }
-      const project = body.project ?? site.state.projects[0]?.key;
-      if (!project || !site.state.projects.some((candidate) => candidate.key === project)) {
+      const { project } = body;
+      if (!site.state.projects.some((candidate) => candidate.key === project)) {
         return c.json(apiError("project_not_found", `No project with key ${project}.`), 400);
       }
       const fields = issueFields(site, body);
@@ -515,6 +519,7 @@ function controlRoutes() {
         ...fields,
         project,
         summary: body.summary,
+        status: body.status,
       });
       return c.json(site.json.apiIssue(issue), 201);
     })

@@ -1,4 +1,4 @@
-import type { Adf, Comment, Issue } from "./model";
+import { projectByKey, userByAccountId, type Adf, type Comment, type Issue } from "./model";
 import type { IssueStatus, JiraAppState, JiraState, JiraUserState } from "./spec";
 
 const STYLE = `
@@ -322,7 +322,6 @@ export function consentPage(
 }
 
 export function issueListPage(state: JiraState, issues: Issue[]): Response {
-  const project = state.projects[0];
   const rows = [...issues]
     .sort((a, b) => b.updated - a.updated)
     .map(
@@ -339,7 +338,7 @@ export function issueListPage(state: JiraState, issues: Issue[]): Response {
   return shell(
     state,
     "Issues",
-    `<div class="breadcrumbs"><span>Projects</span><span class="sep">/</span><span>${escapeHtml(project?.name ?? state.site.name)}</span></div>
+    `<div class="breadcrumbs"><span>Projects</span><span class="sep">/</span><span>${escapeHtml(state.site.name)}</span></div>
 <h1>Issues</h1>
 ${
   issues.length
@@ -350,12 +349,12 @@ ${
 }
 
 function commentHtml(state: JiraState, comment: Comment): string {
-  const author = user(state, comment.author);
-  return `<div class="comment">${avatar(author, "large")}<div><div class="comment-meta"><span class="comment-author">${escapeHtml(author?.display_name ?? "Unknown user")}</span><span class="muted">${displayDate(comment.created)}</span></div>${prose(comment.body, "")}</div></div>`;
+  const author = userByAccountId(state, comment.author);
+  return `<div class="comment">${avatar(author, "large")}<div><div class="comment-meta"><span class="comment-author">${escapeHtml(author.display_name)}</span><span class="muted">${displayDate(comment.created)}</span></div>${prose(comment.body, "")}</div></div>`;
 }
 
 export function issuePage(state: JiraState, issue: Issue): Response {
-  const project = state.projects.find((candidate) => candidate.key === issue.project);
+  const project = projectByKey(state, issue.project);
   const comments = [...issue.comments]
     .reverse()
     .map((comment) => commentHtml(state, comment))
@@ -363,7 +362,7 @@ export function issuePage(state: JiraState, issue: Issue): Response {
   return shell(
     state,
     `[${issue.key}] ${issue.summary}`,
-    `<div class="breadcrumbs"><span>Projects</span><span class="sep">/</span><a href="/">${escapeHtml(project?.name ?? issue.project)}</a><span class="sep">/</span><span class="key-cell"><span class="type-icon" title="Task"></span><a href="/browse/${escapeHtml(issue.key)}">${escapeHtml(issue.key)}</a></span></div>
+    `<div class="breadcrumbs"><span>Projects</span><span class="sep">/</span><a href="/">${escapeHtml(project.name)}</a><span class="sep">/</span><span class="key-cell"><span class="type-icon" title="Task"></span><a href="/browse/${escapeHtml(issue.key)}">${escapeHtml(issue.key)}</a></span></div>
 <div class="issue">
   <div>
     <h1>${escapeHtml(issue.summary)}</h1>

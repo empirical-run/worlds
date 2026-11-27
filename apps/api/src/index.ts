@@ -1,5 +1,4 @@
-import { OpenAPIHono } from "@hono/zod-openapi";
-import { apiError } from "@worlds/contract";
+import { apiError, routes } from "@worlds/contract";
 import { SERVICES } from "@worlds/services";
 import { HTTPException } from "hono/http-exception";
 
@@ -9,17 +8,7 @@ import { apiKeys } from "./routes/api-keys";
 import { teams } from "./routes/teams";
 import { worlds } from "./routes/worlds";
 
-const app = new OpenAPIHono<AppEnv>({
-  defaultHook: (result, c) => {
-    if (result.success) {
-      return;
-    }
-    return c.json(
-      apiError("invalid_request", result.error.issues[0]?.message ?? "Invalid request."),
-      400,
-    );
-  },
-});
+const app = routes<AppEnv>();
 
 app.openAPIRegistry.registerComponent("securitySchemes", "bearerAuth", {
   type: "http",

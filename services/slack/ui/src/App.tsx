@@ -316,7 +316,7 @@ function Sidebar(props: {
   return (
     <nav className="sidebar">
       <header className="workspace">
-        <span className="workspace-name">{props.state.team?.name ?? "World"}</span>
+        <span className="workspace-name">{props.state.team.name}</span>
         <span className="workspace-tag">world</span>
       </header>
       <div className="section-title">

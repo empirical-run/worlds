@@ -116,6 +116,22 @@ export function findUser(state: JiraState, ref: string): JiraUserState | undefin
   return state.users.find((user) => user.account_id === ref || user.name === ref);
 }
 
+export function userByAccountId(state: JiraState, accountId: string): JiraUserState {
+  const user = state.users.find((candidate) => candidate.account_id === accountId);
+  if (!user) {
+    throw new Error(`jira: no user with account id ${accountId}`);
+  }
+  return user;
+}
+
+export function projectByKey(state: JiraState, key: string): JiraState["projects"][number] {
+  const project = state.projects.find((candidate) => candidate.key === key);
+  if (!project) {
+    throw new Error(`jira: no project ${key}`);
+  }
+  return project;
+}
+
 export class JiraJson {
   constructor(
     private state: JiraState,
@@ -152,12 +168,12 @@ export class JiraJson {
   }
 
   private project(key: string, base: string) {
-    const project = this.state.projects.find((candidate) => candidate.key === key);
+    const project = projectByKey(this.state, key);
     return {
-      self: `${base}/project/${project?.id ?? ""}`,
-      id: project?.id ?? "",
+      self: `${base}/project/${project.id}`,
+      id: project.id,
       key,
-      name: project?.name ?? key,
+      name: project.name,
       projectTypeKey: "software",
       simplified: true,
     };

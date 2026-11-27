@@ -126,9 +126,7 @@ export const WorldSpecSchema = z.object(stateShape).openapi("WorldSpec", {
 
 export const WorldCreateSchema = z
   .object({
-    name: name(WORLD_NAME_MAX)
-      .optional()
-      .openapi({ description: "Defaults to Untitled world.", example: "Thread routing eval" }),
+    name: name(WORLD_NAME_MAX).openapi({ example: "Thread routing eval" }),
     ...specShape,
   })
   .openapi("WorldCreate", {

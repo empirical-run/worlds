@@ -33,8 +33,8 @@ export function seedWorkspace(store: Store, spec: SlackSpec): Omit<SlackState, "
   const users = (spec.users ?? []).map((user) => ({
     id: user.id ?? slackId("U"),
     name: user.name,
-    real_name: user.real_name ?? user.name,
-    email: user.email ?? `${user.name}@${team.domain}.test`,
+    real_name: user.real_name,
+    email: user.email,
     token: user.token ?? null,
   }));
   for (const user of users) {

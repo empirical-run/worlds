@@ -70,6 +70,9 @@ function toUiMessage(message: SlackMessage): UiMessage {
 export function worldState(slack: SlackServer, channelId: string | null): SlackWorldState {
   const store = getSlackStore(slack.store);
   const team = store.teams.all()[0];
+  if (!team) {
+    throw new Error("slack: the world has no team");
+  }
   const users = store.users
     .all()
     .filter((user) => !user.deleted)
@@ -104,7 +107,7 @@ export function worldState(slack: SlackServer, channelId: string | null): SlackW
         .sort((a, b) => Number(a.ts) - Number(b.ts))
         .map(toUiMessage)
     : [];
-  return { team: team ? { id: team.team_id, name: team.name } : null, users, channels, messages };
+  return { team: { id: team.team_id, name: team.name }, users, channels, messages };
 }
 
 export function findHuman(slack: SlackServer, ref: string): string | null {

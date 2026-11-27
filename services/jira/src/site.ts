@@ -38,7 +38,7 @@ export type IssueInput = {
   summary: string;
   description?: Adf | null;
   labels?: string[];
-  status?: IssueStatus;
+  status: IssueStatus;
   assignee?: string | null;
 };
 
@@ -273,7 +273,7 @@ export class JiraSite {
       summary: input.summary,
       description: input.description ?? null,
       labels: input.labels ?? [],
-      status: input.status ?? "To Do",
+      status: input.status,
       reporter,
       assignee: input.assignee ?? null,
       created,

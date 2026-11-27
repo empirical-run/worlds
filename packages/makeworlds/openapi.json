@@ -1145,6 +1145,7 @@
         "required": [
           "project",
           "summary",
+          "status",
           "reporter"
         ],
         "description": "An issue created with the world."
@@ -1215,7 +1216,6 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 80,
-            "description": "Defaults to Untitled world.",
             "example": "Thread routing eval"
           },
           "slack": {
@@ -1225,6 +1225,9 @@
             "$ref": "#/components/schemas/JiraSpec"
           }
         },
+        "required": [
+          "name"
+        ],
         "description": "A new world. Give a spec for each service it should have."
       },
       "SlackSpec": {
@@ -1279,7 +1282,7 @@
           "domain": {
             "type": "string",
             "pattern": "^[a-z0-9-]{1,40}$",
-            "description": "The workspace subdomain. Users without an email get <name>@<domain>.test.",
+            "description": "The workspace subdomain.",
             "example": "acme"
           }
         },
@@ -1304,12 +1307,14 @@
           },
           "real_name": {
             "type": "string",
+            "minLength": 1,
             "maxLength": 200,
             "example": "Alice Tester"
           },
           "email": {
             "type": "string",
-            "format": "email"
+            "format": "email",
+            "example": "alice@acme.test"
           },
           "token": {
             "type": "string",
@@ -1317,7 +1322,9 @@
           }
         },
         "required": [
-          "name"
+          "name",
+          "real_name",
+          "email"
         ],
         "description": "A person in the workspace."
       },
@@ -1483,7 +1490,7 @@
           "name": {
             "type": "string",
             "pattern": "^[a-z0-9-]{1,40}$",
-            "description": "The site's subdomain, as in <name>.atlassian.net. Users without an email get <user>@<name>.test.",
+            "description": "The site's subdomain, as in <name>.atlassian.net.",
             "example": "acme"
           }
         },
@@ -1507,12 +1514,14 @@
           },
           "display_name": {
             "type": "string",
+            "minLength": 1,
             "maxLength": 200,
             "example": "Alice Tester"
           },
           "email": {
             "type": "string",
-            "format": "email"
+            "format": "email",
+            "example": "alice@acme.test"
           },
           "hide_email": {
             "type": "boolean",
@@ -1520,7 +1529,9 @@
           }
         },
         "required": [
-          "name"
+          "name",
+          "display_name",
+          "email"
         ],
         "description": "A person on the site."
       },
@@ -1725,10 +1736,7 @@
         "description": "The workspace as it is now, and one channel's messages."
       },
       "SlackWorldTeam": {
-        "type": [
-          "object",
-          "null"
-        ],
+        "type": "object",
         "properties": {
           "id": {
             "type": "string"
@@ -2243,7 +2251,8 @@
           },
           "project": {
             "type": "string",
-            "description": "A project key. Defaults to the first project."
+            "description": "A project key.",
+            "example": "WRLD"
           },
           "summary": {
             "type": "string",
@@ -2288,7 +2297,9 @@
         },
         "required": [
           "user",
-          "summary"
+          "project",
+          "summary",
+          "status"
         ],
         "description": "An issue to create as a user."
       },

@@ -28,8 +28,8 @@ const SlackUserSpecSchema = z
         error: "user names are lowercase letters, digits, . _ and -",
       })
       .openapi({ example: "alice" }),
-    real_name: z.string().max(200).optional().openapi({ example: "Alice Tester" }),
-    email: z.email().optional(),
+    real_name: z.string().trim().min(1).max(200).openapi({ example: "Alice Tester" }),
+    email: z.email().openapi({ example: "alice@acme.test" }),
     token: z
       .string()
       .startsWith("xoxp-")
@@ -124,7 +124,7 @@ const SlackTeamSpecSchema = z
       .string()
       .regex(/^[a-z0-9-]{1,40}$/)
       .openapi({
-        description: "The workspace subdomain. Users without an email get <name>@<domain>.test.",
+        description: "The workspace subdomain.",
         example: "acme",
       }),
   })
@@ -277,7 +277,7 @@ const SlackMessageSchema = z
 
 const SlackWorldStateSchema = z
   .object({
-    team: SlackWorldTeamSchema.nullable(),
+    team: SlackWorldTeamSchema,
     users: z.array(SlackWorldUserSchema),
     channels: z.array(SlackWorldChannelSchema),
     messages: z
@@ -456,7 +456,7 @@ export const slack = defineService({
   specProblems: slackSpecProblems,
   starter: {
     team: { name: "Acme", domain: "acme" },
-    users: [{ name: "alice", real_name: "Alice Tester" }],
+    users: [{ name: "alice", real_name: "Alice Tester", email: "alice@acme.test" }],
     channels: [{ name: "general", topic: "General discussion", members: ["alice"] }],
   },
   uiUrl: (origin) => `${origin("slack")}/`,

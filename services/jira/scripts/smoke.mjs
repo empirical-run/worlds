@@ -13,8 +13,8 @@ const scopes = "read:jira-work write:jira-work read:jira-user manage:jira-webhoo
 const spec = {
   site: { name: "smoke" },
   users: [
-    { name: "alice", display_name: "Alice Tester" },
-    { name: "bob", display_name: "Bob Tester", hide_email: true },
+    { name: "alice", display_name: "Alice Tester", email: "alice@smoke.test" },
+    { name: "bob", display_name: "Bob Tester", email: "bob@smoke.test", hide_email: true },
   ],
   projects: [{ key: "WRLD", name: "Worlds" }],
   issues: [
@@ -23,6 +23,7 @@ const spec = {
       summary: "A seeded issue",
       description: "Seeded before any app",
       labels: ["seed"],
+      status: "To Do",
       reporter: "alice",
       comments: [{ author: "bob", body: "first!" }],
     },
@@ -108,15 +109,17 @@ try {
   const invalid = await fetch(
     `${apiUrl}/api/worlds`,
     control("POST", {
+      name: "Invalid",
       jira: {
-        site: { name: "smoke" },
-        users: [{ name: "alice" }],
-        projects: [{ key: "WRLD", name: "Worlds" }],
-        issues: [{ project: "NOPE", summary: "x", reporter: "alice" }],
+        ...spec,
+        issues: [{ project: "NOPE", summary: "x", status: "To Do", reporter: "alice" }],
       },
     }),
   );
-  assert(invalid.status === 400, "a Jira spec that names an unknown project is refused");
+  assert(
+    invalid.status === 400 && (await invalid.json()).error.message.includes("unknown project NOPE"),
+    "a Jira spec that names an unknown project is refused",
+  );
 
   const created = await fetch(
     `${apiUrl}/api/worlds`,
@@ -343,7 +346,9 @@ try {
       `${site}/_worlds/jira/issues`,
       control("POST", {
         user: "bob",
+        project: "WRLD",
         summary: "Add a checkout test",
+        status: "To Do",
         description: "Cover guest checkout",
         labels: ["empirical"],
       }),
@@ -374,14 +379,14 @@ try {
   const plain = await (
     await fetch(
       `${site}/_worlds/jira/issues`,
-      control("POST", { user: "alice", summary: "Unrelated" }),
+      control("POST", { user: "alice", project: "WRLD", summary: "Unrelated", status: "To Do" }),
     )
   ).json();
   await sleep(500);
   assert(events("jira:issue_created").length === 1, "an issue outside the JQL sends nothing");
   const emptySummary = await fetch(
     `${site}/_worlds/jira/issues`,
-    control("POST", { user: "alice", summary: " " }),
+    control("POST", { user: "alice", project: "WRLD", summary: " ", status: "To Do" }),
   );
   assert(
     emptySummary.status === 400 && (await emptySummary.json()).error.code === "invalid_request",

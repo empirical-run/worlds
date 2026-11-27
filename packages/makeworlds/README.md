@@ -13,7 +13,10 @@ const worlds = createClient({ apiKey: process.env.WORLDS_API_KEY });
 
 const slack: SlackSpec = {
   team: { name: "Acme", domain: "acme" },
-  users: [{ name: "alice" }, { name: "bob" }],
+  users: [
+    { name: "alice", real_name: "Alice Tester", email: "alice@acme.test" },
+    { name: "bob", real_name: "Bob Tester", email: "bob@acme.test" },
+  ],
   channels: [
     {
       name: "general",
@@ -71,7 +74,9 @@ await slack.POST("/_worlds/slack/act", {
 });
 
 const jira = createClient({ apiKey: process.env.WORLDS_API_KEY, baseUrl: world.jira.site_url });
-await jira.POST("/_worlds/jira/issues", { body: { user: "alice", summary: "Checkout fails" } });
+await jira.POST("/_worlds/jira/issues", {
+  body: { user: "alice", project: "ACME", summary: "Checkout fails", status: "To Do" },
+});
 ```
 
 ## Types

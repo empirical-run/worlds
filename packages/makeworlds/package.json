@@ -1,6 +1,6 @@
 {
   "name": "makeworlds",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Typed client for the Worlds API: hosted, stateful worlds of Slack and other services for testing apps and agents.",
   "homepage": "https://makeworlds.dev/docs",
   "license": "Apache-2.0",

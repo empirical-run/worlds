@@ -23,8 +23,8 @@ const JiraUserSpecSchema = z
         error: "user names are lowercase letters, digits, . _ and -",
       })
       .openapi({ example: "alice" }),
-    display_name: z.string().max(200).optional().openapi({ example: "Alice Tester" }),
-    email: z.email().optional(),
+    display_name: z.string().trim().min(1).max(200).openapi({ example: "Alice Tester" }),
+    email: z.email().openapi({ example: "alice@acme.test" }),
     hide_email: z.boolean().optional().openapi({
       description:
         "Hide the email from apps, like a profile with email visibility off. GET /user then has no emailAddress.",
@@ -74,7 +74,7 @@ const JiraIssueSpecSchema = z
     summary,
     description: z.string().max(32_000).optional(),
     labels: labels.optional(),
-    status: status.optional(),
+    status,
     reporter: userRef,
     assignee: userRef.optional(),
     comments: z.array(JiraCommentSpecSchema).max(100).optional(),
@@ -124,8 +124,7 @@ const JiraSiteSpecSchema = z
       .string()
       .regex(/^[a-z0-9-]{1,40}$/)
       .openapi({
-        description:
-          "The site's subdomain, as in <name>.atlassian.net. Users without an email get <user>@<name>.test.",
+        description: "The site's subdomain, as in <name>.atlassian.net.",
         example: "acme",
       }),
   })
@@ -281,14 +280,11 @@ const JiraChangeItemSchema = z
 const JiraIssueCreateSchema = z
   .object({
     user: actor,
-    project: z
-      .string()
-      .optional()
-      .openapi({ description: "A project key. Defaults to the first project." }),
+    project: z.string().openapi({ description: "A project key.", example: "WRLD" }),
     summary,
     description: text.optional(),
     labels: labels.optional(),
-    status: status.optional(),
+    status,
     assignee: userRef.optional(),
   })
   .openapi("JiraIssueCreate", { description: "An issue to create as a user." });
@@ -446,7 +442,7 @@ export const jira = defineService({
   specProblems: jiraSpecProblems,
   starter: {
     site: { name: "acme" },
-    users: [{ name: "alice", display_name: "Alice Tester" }],
+    users: [{ name: "alice", display_name: "Alice Tester", email: "alice@acme.test" }],
     projects: [{ key: "ACME", name: "Acme" }],
   },
   uiUrl: (origin) => origin("jira"),

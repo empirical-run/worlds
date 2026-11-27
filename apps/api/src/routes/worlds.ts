@@ -161,13 +161,7 @@ export const worlds = new OpenAPIHono<AppEnv>()
       return c.json(apiError("invalid_request", problem), 400);
     }
     const createdBy = caller.kind === "user" ? caller.user.id : null;
-    const world = await createWorld(
-      db,
-      target.team.id,
-      createdBy,
-      name ?? "Untitled world",
-      services,
-    );
+    const world = await createWorld(db, target.team.id, createdBy, name, services);
     const states = await c.env.WORLDS.setup(world.id, specs);
     const urls = worldUrls(origins(world, c.env.WORLDS_DOMAIN), world.services);
     return c.json({ ...worldJson(world, c.env.WORLDS_DOMAIN), ...withSpecs(urls, states) }, 201);
