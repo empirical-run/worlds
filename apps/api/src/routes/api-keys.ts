@@ -76,7 +76,7 @@ function apiKeyJson(key: ApiKey) {
   };
 }
 
-const KEYS_NEED_SESSION = "API keys cannot manage API keys. Sign in and use the account page or a session.";
+const KEYS_NEED_SESSION = "API keys cannot manage API keys. Sign in and use Settings on makeworlds.dev.";
 
 export const apiKeys = new OpenAPIHono<AppEnv>()
   .openapi(listApiKeys, async (c) => {

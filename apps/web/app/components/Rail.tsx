@@ -15,15 +15,29 @@ export function Rail({ account }: { account: RootData["account"] }) {
         Worlds
       </a>
       <nav aria-label="Main">
-        <NavLink className="rail-link" to="/" end>
+        <NavLink className="rail-link rail-home" to="/" end>
           Home
         </NavLink>
         <NavLink className="rail-link" to="/docs">
           Docs
         </NavLink>
-        <NavLink className="rail-link" to="/account">
-          Account
-        </NavLink>
+        {account ? (
+          <>
+            <p className="rail-heading rail-team-heading" title={account.team.name}>
+              {account.team.name}
+            </p>
+            <NavLink className="rail-link" to="/worlds">
+              Worlds
+            </NavLink>
+            <NavLink className="rail-link" to="/settings">
+              Settings
+            </NavLink>
+          </>
+        ) : (
+          <NavLink className="rail-link" to="/account">
+            Sign in
+          </NavLink>
+        )}
       </nav>
       {account && <RailAccount account={account} />}
       {railIndex}
@@ -42,25 +56,19 @@ export function Rail({ account }: { account: RootData["account"] }) {
 function RailAccount({ account }: { account: NonNullable<RootData["account"]> }) {
   const name = account.user.name ?? account.user.email;
   return (
-    <div className="rail-account">
-      <a className="rail-user" href="/account">
-        {account.user.picture ? (
-          <img className="avatar" src={account.user.picture} alt="" width="28" height="28" referrerPolicy="no-referrer" />
-        ) : (
-          <span className="avatar" aria-hidden="true">
-            {name.charAt(0).toUpperCase()}
-          </span>
-        )}
-        <span className="rail-user-text">
-          <span className="rail-user-name">{name}</span>
-          <span className="rail-user-email">{account.user.email}</span>
+    <NavLink className="rail-user" to="/account" aria-label={`Account: ${name}`}>
+      {account.user.picture ? (
+        <img className="avatar" src={account.user.picture} alt="" width="28" height="28" referrerPolicy="no-referrer" />
+      ) : (
+        <span className="avatar" aria-hidden="true">
+          {name.charAt(0).toUpperCase()}
         </span>
-      </a>
-      <a className="rail-team" href="/account#team">
-        <span className="rail-heading">Team</span>
-        <span className="rail-team-name">{account.team.name}</span>
-      </a>
-    </div>
+      )}
+      <span className="rail-user-text">
+        <span className="rail-user-name">{name}</span>
+        <span className="rail-user-email">{account.user.email}</span>
+      </span>
+    </NavLink>
   );
 }
 

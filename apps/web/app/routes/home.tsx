@@ -31,7 +31,7 @@ export default function Home() {
           <a className="button primary" href="/docs">
             Read the docs
           </a>
-          <a className="button" href="/account">
+          <a className="button" href="/worlds">
             Create a world
           </a>
         </div>

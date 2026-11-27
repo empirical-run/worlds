@@ -39,7 +39,7 @@ export default function Docs() {
       <section className="section" id="create">
         <h2>Create a world</h2>
         <p>
-          Create an API key on your <a href="/account">account page</a>, then create a world. Each world is separate and keeps its state until
+          Create an API key in <a href="/settings">Settings</a>, then create a world (or create one on the <a href="/worlds">Worlds</a> page). Each world is separate and keeps its state until
           you delete it.
         </p>
         <pre>
@@ -80,7 +80,7 @@ export default function Docs() {
       <section className="section" id="worlds-api">
         <h2>Worlds API</h2>
         <p>
-          Create an API key on your <a href="/account">account page</a> and send it as <code>Authorization: Bearer &lt;key&gt;</code>.
+          Create an API key in <a href="/settings">Settings</a> and send it as <code>Authorization: Bearer &lt;key&gt;</code>.
         </p>
         <pre>
           <code>{curlExample}</code>

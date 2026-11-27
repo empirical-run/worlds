@@ -86,7 +86,7 @@ function SignInNeeded({ message }: { message: string }) {
       <div className="login-card">
         <h1>Worlds</h1>
         <p>{message}</p>
-        <a className="login-button" href={`https://makeworlds.dev/account?next=${encodeURIComponent(location.href)}`}>
+        <a className="login-button" href="https://makeworlds.dev/account">
           Go to makeworlds.dev
         </a>
       </div>
@@ -311,7 +311,7 @@ function Sidebar(props: {
         </label>
         <div className="footer-links">
           <a href={`${SLACK_BASE}/_inspector`}>Inspector</a>
-          <a href="https://makeworlds.dev/account">Account</a>
+          <a href="https://makeworlds.dev/worlds">All worlds</a>
         </div>
       </footer>
     </nav>

@@ -87,7 +87,7 @@ function parseLogin(value: string | null): Login | null {
 }
 
 function safeNext(next: string | null): string {
-  return next?.startsWith("/") && !next.startsWith("//") ? next : "/account";
+  return next?.startsWith("/") && !next.startsWith("//") ? next : "/worlds";
 }
 
 function redirect(location: string): Response {

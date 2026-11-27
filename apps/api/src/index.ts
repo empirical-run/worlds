@@ -16,7 +16,7 @@ const app = new OpenAPIHono<AppEnv>({
 app.openAPIRegistry.registerComponent("securitySchemes", "bearerAuth", {
   type: "http",
   scheme: "bearer",
-  description: "An API key from the account page, as Authorization: Bearer wk_live_…",
+  description: "An API key from Settings on makeworlds.dev, as Authorization: Bearer wk_live_…",
 });
 app.openAPIRegistry.registerComponent("securitySchemes", "sessionCookie", {
   type: "apiKey",

@@ -6,5 +6,7 @@ export default [
   route("docs/api", "routes/api-reference.tsx"),
   route("privacy", "routes/privacy.tsx"),
   route("account", "routes/account.tsx"),
+  route("worlds", "routes/worlds.tsx"),
+  route("settings", "routes/settings.tsx"),
   route("*", "routes/not-found.tsx"),
 ] satisfies RouteConfig;
