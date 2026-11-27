@@ -36,6 +36,8 @@ type Persisted = { store: StoreSnapshot; tokens: TokenEntry[] };
 type SlackServer = ReturnType<typeof createServer>;
 
 const STATE_KEY = "slack";
+const BASE_URL_KEY = "slack:base-url";
+const EMULATE_TEAM_ID = "T000000001";
 const CONTROL_PREFIX = "/_worlds/";
 const INSPECTOR_PATH = "/_inspector";
 const MANIFEST_PREFIX = "/api/apps.manifest.";
@@ -97,6 +99,8 @@ export class SlackService {
   }
 
   async alarm(): Promise<void> {
+    const baseUrl = await this.storage.get<string>(BASE_URL_KEY);
+    if (baseUrl) await this.load(baseUrl);
     await this.delivery.run();
   }
 
@@ -218,11 +222,13 @@ export class SlackService {
       restoreTokenMap(slack.tokenMap, saved.tokens);
     } else {
       slackPlugin.seed?.(slack.store, baseUrl);
+      giveTeamItsOwnId(slack.store);
       seedFromConfig(slack.store, baseUrl, slackSeed());
     }
     const subscription = slack.webhooks.register({ owner: EVENTS_OWNER, url: baseUrl, events: ["*"], active: true });
     await this.delivery.attach(slack.webhooks, subscription.id);
     this.server = slack;
+    await this.storage.put(BASE_URL_KEY, baseUrl);
     if (!saved) await this.save();
     return slack;
   }
@@ -233,6 +239,16 @@ export class SlackService {
       store: await this.blobs.split(this.server.store.snapshot()),
       tokens: serializeTokenMap(this.server.tokenMap),
     });
+  }
+}
+
+function giveTeamItsOwnId(store: SlackServer["store"]): void {
+  const slack = getSlackStore(store);
+  const teamId = `T${[...crypto.getRandomValues(new Uint8Array(10))].map((byte) => "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"[byte % 36]).join("")}`;
+  for (const team of slack.teams.findBy("team_id", EMULATE_TEAM_ID)) slack.teams.update(team.id, { team_id: teamId });
+  for (const user of slack.users.findBy("team_id", EMULATE_TEAM_ID)) slack.users.update(user.id, { team_id: teamId });
+  for (const channel of slack.channels.all().filter((channel) => channel.team_id === EMULATE_TEAM_ID)) {
+    slack.channels.update(channel.id, { team_id: teamId });
   }
 }
 

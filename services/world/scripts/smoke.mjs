@@ -104,6 +104,7 @@ try {
   assert(keyless.status === 401, "apps.manifest.* needs the team's key as the configuration token");
   const access = await install();
   assert(access.ok && access.access_token.startsWith("xoxb-"), "OAuth install returns a bot token");
+  assert(/^T[0-9A-Z]{10}$/.test(access.team.id), "the world's workspace has its own team id, not emulate's T000000001");
 
   const wildcard = await config.apiCall("apps.manifest.create", {
     manifest: JSON.stringify({
