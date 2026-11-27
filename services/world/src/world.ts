@@ -25,15 +25,18 @@ export class World extends DurableObject<Env> {
   async fetch(request: Request): Promise<Response> {
     const target = resolveHost(request.headers.get(HOST_HEADER) ?? "");
     const worldId = request.headers.get(WORLD_ID_HEADER);
-    if (!target || !worldId)
+    if (!target || !worldId) {
       return Response.json({ ok: false, error: "unknown_service" }, { status: 404 });
+    }
     await this.rememberWorldId(worldId);
     const runtime = this.services()[target.service.name];
     return runtime.fetch(request, target.host, this.world(worldId));
   }
 
   async alarm(): Promise<void> {
-    if (await this.ctx.storage.get<boolean>(ARCHIVED_KEY)) return;
+    if (await this.ctx.storage.get<boolean>(ARCHIVED_KEY)) {
+      return;
+    }
     const worldId = await this.ctx.storage.get<string>(WORLD_ID_KEY);
     const world = worldId ? this.world(worldId) : null;
     const due: number[] = [];
@@ -41,23 +44,30 @@ export class World extends DurableObject<Env> {
       const runtime = this.services()[name];
       await runtime.alarm(world);
       const next = await runtime.nextDue();
-      if (next !== null) due.push(next);
+      if (next !== null) {
+        due.push(next);
+      }
     }
-    if (due.length) await this.ctx.storage.setAlarm(Math.min(...due));
+    if (due.length) {
+      await this.ctx.storage.setAlarm(Math.min(...due));
+    }
   }
 
   async setup(worldId: string, specs: WorldSpecs): Promise<WorldStates> {
     await this.rememberWorldId(worldId);
     const world = this.world(worldId);
     const states: [ServiceName, unknown][] = [];
-    for (const { name } of SERVICES)
+    for (const { name } of SERVICES) {
       states.push([name, await this.setupService(name, specs, world)]);
+    }
     return Object.fromEntries(states) as WorldStates;
   }
 
   async states(): Promise<WorldStates> {
     const states: [ServiceName, unknown][] = [];
-    for (const { name } of SERVICES) states.push([name, await this.services()[name].state()]);
+    for (const { name } of SERVICES) {
+      states.push([name, await this.services()[name].state()]);
+    }
     return Object.fromEntries(states) as WorldStates;
   }
 
@@ -80,8 +90,9 @@ export class World extends DurableObject<Env> {
   }
 
   private async rememberWorldId(worldId: string): Promise<void> {
-    if ((await this.ctx.storage.get<string>(WORLD_ID_KEY)) !== worldId)
+    if ((await this.ctx.storage.get<string>(WORLD_ID_KEY)) !== worldId) {
       await this.ctx.storage.put(WORLD_ID_KEY, worldId);
+    }
   }
 
   private services(): ServiceRuntimes {

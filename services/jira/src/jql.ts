@@ -25,22 +25,32 @@ const CLAUSE = new RegExp(
 export function parseJql(jql: string): Jql | null {
   const clauses: Clause[] = [];
   let rest = jql.trim();
-  if (!rest) return [];
+  if (!rest) {
+    return [];
+  }
   while (rest) {
     const match = CLAUSE.exec(rest);
     const field = match?.[1] ? FIELDS[match[1].toLowerCase()] : undefined;
-    if (!match || !field) return null;
+    if (!match || !field) {
+      return null;
+    }
     const operator = (match[2] ?? "").toLowerCase().replace(/\s+/g, " ");
     const raw = match[3] ?? "";
     const values = raw.startsWith("(")
       ? [...raw.slice(1, -1).matchAll(new RegExp(VALUE, "g"))].map((value) => unquote(value[0]))
       : [unquote(raw)];
-    if ((operator === "=" || operator === "!=") && raw.startsWith("(")) return null;
+    if ((operator === "=" || operator === "!=") && raw.startsWith("(")) {
+      return null;
+    }
     clauses.push({ field, negated: operator === "!=" || operator === "not in", values });
     rest = rest.slice(match[0].length);
-    if (!rest) break;
+    if (!rest) {
+      break;
+    }
     const conjunction = /^and\s+/i.exec(rest);
-    if (!conjunction) return null;
+    if (!conjunction) {
+      return null;
+    }
     rest = rest.slice(conjunction[0].length);
   }
   return clauses;

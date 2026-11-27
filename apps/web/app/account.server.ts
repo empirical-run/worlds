@@ -7,7 +7,9 @@ export function requireAccount(
   request: Request,
 ): Account {
   const { account } = context.get(workerContext);
-  if (account) return account;
+  if (account) {
+    return account;
+  }
   const { pathname, search } = new URL(request.url);
   throw redirect(`/account?next=${encodeURIComponent(`${pathname}${search}`)}`);
 }

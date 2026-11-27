@@ -29,7 +29,9 @@ async function worlds(url, init = {}) {
     headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
   });
   const body = await response.json();
-  if (!response.ok) throw new Error(`${url} failed: ${response.status} ${JSON.stringify(body)}`);
+  if (!response.ok) {
+    throw new Error(`${url} failed: ${response.status} ${JSON.stringify(body)}`);
+  }
   return body;
 }
 
@@ -40,7 +42,9 @@ const slackApiUrl = world.slack.api_url;
 const app = spec.slack.apps.find(
   (candidate) => candidate.manifest.display_information.name === appName,
 );
-if (!app) throw new Error(`no app named ${appName} in ${worldId}`);
+if (!app) {
+  throw new Error(`no app named ${appName} in ${worldId}`);
+}
 const scope = (app.manifest.oauth_config?.scopes?.bot ?? []).join(",");
 const { user_id: userId, token: userToken } = await worlds(`${base}/_worlds/slack/tokens`, {
   method: "POST",
@@ -62,7 +66,9 @@ async function authorizeCode() {
   });
   const location = callback.headers.get("location");
   const code = location && new URL(location).searchParams.get("code");
-  if (!code) throw new Error(`no OAuth code: ${callback.status} ${location}`);
+  if (!code) {
+    throw new Error(`no OAuth code: ${callback.status} ${location}`);
+  }
   return code;
 }
 
@@ -82,7 +88,9 @@ function installOnEmpirical(code) {
     },
   );
   const install = JSON.parse(output.slice(output.indexOf("{"), output.lastIndexOf("}") + 1));
-  if (!install.success) throw new Error(`install failed: ${output}`);
+  if (!install.success) {
+    throw new Error(`install failed: ${output}`);
+  }
   return install.data;
 }
 
@@ -109,9 +117,15 @@ while (Date.now() < deadline) {
   botReplies = thread.messages.filter(
     (message) => message.user === install.bot_user_id || message.bot_id,
   );
-  if (botReplies.length) break;
+  if (botReplies.length) {
+    break;
+  }
   await new Promise((resolve) => setTimeout(resolve, 3000));
 }
-if (!botReplies.length) throw new Error("no bot reply within 3 minutes");
-for (const reply of botReplies) console.log(`  bot: ${reply.text}`);
+if (!botReplies.length) {
+  throw new Error("no bot reply within 3 minutes");
+}
+for (const reply of botReplies) {
+  console.log(`  bot: ${reply.text}`);
+}
 console.log(`world UI: ${base}/?channel=${channel.id}`);

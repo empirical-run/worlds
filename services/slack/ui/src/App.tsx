@@ -50,15 +50,21 @@ function readRoute(): Route {
 
 function writeRoute(route: Route) {
   const params = new URLSearchParams();
-  if (route.channel) params.set("channel", route.channel);
-  if (route.thread) params.set("thread", route.thread);
+  if (route.channel) {
+    params.set("channel", route.channel);
+  }
+  if (route.thread) {
+    params.set("thread", route.thread);
+  }
   const query = params.toString();
   history.replaceState(null, "", `${SLACK_BASE}/${query ? `?${query}` : ""}`);
 }
 
 function hue(id: string): number {
   let hash = 0;
-  for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) % 360;
+  for (const char of id) {
+    hash = (hash * 31 + char.charCodeAt(0)) % 360;
+  }
   return hash;
 }
 
@@ -88,7 +94,9 @@ function encodeMentions(text: string, users: User[]): string {
 
 export function App() {
   const [authError, setAuthError] = useState<string | null>(null);
-  if (authError) return <SignInNeeded message={authError} />;
+  if (authError) {
+    return <SignInNeeded message={authError} />;
+  }
   return <World onUnauthorized={setAuthError} />;
 }
 
@@ -123,8 +131,11 @@ function World({ onUnauthorized }: { onUnauthorized: (message: string) => void }
       setState(next);
       setError(null);
     } catch (caught) {
-      if (caught instanceof Unauthorized) onUnauthorized(caught.message);
-      else setError(caught instanceof Error ? caught.message : String(caught));
+      if (caught instanceof Unauthorized) {
+        onUnauthorized(caught.message);
+      } else {
+        setError(caught instanceof Error ? caught.message : String(caught));
+      }
     }
   }, [route.channel, onUnauthorized]);
 
@@ -135,10 +146,14 @@ function World({ onUnauthorized }: { onUnauthorized: (message: string) => void }
   }, [load]);
 
   useEffect(() => {
-    if (!state || route.channel) return;
+    if (!state || route.channel) {
+      return;
+    }
     const fallback =
       state.channels.find((channel) => channel.name === "general") ?? state.channels[0];
-    if (fallback) navigate({ channel: fallback.id, thread: null });
+    if (fallback) {
+      navigate({ channel: fallback.id, thread: null });
+    }
   }, [state, route.channel, navigate]);
 
   const humans = useMemo(() => state?.users.filter((user) => !user.is_bot) ?? [], [state]);
@@ -156,13 +171,17 @@ function World({ onUnauthorized }: { onUnauthorized: (message: string) => void }
 
   const act = useCallback(
     async (method: ActingMethod, args: Record<string, unknown>) => {
-      if (!actor) throw new Error("No user to act as");
+      if (!actor) {
+        throw new Error("No user to act as");
+      }
       try {
         const result = await actAs(actor.id, method, args);
         await load();
         return result;
       } catch (caught) {
-        if (caught instanceof Unauthorized) onUnauthorized(caught.message);
+        if (caught instanceof Unauthorized) {
+          onUnauthorized(caught.message);
+        }
         throw caught;
       }
     },
@@ -171,12 +190,16 @@ function World({ onUnauthorized }: { onUnauthorized: (message: string) => void }
 
   const upload = useCallback<Upload>(
     async (channel, threadTs, text, file) => {
-      if (!actor) throw new Error("No user to act as");
+      if (!actor) {
+        throw new Error("No user to act as");
+      }
       try {
         await uploadAs({ userId: actor.id, channel, threadTs, text, file });
         await load();
       } catch (caught) {
-        if (caught instanceof Unauthorized) onUnauthorized(caught.message);
+        if (caught instanceof Unauthorized) {
+          onUnauthorized(caught.message);
+        }
         throw caught;
       }
     },
@@ -209,7 +232,9 @@ function World({ onUnauthorized }: { onUnauthorized: (message: string) => void }
           onCreateChannel={async (name) => {
             const result = await act("conversations.create", { name });
             const created = (result as { channel?: { id: string } }).channel;
-            if (created) navigate({ channel: created.id, thread: null });
+            if (created) {
+              navigate({ channel: created.id, thread: null });
+            }
           }}
         />
         <main className="channel">
@@ -275,7 +300,9 @@ function Sidebar(props: {
       .trim()
       .toLowerCase()
       .replace(/[^a-z0-9_-]+/g, "-");
-    if (!clean) return;
+    if (!clean) {
+      return;
+    }
     try {
       await props.onCreateChannel(clean);
       setName("");
@@ -531,7 +558,9 @@ function MessageList(props: {
 
   useLayoutEffect(() => {
     const element = scroller.current;
-    if (element && pinned.current) element.scrollTop = element.scrollHeight;
+    if (element && pinned.current) {
+      element.scrollTop = element.scrollHeight;
+    }
   }, [lastTs, props.messages.length]);
 
   const fixed = props.hideThreadSummary && !props.grow;
@@ -634,15 +663,21 @@ function MessageRow(props: {
 }
 
 function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(0)} KB`;
+  }
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function useFileUrl(fileId: string | undefined) {
   const [state, setState] = useState<{ url: string } | { error: string } | null>(null);
   useEffect(() => {
-    if (!fileId) return;
+    if (!fileId) {
+      return;
+    }
     let live = true;
     fileObjectUrl(fileId).then(
       (url) => live && setState({ url }),
@@ -669,17 +704,22 @@ function SlackImage({
 }) {
   const loaded = useFileUrl(fileId);
   const [broken, setBroken] = useState(false);
-  if (broken)
+  if (broken) {
     return file ? (
       <FileChip file={file} />
     ) : (
       <span className="inline-error">Couldn't show image {alt}</span>
     );
-  if (url)
+  }
+  if (url) {
     return <img className="attachment-image" src={url} alt={alt} onError={() => setBroken(true)} />;
-  if (!loaded) return <span className="skeleton attachment-image-skeleton" />;
-  if ("error" in loaded)
+  }
+  if (!loaded) {
+    return <span className="skeleton attachment-image-skeleton" />;
+  }
+  if ("error" in loaded) {
     return <span className="inline-error">Couldn't load image: {loaded.error}</span>;
+  }
   return (
     <a href={loaded.url} target="_blank" rel="noreferrer">
       <img
@@ -725,7 +765,9 @@ function Attachments({ files, images }: { files: FileRef[]; images: ImageRef[] }
   const blockImages = images.filter(
     (image) => !image.file_id || !files.some((file) => file.id === image.file_id),
   );
-  if (imageFiles.length + otherFiles.length + blockImages.length === 0) return null;
+  if (imageFiles.length + otherFiles.length + blockImages.length === 0) {
+    return null;
+  }
   return (
     <div className="attachments">
       {imageFiles.map((file) => (
@@ -778,12 +820,17 @@ function Composer(props: {
   }
 
   async function send() {
-    if (!canSend) return;
+    if (!canSend) {
+      return;
+    }
     const body = encodeMentions(text.trim(), props.users);
     setSending(true);
     try {
-      if (file) await props.onUpload(body, file);
-      else await props.onSend(body);
+      if (file) {
+        await props.onUpload(body, file);
+      } else {
+        await props.onSend(body);
+      }
       setText("");
       setFile(null);
       setError(null);
@@ -817,7 +864,9 @@ function Composer(props: {
 
   function onPaste(event: ClipboardEvent<HTMLTextAreaElement>) {
     const pasted = event.clipboardData.files[0];
-    if (!pasted) return;
+    if (!pasted) {
+      return;
+    }
     event.preventDefault();
     setFile(pasted);
   }
@@ -826,7 +875,9 @@ function Composer(props: {
     event.preventDefault();
     setDragging(false);
     const dropped = event.dataTransfer.files[0];
-    if (dropped) setFile(dropped);
+    if (dropped) {
+      setFile(dropped);
+    }
   }
 
   return (

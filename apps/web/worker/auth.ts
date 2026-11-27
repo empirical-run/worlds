@@ -30,19 +30,24 @@ export async function handleAuth(
   db: Db,
 ): Promise<Response | null> {
   if (url.pathname === "/auth/sign-out" && request.method === "POST") {
-    if (request.headers.get("origin") !== url.origin)
+    if (request.headers.get("origin") !== url.origin) {
       return new Response("Forbidden", { status: 403 });
+    }
     return signOut(request, url, db);
   }
   const match = request.method === "GET" ? AUTH_PATH.exec(url.pathname) : null;
-  if (!match?.[1] || !isProvider(match[1])) return null;
+  if (!match?.[1] || !isProvider(match[1])) {
+    return null;
+  }
   return match[2] ? finishLogin(request, env, url, db, match[1]) : startLogin(env, url, match[1]);
 }
 
 export async function accountFor(request: Request, db: Db): Promise<Account | null> {
   const token = readCookie(request, SESSION_COOKIE);
   const user = token ? await userForSession(db, token) : null;
-  if (!user) return null;
+  if (!user) {
+    return null;
+  }
   const { team, role } = await teamForUser(db, user.id);
   return { user, team, role };
 }
@@ -76,8 +81,9 @@ async function finishLogin(
 ): Promise<Response> {
   const login = parseLogin(readCookie(request, LOGIN_COOKIE));
   const code = url.searchParams.get("code");
-  if (url.searchParams.get("error"))
+  if (url.searchParams.get("error")) {
     return redirect(`/account?sign_in=cancelled&provider=${provider}`);
+  }
   if (
     !login ||
     !code ||
@@ -111,7 +117,9 @@ async function finishLogin(
 
 async function signOut(request: Request, url: URL, db: Db): Promise<Response> {
   const token = readCookie(request, SESSION_COOKIE);
-  if (token) await deleteSession(db, token);
+  if (token) {
+    await deleteSession(db, token);
+  }
   const response = redirect("/");
   response.headers.append(
     "set-cookie",
@@ -121,14 +129,18 @@ async function signOut(request: Request, url: URL, db: Db): Promise<Response> {
 }
 
 function parseLogin(value: string | null): Login | null {
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
   let login: Partial<Login>;
   try {
     login = JSON.parse(value);
   } catch {
     return null;
   }
-  if (!login.provider || !login.state || !login.verifier) return null;
+  if (!login.provider || !login.state || !login.verifier) {
+    return null;
+  }
   return {
     provider: login.provider,
     state: login.state,

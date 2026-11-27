@@ -32,7 +32,9 @@ function emojiByName(): Record<string, string> {
       byName[name] = toText(emoji.unified);
       for (const [tones, variation] of Object.entries(emoji.skin_variations ?? {})) {
         const tone = SKIN_TONES[tones];
-        if (tone) byName[`${name}::skin-tone-${tone}`] = toText(variation.unified);
+        if (tone) {
+          byName[`${name}::skin-tone-${tone}`] = toText(variation.unified);
+        }
       }
     }
   }

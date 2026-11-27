@@ -111,7 +111,9 @@ const archiveWorldRoute = createRoute({
 function worldJson(world: World, domain: string) {
   const services = worldServices(origins(world, domain), world.services);
   const [mainUi] = services;
-  if (!mainUi) throw new Error(`world ${world.id} has no services`);
+  if (!mainUi) {
+    throw new Error(`world ${world.id} has no services`);
+  }
   return {
     id: world.id,
     name: world.name,
@@ -146,12 +148,18 @@ export const worlds = new OpenAPIHono<AppEnv>()
     const { caller, db } = c.var;
     const body = c.req.valid("json");
     const [target] = await accessibleTeams(db, caller);
-    if (!target) return c.json(apiError("not_found", "You are not in any team."), 404);
+    if (!target) {
+      return c.json(apiError("not_found", "You are not in any team."), 404);
+    }
     const { name, ...specs } = body;
     const services = specifiedServices(specs);
-    if (!services.length) return c.json(apiError("invalid_request", NO_SERVICE), 400);
+    if (!services.length) {
+      return c.json(apiError("invalid_request", NO_SERVICE), 400);
+    }
     const problem = specProblems(specs)[0];
-    if (problem) return c.json(apiError("invalid_request", problem), 400);
+    if (problem) {
+      return c.json(apiError("invalid_request", problem), 400);
+    }
     const createdBy = caller.kind === "user" ? caller.user.id : null;
     const world = await createWorld(
       db,
@@ -166,19 +174,24 @@ export const worlds = new OpenAPIHono<AppEnv>()
   })
   .openapi(getWorldRoute, async (c) => {
     const world = await visibleWorld(c, c.req.valid("param").worldId);
-    if (!world) return c.json(apiError("not_found", NOT_VISIBLE), 404);
+    if (!world) {
+      return c.json(apiError("not_found", NOT_VISIBLE), 404);
+    }
     return c.json(worldJson(world, c.env.WORLDS_DOMAIN), 200);
   })
   .openapi(getWorldSpecRoute, async (c) => {
     const world = await visibleWorld(c, c.req.valid("param").worldId);
     const states = world ? await c.env.WORLDS.states(world.id) : null;
-    if (!states || Object.values(states).every((state) => state === null))
+    if (!states || Object.values(states).every((state) => state === null)) {
       return c.json(apiError("not_found", NOT_VISIBLE), 404);
+    }
     return c.json(states, 200);
   })
   .openapi(archiveWorldRoute, async (c) => {
     const world = await visibleWorld(c, c.req.valid("param").worldId);
-    if (!world) return c.json(apiError("not_found", NOT_VISIBLE), 404);
+    if (!world) {
+      return c.json(apiError("not_found", NOT_VISIBLE), 404);
+    }
     await archiveWorld(c.var.db, world.id);
     await c.env.WORLDS.archive(world.id);
     return c.body(null, 204);
@@ -189,6 +202,8 @@ async function visibleWorld(
   worldId: string,
 ): Promise<World | null> {
   const world = await liveWorld(c.var.db, worldId);
-  if (!world) return null;
+  if (!world) {
+    return null;
+  }
   return (await accessibleTeam(c.var.db, c.var.caller, world.teamId)) ? world : null;
 }

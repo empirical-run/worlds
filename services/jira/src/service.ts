@@ -63,12 +63,16 @@ export class JiraService {
     });
     app.route("/", this.apps[host]);
     const response = await app.fetch(request);
-    if (request.method !== "GET" && request.method !== "HEAD") await this.save();
+    if (request.method !== "GET" && request.method !== "HEAD") {
+      await this.save();
+    }
     return response;
   }
 
   async alarm(origins: Origins | null): Promise<void> {
-    if (origins && (await this.storage.get(STATE_KEY))) await this.load(origins);
+    if (origins && (await this.storage.get(STATE_KEY))) {
+      await this.load(origins);
+    }
     await this.delivery.run();
   }
 
@@ -77,13 +81,17 @@ export class JiraService {
   }
 
   private async load(origins: Origins, spec?: JiraSpec): Promise<JiraSite> {
-    if (this.site) return this.site;
+    if (this.site) {
+      return this.site;
+    }
     const saved = await this.storage.get<JiraData>(STATE_KEY);
     if (saved) {
       this.site = new JiraSite(saved, origins, this.delivery);
       return this.site;
     }
-    if (!spec) throw new JiraNotSetUp();
+    if (!spec) {
+      throw new JiraNotSetUp();
+    }
     this.site = new JiraSite(emptyData(spec, origins), origins, this.delivery);
     seedIssues(this.site, spec);
     await this.save();
@@ -91,7 +99,9 @@ export class JiraService {
   }
 
   private async save(): Promise<void> {
-    if (this.site) await this.storage.put<JiraData>(STATE_KEY, this.site.data);
+    if (this.site) {
+      await this.storage.put<JiraData>(STATE_KEY, this.site.data);
+    }
   }
 }
 
@@ -139,7 +149,9 @@ function emptyData(spec: JiraSpec, origins: Origins): JiraData {
 function seedIssues(site: JiraSite, spec: JiraSpec): void {
   const accountId = (ref: string) => {
     const user = findUser(site.state, ref);
-    if (!user) throw new Error(`jira spec: unknown user ${ref}`);
+    if (!user) {
+      throw new Error(`jira spec: unknown user ${ref}`);
+    }
     return user.account_id;
   };
   for (const issueSpec of spec.issues ?? []) {
@@ -151,12 +163,13 @@ function seedIssues(site: JiraSite, spec: JiraSpec): void {
       status: issueSpec.status,
       assignee: issueSpec.assignee ? accountId(issueSpec.assignee) : null,
     });
-    for (const comment of issueSpec.comments ?? [])
+    for (const comment of issueSpec.comments ?? []) {
       site.seedComment(
         issue,
         accountId(comment.author),
         textOrAdf(comment.body) ?? { type: "doc", version: 1, content: [] },
       );
+    }
     site.state.issues.push({ ...issueSpec, key: issue.key });
   }
 }
@@ -165,7 +178,9 @@ function authRoutes(): Hono<Env> {
   const app = new Hono<Env>();
   app.get("/authorize", (c) => {
     const checked = checkAuthorize(c.get("site"), new URL(c.req.url).searchParams);
-    if ("error" in checked) return errorPage(checked.error);
+    if ("error" in checked) {
+      return errorPage(checked.error);
+    }
     return consentPage(
       c.get("site").state,
       checked.app,
@@ -177,7 +192,9 @@ function authRoutes(): Hono<Env> {
     const form = new URLSearchParams(textFields(await c.req.formData()));
     const site = c.get("site");
     const checked = checkAuthorize(site, form);
-    if ("error" in checked) return errorPage(checked.error);
+    if ("error" in checked) {
+      return errorPage(checked.error);
+    }
     const redirect = new URL(form.get("redirect_uri") ?? "");
     const state = form.get("state");
     if (form.get("decision") !== "accept") {
@@ -187,7 +204,9 @@ function authRoutes(): Hono<Env> {
       const user = site.state.users.find(
         (candidate) => candidate.account_id === form.get("account_id"),
       );
-      if (!user) return errorPage("Choose a user to continue as.");
+      if (!user) {
+        return errorPage("Choose a user to continue as.");
+      }
       redirect.searchParams.set(
         "code",
         site.issueCode(
@@ -200,7 +219,9 @@ function authRoutes(): Hono<Env> {
         ),
       );
     }
-    if (state !== null) redirect.searchParams.set("state", state);
+    if (state !== null) {
+      redirect.searchParams.set("state", state);
+    }
     return c.redirect(redirect.toString(), 302);
   });
   app.post("/oauth/token", async (c) => {
@@ -239,9 +260,15 @@ function checkAuthorize(
   params: URLSearchParams,
 ): { app: NonNullable<ReturnType<JiraSite["app"]>>; scopes: string[] } | { error: string } {
   const app = site.app(params.get("client_id"));
-  if (!app) return { error: "The app's client_id is not valid." };
-  if (params.get("audience") !== AUDIENCE) return { error: `audience must be ${AUDIENCE}.` };
-  if (params.get("response_type") !== "code") return { error: "response_type must be code." };
+  if (!app) {
+    return { error: "The app's client_id is not valid." };
+  }
+  if (params.get("audience") !== AUDIENCE) {
+    return { error: `audience must be ${AUDIENCE}.` };
+  }
+  if (params.get("response_type") !== "code") {
+    return { error: "response_type must be code." };
+  }
   const redirectUri = params.get("redirect_uri") ?? "";
   if (!app.callback_urls.some((registered) => callbackMatches(registered, redirectUri))) {
     return { error: "The redirect_uri is not one of the app's callback URLs." };
@@ -249,15 +276,18 @@ function checkAuthorize(
   const scopes = (params.get("scope") ?? "").split(/\s+/).filter(Boolean);
   const allowed = new Set<string>([...app.scopes, OFFLINE_ACCESS]);
   const unknown = scopes.find((scope) => !allowed.has(scope));
-  if (scopes.length === 0 || unknown)
+  if (scopes.length === 0 || unknown) {
     return {
       error: unknown ? `The app hasn't been granted the scope ${unknown}.` : "scope is required.",
     };
+  }
   return { app, scopes };
 }
 
 function callbackMatches(registered: string, incoming: string): boolean {
-  if (!URL.canParse(incoming) || !URL.canParse(registered.replaceAll("*", "x"))) return false;
+  if (!URL.canParse(incoming) || !URL.canParse(registered.replaceAll("*", "x"))) {
+    return false;
+  }
   const expected = new URL(registered.replaceAll("*", "x"));
   const url = new URL(incoming);
   const host = new RegExp(
@@ -285,7 +315,9 @@ function apiRoutes(): Hono<Env> {
   app.get("/oauth/token/accessible-resources", (c) => {
     const site = c.get("site");
     const token = site.authenticate(c.req.header("authorization") ?? null);
-    if (!token) return c.json(UNAUTHORIZED, 401);
+    if (!token) {
+      return c.json(UNAUTHORIZED, 401);
+    }
     return c.json([
       {
         id: site.state.site.cloud_id,
@@ -300,15 +332,20 @@ function apiRoutes(): Hono<Env> {
   const rest = new Hono<Env>();
   rest.use(async (c, next) => {
     const site = c.get("site");
-    if (c.req.param("cloudId") !== site.state.site.cloud_id)
+    if (c.req.param("cloudId") !== site.state.site.cloud_id) {
       return c.json({ code: 404, message: "Not Found" }, 404);
+    }
     const token = site.authenticate(c.req.header("authorization") ?? null);
-    if (!token) return c.json(UNAUTHORIZED, 401);
+    if (!token) {
+      return c.json(UNAUTHORIZED, 401);
+    }
     c.set("token", token);
     await next();
   });
   const requireScope = (scope: string) => async (c: Context<Env>, next: () => Promise<void>) => {
-    if (!c.get("token").scopes.includes(scope)) return c.json(SCOPE_MISMATCH, 401);
+    if (!c.get("token").scopes.includes(scope)) {
+      return c.json(SCOPE_MISMATCH, 401);
+    }
     await next();
   };
 
@@ -320,10 +357,13 @@ function apiRoutes(): Hono<Env> {
   rest.post("/issue/:idOrKey/comment", requireScope("write:jira-work"), async (c) => {
     const site = c.get("site");
     const issue = site.issue(c.req.param("idOrKey") ?? "");
-    if (!issue) return c.json(ISSUE_NOT_FOUND, 404);
+    if (!issue) {
+      return c.json(ISSUE_NOT_FOUND, 404);
+    }
     const body = (await c.req.json().catch(() => null)) as { body?: unknown } | null;
-    if (!isAdf(body?.body))
+    if (!isAdf(body?.body)) {
       return c.json({ errorMessages: [], errors: { comment: "Comment body is not valid!" } }, 400);
+    }
     const comment = await site.addComment(c.get("token").account_id, issue, body.body);
     return c.json(site.json.apiComment(issue, comment), 201);
   });
@@ -386,13 +426,17 @@ function apiRoutes(): Hono<Env> {
   });
   rest.delete("/webhook", requireScope("manage:jira-webhook"), async (c) => {
     const ids = webhookIds(await c.req.json().catch(() => null));
-    if (!ids) return c.json({ errorMessages: ["webhookIds are required."], errors: {} }, 400);
+    if (!ids) {
+      return c.json({ errorMessages: ["webhookIds are required."], errors: {} }, 400);
+    }
     c.get("site").deleteWebhooks(c.get("token"), ids);
     return c.body(null, 202);
   });
   rest.put("/webhook/refresh", requireScope("manage:jira-webhook"), async (c) => {
     const ids = webhookIds(await c.req.json().catch(() => null));
-    if (!ids) return c.json({ errorMessages: ["webhookIds are required."], errors: {} }, 400);
+    if (!ids) {
+      return c.json({ errorMessages: ["webhookIds are required."], errors: {} }, 400);
+    }
     return c.json({ expirationDate: c.get("site").refreshWebhooks(c.get("token"), ids) });
   });
   rest.notFound((c) => c.json({ errorMessages: ["Not found"], errors: {} }, 404));
@@ -404,7 +448,9 @@ function apiRoutes(): Hono<Env> {
 
 function webhookIds(body: unknown): number[] | null {
   const ids = (body as { webhookIds?: unknown } | null)?.webhookIds;
-  if (!Array.isArray(ids) || ids.length === 0) return null;
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return null;
+  }
   return ids.map(Number).filter(Number.isFinite);
 }
 
@@ -454,12 +500,17 @@ function controlRoutes() {
       const site = c.get("site");
       const body = c.req.valid("json");
       const actor = findUser(site.state, body.user);
-      if (!actor) return c.json(unknownUser(body.user), 400);
+      if (!actor) {
+        return c.json(unknownUser(body.user), 400);
+      }
       const project = body.project ?? site.state.projects[0]?.key;
-      if (!project || !site.state.projects.some((candidate) => candidate.key === project))
+      if (!project || !site.state.projects.some((candidate) => candidate.key === project)) {
         return c.json(apiError("project_not_found", `No project with key ${project}.`), 400);
+      }
       const fields = issueFields(site, body);
-      if ("error" in fields) return c.json(fields, 400);
+      if ("error" in fields) {
+        return c.json(fields, 400);
+      }
       const issue = await site.createIssue(actor.account_id, {
         ...fields,
         project,
@@ -472,11 +523,17 @@ function controlRoutes() {
       const { key } = c.req.valid("param");
       const body = c.req.valid("json");
       const issue = site.issue(key);
-      if (!issue) return c.json(issueNotFound(key), 404);
+      if (!issue) {
+        return c.json(issueNotFound(key), 404);
+      }
       const actor = findUser(site.state, body.user);
-      if (!actor) return c.json(unknownUser(body.user), 400);
+      if (!actor) {
+        return c.json(unknownUser(body.user), 400);
+      }
       const fields = issueFields(site, body);
-      if ("error" in fields) return c.json(fields, 400);
+      if ("error" in fields) {
+        return c.json(fields, 400);
+      }
       const changelog = await site.updateIssue(actor.account_id, issue, fields);
       return c.json({ issue: site.json.apiIssue(issue), changelog }, 200);
     })
@@ -485,9 +542,13 @@ function controlRoutes() {
       const { key } = c.req.valid("param");
       const { user } = c.req.valid("query");
       const issue = site.issue(key);
-      if (!issue) return c.json(issueNotFound(key), 404);
+      if (!issue) {
+        return c.json(issueNotFound(key), 404);
+      }
       const actor = findUser(site.state, user);
-      if (!actor) return c.json(unknownUser(user), 400);
+      if (!actor) {
+        return c.json(unknownUser(user), 400);
+      }
       await site.deleteIssue(actor.account_id, issue);
       return c.body(null, 204);
     })
@@ -496,11 +557,17 @@ function controlRoutes() {
       const { key } = c.req.valid("param");
       const body = c.req.valid("json");
       const issue = site.issue(key);
-      if (!issue) return c.json(issueNotFound(key), 404);
+      if (!issue) {
+        return c.json(issueNotFound(key), 404);
+      }
       const actor = findUser(site.state, body.user);
-      if (!actor) return c.json(unknownUser(body.user), 400);
+      if (!actor) {
+        return c.json(unknownUser(body.user), 400);
+      }
       const adf = textOrAdf(body.body);
-      if (!adf) return c.json(apiError("invalid_request", "body: can't be empty."), 400);
+      if (!adf) {
+        return c.json(apiError("invalid_request", "body: can't be empty."), 400);
+      }
       const comment = await site.addComment(actor.account_id, issue, adf);
       return c.json(site.json.apiComment(issue, comment), 201);
     });
@@ -525,14 +592,25 @@ function issueFields(
   },
 ): IssuePatch | ApiError {
   const fields: IssuePatch = {};
-  if (body.summary !== undefined) fields.summary = body.summary;
-  if (body.description !== undefined) fields.description = textOrAdf(body.description) ?? null;
-  if (body.labels !== undefined) fields.labels = body.labels;
-  if (body.status !== undefined) fields.status = body.status;
-  if (body.assignee === null) fields.assignee = null;
-  else if (body.assignee !== undefined) {
+  if (body.summary !== undefined) {
+    fields.summary = body.summary;
+  }
+  if (body.description !== undefined) {
+    fields.description = textOrAdf(body.description) ?? null;
+  }
+  if (body.labels !== undefined) {
+    fields.labels = body.labels;
+  }
+  if (body.status !== undefined) {
+    fields.status = body.status;
+  }
+  if (body.assignee === null) {
+    fields.assignee = null;
+  } else if (body.assignee !== undefined) {
     const user = findUser(site.state, body.assignee);
-    if (!user) return apiError("user_not_found", `No user named ${body.assignee} to assign.`);
+    if (!user) {
+      return apiError("user_not_found", `No user named ${body.assignee} to assign.`);
+    }
     fields.assignee = user.account_id;
   }
   return fields;

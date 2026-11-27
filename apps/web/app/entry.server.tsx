@@ -15,13 +15,16 @@ export default async function handleRequest(
       signal: request.signal,
       onError(error: unknown) {
         status = 500;
-        if (shellRendered) console.error(error);
+        if (shellRendered) {
+          console.error(error);
+        }
       },
     },
   );
   shellRendered = true;
-  if (isbot(request.headers.get("user-agent") ?? "") || routerContext.isSpaMode)
+  if (isbot(request.headers.get("user-agent") ?? "") || routerContext.isSpaMode) {
     await body.allReady;
+  }
   headers.set("content-type", "text/html; charset=utf-8");
   return new Response(body, { headers, status });
 }

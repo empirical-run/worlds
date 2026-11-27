@@ -71,7 +71,9 @@ const { data: world, error } = await worlds.POST("/api/worlds", {
   body: { name: "My first world", slack },
 });`;
 
-const controlExample = `if (!world.jira) throw new Error("This world has no Jira.");
+const controlExample = `if (!world.jira) {
+  throw new Error("This world has no Jira.");
+}
 
 const jira = createClient({
   apiKey: process.env.WORLDS_API_KEY,

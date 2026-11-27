@@ -6,7 +6,9 @@ export function emojiFor(name: string): string | undefined {
 
 export function Emoji({ name }: { name: string }) {
   const emoji = emojiFor(name);
-  if (!emoji) return <>:{name}:</>;
+  if (!emoji) {
+    return <>:{name}:</>;
+  }
   return (
     <span className="emoji" role="img" aria-label={name.replaceAll("_", " ")} title={`:${name}:`}>
       {emoji}

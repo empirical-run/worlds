@@ -11,7 +11,9 @@ if (!specPath || !apiKey) {
 const missing = new Set();
 const body = readFileSync(specPath, "utf8").replace(/\$\{([A-Z0-9_]+)\}/g, (_, name) => {
   const value = process.env[name];
-  if (value === undefined) missing.add(name);
+  if (value === undefined) {
+    missing.add(name);
+  }
   return JSON.stringify(value ?? "").slice(1, -1);
 });
 if (missing.size) {
@@ -32,9 +34,14 @@ if (!response.ok) {
 console.log(`world: ${world.id}`);
 console.log(`ui:    ${world.ui_url}`);
 for (const [name, service] of Object.entries(world)) {
-  if (typeof service !== "object" || service === null || !("spec" in service)) continue;
+  if (typeof service !== "object" || service === null || !("spec" in service)) {
+    continue;
+  }
   const { spec, ...urls } = service;
-  for (const [key, url] of Object.entries(urls)) console.log(`${name} ${key}: ${url}`);
-  for (const app of spec.apps ?? [])
+  for (const [key, url] of Object.entries(urls)) {
+    console.log(`${name} ${key}: ${url}`);
+  }
+  for (const app of spec.apps ?? []) {
     console.log(`${name} app: ${app.app_id ?? app.name} (client id ${app.credentials.client_id})`);
+  }
 }

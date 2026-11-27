@@ -40,28 +40,37 @@ export function jiraSpecProblems(spec: JiraSpec): string[] {
   const duplicate = (values: string[]) =>
     values.find((value, index) => values.indexOf(value) !== index);
   const duplicateUser = duplicate(users.map((user) => user.name));
-  if (duplicateUser) problems.push(`users: duplicate name ${duplicateUser}`);
+  if (duplicateUser) {
+    problems.push(`users: duplicate name ${duplicateUser}`);
+  }
   const duplicateProject = duplicate((spec.projects ?? []).map((project) => project.key));
-  if (duplicateProject) problems.push(`projects: duplicate key ${duplicateProject}`);
+  if (duplicateProject) {
+    problems.push(`projects: duplicate key ${duplicateProject}`);
+  }
   const duplicateClient = duplicate(
     (spec.apps ?? []).flatMap((app) =>
       app.credentials?.client_id ? [app.credentials.client_id] : [],
     ),
   );
-  if (duplicateClient) problems.push(`apps: duplicate client_id ${duplicateClient}`);
+  if (duplicateClient) {
+    problems.push(`apps: duplicate client_id ${duplicateClient}`);
+  }
   for (const [index, issue] of (spec.issues ?? []).entries()) {
-    if (!projectKeys.has(issue.project))
+    if (!projectKeys.has(issue.project)) {
       problems.push(`issues[${index}].project: unknown project ${issue.project}`);
+    }
     for (const [field, ref] of [
       ["reporter", issue.reporter],
       ["assignee", issue.assignee],
     ] as const) {
-      if (ref && !userRefs.has(ref))
+      if (ref && !userRefs.has(ref)) {
         problems.push(`issues[${index}].${field}: unknown user ${ref}`);
+      }
     }
     for (const comment of issue.comments ?? []) {
-      if (!userRefs.has(comment.author))
+      if (!userRefs.has(comment.author)) {
         problems.push(`issues[${index}].comments: unknown user ${comment.author}`);
+      }
     }
   }
   return problems;

@@ -7,7 +7,9 @@ const COPIED_LABEL_MS = 2000;
 export function CopyButton({ text }: { text: string }) {
   const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
   useEffect(() => {
-    if (state === "idle") return;
+    if (state === "idle") {
+      return;
+    }
     const timer = setTimeout(() => setState("idle"), COPIED_LABEL_MS);
     return () => clearTimeout(timer);
   }, [state]);

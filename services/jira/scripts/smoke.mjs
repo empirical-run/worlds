@@ -48,7 +48,9 @@ const receiver = createServer((req, res) => {
 }).listen(8789);
 
 function assert(condition, message) {
-  if (!condition) throw new Error(message);
+  if (!condition) {
+    throw new Error(message);
+  }
   console.log(`✓ ${message}`);
 }
 
@@ -60,7 +62,9 @@ async function waitFor(predicate, timeoutMs = 10000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const found = predicate();
-    if (found) return found;
+    if (found) {
+      return found;
+    }
     await sleep(100);
   }
   return undefined;
@@ -68,7 +72,9 @@ async function waitFor(predicate, timeoutMs = 10000) {
 
 function jwtValid(authorization, secret) {
   const [header, payload, signature] = (authorization ?? "").replace(/^Bearer /, "").split(".");
-  if (!header || !payload || !signature) return false;
+  if (!header || !payload || !signature) {
+    return false;
+  }
   const expected = createHmac("sha256", secret).update(`${header}.${payload}`).digest("base64url");
   return (
     expected.length === signature.length &&

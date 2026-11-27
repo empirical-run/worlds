@@ -105,14 +105,17 @@ export class JiraSite {
   exchangeCode(app: JiraAppState, code: string, redirectUri: string): TokenResponse | null {
     const index = this.data.codes.findIndex((entry) => entry.code === code);
     const entry: AuthCode | undefined = this.data.codes[index];
-    if (!entry) return null;
+    if (!entry) {
+      return null;
+    }
     this.data.codes.splice(index, 1);
     if (
       entry.expires_at < Date.now() ||
       entry.client_id !== app.credentials.client_id ||
       entry.redirect_uri !== redirectUri
-    )
+    ) {
       return null;
+    }
     return this.mintTokens(entry);
   }
 
@@ -120,8 +123,12 @@ export class JiraSite {
     const entry = this.data.refresh_tokens.find(
       (candidate) => candidate.token === token && candidate.client_id === app.credentials.client_id,
     );
-    if (!entry) return null;
-    if (entry.rotated_at !== null && Date.now() - entry.rotated_at > REFRESH_REUSE_MS) return null;
+    if (!entry) {
+      return null;
+    }
+    if (entry.rotated_at !== null && Date.now() - entry.rotated_at > REFRESH_REUSE_MS) {
+      return null;
+    }
     entry.rotated_at ??= Date.now();
     return this.mintTokens(entry);
   }
@@ -131,7 +138,9 @@ export class JiraSite {
     const entry = token
       ? this.data.access_tokens.find((candidate) => candidate.token === token)
       : undefined;
-    if (!entry || entry.expires_at < Date.now() || !this.app(entry.client_id)) return null;
+    if (!entry || entry.expires_at < Date.now() || !this.app(entry.client_id)) {
+      return null;
+    }
     return entry;
   }
 
@@ -189,25 +198,29 @@ export class JiraSite {
     const otherUrl = existing.find((webhook) => webhook.url !== url);
     let count = existing.length;
     return specs.map((spec) => {
-      if (otherUrl)
+      if (otherUrl) {
         return {
           errors: [
             `Only a single URL per user is allowed to be registered via REST API. The currently used URL: ${otherUrl.url}.`,
           ],
         };
+      }
       const jql = typeof spec.jqlFilter === "string" ? spec.jqlFilter : "";
-      if (!jql || !parseJql(jql))
+      if (!jql || !parseJql(jql)) {
         return { errors: [`The JQL query is invalid or not supported for webhooks: ${jql}`] };
+      }
       const events = Array.isArray(spec.events)
         ? spec.events.filter((event): event is string => typeof event === "string")
         : [];
       const unsupported = events.find((event) => !SUPPORTED_EVENTS.has(event));
-      if (events.length === 0 || unsupported)
+      if (events.length === 0 || unsupported) {
         return { errors: [`Webhook events are invalid: ${unsupported ?? "none given"}`] };
-      if (count >= WEBHOOKS_PER_USER)
+      }
+      if (count >= WEBHOOKS_PER_USER) {
         return {
           errors: [`The number of webhooks per user exceeds the limit of ${WEBHOOKS_PER_USER}.`],
         };
+      }
       count += 1;
       const webhook: Webhook = {
         id: ++this.data.sequence.webhook,
@@ -236,14 +249,19 @@ export class JiraSite {
 
   refreshWebhooks(token: AccessToken, ids: number[]): number {
     const expiresAt = Date.now() + WEBHOOK_LIFETIME_MS;
-    for (const webhook of this.webhooksFor(token))
-      if (ids.includes(webhook.id)) webhook.expires_at = expiresAt;
+    for (const webhook of this.webhooksFor(token)) {
+      if (ids.includes(webhook.id)) {
+        webhook.expires_at = expiresAt;
+      }
+    }
     return expiresAt;
   }
 
   seedIssue(reporter: string, input: IssueInput, created = Date.now()): Issue {
     const project = this.state.projects.find((candidate) => candidate.key === input.project);
-    if (!project) throw new Error(`unknown project ${input.project}`);
+    if (!project) {
+      throw new Error(`unknown project ${input.project}`);
+    }
     const number =
       this.data.issues
         .filter((issue) => issue.project === project.key)
@@ -302,13 +320,16 @@ export class JiraSite {
     if (patch.description !== undefined) {
       const before = issue.description ? adfToText(issue.description) : null;
       const after = patch.description ? adfToText(patch.description) : null;
-      if (before !== after) change("description", null, before, null, after);
+      if (before !== after) {
+        change("description", null, before, null, after);
+      }
       issue.description = patch.description;
     }
     if (patch.labels !== undefined) {
       const labels = [...new Set(patch.labels)].sort();
-      if (labels.join(" ") !== [...issue.labels].sort().join(" "))
+      if (labels.join(" ") !== [...issue.labels].sort().join(" ")) {
         change("labels", null, [...issue.labels].sort().join(" "), null, labels.join(" "));
+      }
       issue.labels = labels;
     }
     if (patch.status !== undefined && patch.status !== issue.status) {
@@ -327,7 +348,9 @@ export class JiraSite {
       );
       issue.assignee = patch.assignee;
     }
-    if (items.length === 0) return items;
+    if (items.length === 0) {
+      return items;
+    }
     issue.updated = Date.now();
     const fields = new Set(items.map((item) => item.field));
     const type =
@@ -378,10 +401,13 @@ export class JiraSite {
         webhook.expires_at < now ||
         !webhook.events.includes(event) ||
         !this.app(webhook.client_id)
-      )
+      ) {
         continue;
+      }
       const jql = parseJql(webhook.jql);
-      if (!jql || !matchesJql(jql, issue, userNames)) continue;
+      if (!jql || !matchesJql(jql, issue, userNames)) {
+        continue;
+      }
       const groupKey = `${webhook.client_id} ${webhook.account_id} ${webhook.url}`;
       const group = groups.get(groupKey) ?? {
         target: {
@@ -395,7 +421,9 @@ export class JiraSite {
       group.ids.push(webhook.id);
       groups.set(groupKey, group);
     }
-    if (groups.size === 0) return;
+    if (groups.size === 0) {
+      return;
+    }
     const issueJson = this.json.siteIssue(issue);
     const { comment: _comment, ...issueFields } = issueJson.fields;
     const payload = {
@@ -412,9 +440,15 @@ export class JiraSite {
 }
 
 export function textOrAdf(value: unknown): Adf | null | undefined {
-  if (value === undefined) return undefined;
-  if (value === null || value === "") return null;
-  if (typeof value === "string") return textToAdf(value);
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null || value === "") {
+    return null;
+  }
+  if (typeof value === "string") {
+    return textToAdf(value);
+  }
   return value as Adf;
 }
 

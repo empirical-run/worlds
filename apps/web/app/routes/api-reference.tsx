@@ -25,7 +25,9 @@ export const meta = () => [{ title: "API reference · Worlds" }];
 export async function loader({ request, context }: Route.LoaderArgs) {
   const { env } = context.get(workerContext);
   const response = await env.API.fetch(new Request(new URL("/api/openapi.json", request.url)));
-  if (!response.ok) throw new Response("The API description is unavailable.", { status: 502 });
+  if (!response.ok) {
+    throw new Response("The API description is unavailable.", { status: 502 });
+  }
   return { spec: (await response.json()) as OpenApiDocument };
 }
 

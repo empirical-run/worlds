@@ -83,7 +83,9 @@ export async function signIn(db: Db, profile: Profile): Promise<User> {
     db.insert(teams).values({ id: teamId, name: profile.name ?? profile.email }),
     db.insert(memberships).values({ teamId, userId, role: "owner" }),
   ]);
-  if (!user) throw new Error("user insert returned no row");
+  if (!user) {
+    throw new Error("user insert returned no row");
+  }
   return user;
 }
 
@@ -138,13 +140,17 @@ export async function teamForUser(db: Db, userId: string): Promise<TeamMembershi
     .where(eq(memberships.userId, userId))
     .orderBy(asc(memberships.createdAt))
     .limit(1);
-  if (!row) throw new Error(`user ${userId} has no team`);
+  if (!row) {
+    throw new Error(`user ${userId} has no team`);
+  }
   return row;
 }
 
 export async function renameTeam(db: Db, teamId: string, name: string): Promise<Team> {
   const [team] = await db.update(teams).set({ name }).where(eq(teams.id, teamId)).returning();
-  if (!team) throw new Error(`team ${teamId} not found`);
+  if (!team) {
+    throw new Error(`team ${teamId} not found`);
+  }
   return team;
 }
 
@@ -197,7 +203,9 @@ export async function createKey(
       prefix: secret.slice(0, API_KEY_SECRET_PREFIX.length + 6),
     })
     .returning();
-  if (!apiKey) throw new Error("api key insert returned no row");
+  if (!apiKey) {
+    throw new Error("api key insert returned no row");
+  }
   return { apiKey, secret };
 }
 
@@ -218,12 +226,16 @@ export async function createWorld(
   services: string[],
 ): Promise<World> {
   const [world] = await db.insert(worlds).values({ teamId, createdBy, name, services }).returning();
-  if (!world) throw new Error("world insert returned no row");
+  if (!world) {
+    throw new Error("world insert returned no row");
+  }
   return world;
 }
 
 export async function listWorlds(db: Db, teamIds: string[]): Promise<World[]> {
-  if (!teamIds.length) return [];
+  if (!teamIds.length) {
+    return [];
+  }
   return db
     .select()
     .from(worlds)

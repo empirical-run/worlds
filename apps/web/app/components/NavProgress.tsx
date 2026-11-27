@@ -22,7 +22,9 @@ export function NavProgress() {
   }, [busy]);
 
   useEffect(() => {
-    if (phase !== "done") return;
+    if (phase !== "done") {
+      return;
+    }
     const timer = setTimeout(() => setPhase("idle"), FADE_MS);
     return () => clearTimeout(timer);
   }, [phase]);

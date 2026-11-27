@@ -23,7 +23,9 @@ export function withBanner(
   makeworldsUrl: string,
   serviceStyle = "",
 ): Response {
-  if (!response.headers.get("content-type")?.includes("text/html")) return response;
+  if (!response.headers.get("content-type")?.includes("text/html")) {
+    return response;
+  }
   const banner = bannerHtml(name, world, makeworldsUrl);
   return new HTMLRewriter()
     .on("head", {

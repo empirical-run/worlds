@@ -20,9 +20,13 @@ export function Rail({ account }: { account: RootData["account"] }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   useEffect(() => setSheetOpen(false), [locationKey]);
   useEffect(() => {
-    if (!sheetOpen) return;
+    if (!sheetOpen) {
+      return;
+    }
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSheetOpen(false);
+      if (event.key === "Escape") {
+        setSheetOpen(false);
+      }
     };
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
@@ -116,19 +120,27 @@ function RailAccountMenu({ account }: { account: NonNullable<RootData["account"]
   const menu = useRef<HTMLDetailsElement>(null);
   const { pathname } = useLocation();
   useEffect(() => {
-    if (menu.current) menu.current.open = false;
+    if (menu.current) {
+      menu.current.open = false;
+    }
   }, [pathname]);
   useEffect(() => {
     const close = (event: PointerEvent | KeyboardEvent) => {
       const details = menu.current;
-      if (!details?.open) return;
+      if (!details?.open) {
+        return;
+      }
       if (event instanceof KeyboardEvent) {
-        if (event.key !== "Escape") return;
+        if (event.key !== "Escape") {
+          return;
+        }
         details.open = false;
         details.querySelector("summary")?.focus();
         return;
       }
-      if (!details.contains(event.target as Node)) details.open = false;
+      if (!details.contains(event.target as Node)) {
+        details.open = false;
+      }
     };
     document.addEventListener("pointerdown", close);
     document.addEventListener("keydown", close);

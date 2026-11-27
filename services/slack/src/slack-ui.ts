@@ -38,10 +38,14 @@ function toUiFile(file: Pick<SlackFile, "file_id" | "name" | "mimetype" | "size"
 
 function blockImages(blocks: SlackMessage["blocks"]): UiImage[] {
   return (blocks ?? []).flatMap((block): UiImage[] => {
-    if (block.type !== "image") return [];
+    if (block.type !== "image") {
+      return [];
+    }
     const slackFile = block.slack_file as { id?: string; url?: string } | undefined;
     const alt = typeof block.alt_text === "string" ? block.alt_text : "";
-    if (slackFile?.id) return [{ file_id: slackFile.id, alt }];
+    if (slackFile?.id) {
+      return [{ file_id: slackFile.id, alt }];
+    }
     const url = typeof block.image_url === "string" ? block.image_url : slackFile?.url;
     return url ? [{ url, alt }] : [];
   });
@@ -113,11 +117,15 @@ export function findHuman(slack: SlackServer, ref: string): string | null {
 export function userToken(slack: SlackServer, userId: string): string | null {
   const store = getSlackStore(slack.store);
   const user = store.users.findOneBy("user_id", userId);
-  if (!user || user.is_bot || user.deleted) return null;
+  if (!user || user.is_bot || user.deleted) {
+    return null;
+  }
   const existing = store.tokens
     .all()
     .find((token) => token.token_type === "user" && token.user_id === userId);
-  if (existing) return existing.token;
+  if (existing) {
+    return existing.token;
+  }
   const token = `xoxp-worlds-${crypto.randomUUID()}`;
   store.tokens.insert({
     token,
@@ -131,7 +139,9 @@ export function userToken(slack: SlackServer, userId: string): string | null {
 
 export function fileContent(store: SlackStore, fileId: string): Response | null {
   const file = store.files.findOneBy("file_id", fileId);
-  if (!file || file.deleted) return null;
+  if (!file || file.deleted) {
+    return null;
+  }
   const bytes = Uint8Array.from(atob(file.content_base64 ?? ""), (char) => char.charCodeAt(0));
   return new Response(bytes, {
     headers: {

@@ -83,7 +83,9 @@ export function textToAdf(text: string): Adf {
 }
 
 export function adfToText(node: unknown): string {
-  if (!node || typeof node !== "object") return "";
+  if (!node || typeof node !== "object") {
+    return "";
+  }
   const { type, text, content, attrs } = node as {
     type?: string;
     text?: string;
@@ -96,8 +98,12 @@ export function adfToText(node: unknown): string {
     ).find((mark) => mark.type === "link");
     return link?.attrs?.href ? `[${text ?? ""}|${link.attrs.href}]` : (text ?? "");
   }
-  if (type === "hardBreak") return "\n";
-  if (type === "inlineCard") return attrs?.href ?? "";
+  if (type === "hardBreak") {
+    return "\n";
+  }
+  if (type === "inlineCard") {
+    return attrs?.href ?? "";
+  }
   return (content ?? []).map(adfToText).join(type === "doc" ? "\n\n" : "");
 }
 
@@ -128,7 +134,9 @@ export class JiraJson {
     const user = accountId
       ? this.state.users.find((candidate) => candidate.account_id === accountId)
       : undefined;
-    if (!user) return null;
+    if (!user) {
+      return null;
+    }
     const avatar = `${this.origins.site}/avatar/${user.account_id}.png`;
     return {
       self: `${via === "api" ? this.restBase : this.siteBase(2)}/user?accountId=${user.account_id}`,

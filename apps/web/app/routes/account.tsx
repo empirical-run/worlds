@@ -34,7 +34,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 }
 
 export default function Account({ loaderData }: Route.ComponentProps) {
-  if (!loaderData.signedIn) return <SignIn error={loaderData.signInError} next={loaderData.next} />;
+  if (!loaderData.signedIn) {
+    return <SignIn error={loaderData.signInError} next={loaderData.next} />;
+  }
   const { email, providers } = loaderData;
   return (
     <article>

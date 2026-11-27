@@ -20,8 +20,9 @@ export function api(context: Readonly<RouterContextProvider>, request: Request) 
 }
 
 export function orThrow<T>(result: ApiResult<T>): T {
-  if (result.error)
+  if (result.error) {
     throw new Response(result.error.error.message, { status: result.response.status });
+  }
   return result.data;
 }
 
@@ -30,11 +31,12 @@ export function actionData<T>(
   result: ApiResult<T>,
   onSuccess: (data: T) => Omit<ActionResult, "intent"> = () => ({}),
 ) {
-  if (result.error)
+  if (result.error) {
     return data<ActionResult>(
       { intent, error: result.error.error.message },
       result.response.status,
     );
+  }
   return data<ActionResult>({ intent, ...onSuccess(result.data) });
 }
 

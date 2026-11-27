@@ -34,14 +34,17 @@ export const github: OAuthProvider = {
       }),
     });
     const token = (await response.json()) as { access_token?: string; error?: string };
-    if (!token.access_token)
+    if (!token.access_token) {
       throw new Error(`github token exchange failed: ${response.status} ${token.error ?? ""}`);
+    }
     const [user, emails] = await Promise.all([
       githubApi<GitHubUser>(token.access_token, "/user"),
       githubApi<GitHubEmail[]>(token.access_token, "/user/emails"),
     ]);
     const email = emails.find((entry) => entry.primary && entry.verified)?.email;
-    if (!email) throw new Error("github account has no verified primary email");
+    if (!email) {
+      throw new Error("github account has no verified primary email");
+    }
     return {
       provider: "github",
       subject: String(user.id),
@@ -61,7 +64,8 @@ async function githubApi<T>(accessToken: string, path: string): Promise<T> {
       "x-github-api-version": "2022-11-28",
     },
   });
-  if (!response.ok)
+  if (!response.ok) {
     throw new Error(`github ${path} failed: ${response.status} ${await response.text()}`);
+  }
   return (await response.json()) as T;
 }

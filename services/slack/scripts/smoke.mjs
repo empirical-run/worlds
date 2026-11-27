@@ -107,7 +107,9 @@ const receiver = createServer((req, res) => {
       res.statusCode = 500;
       return res.end("fail");
     }
-    if (!retryNum && text.includes("stall once")) await sleep(3500);
+    if (!retryNum && text.includes("stall once")) {
+      await sleep(3500);
+    }
     res.end("ok");
   });
 }).listen(8788);
@@ -120,7 +122,9 @@ async function waitFor(predicate, timeoutMs = 10000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const found = predicate();
-    if (found) return found;
+    if (found) {
+      return found;
+    }
     await sleep(100);
   }
   return undefined;
@@ -131,7 +135,9 @@ function mentionAttempts(text) {
 }
 
 function assert(condition, message) {
-  if (!condition) throw new Error(message);
+  if (!condition) {
+    throw new Error(message);
+  }
   console.log(`✓ ${message}`);
 }
 

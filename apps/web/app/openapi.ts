@@ -57,7 +57,9 @@ export function endpointsByTag(spec: OpenApiDocument): [string, Endpoint[]][] {
   for (const [path, item] of Object.entries(spec.paths)) {
     for (const method of METHODS) {
       const operation = item[method];
-      if (!operation) continue;
+      if (!operation) {
+        continue;
+      }
       const tag = operation.tags?.[0] ?? "Other";
       const endpoint = {
         method,
@@ -79,7 +81,9 @@ export function resolve(schema: Schema, spec: OpenApiDocument): Schema {
   const target = schema.$ref
     ? (spec.components?.schemas?.[refName(schema.$ref)] ?? schema)
     : schema;
-  if (!target.allOf) return target;
+  if (!target.allOf) {
+    return target;
+  }
   return target.allOf
     .map((part) => resolve(part, spec))
     .reduce<Schema>(
@@ -94,7 +98,9 @@ export function resolve(schema: Schema, spec: OpenApiDocument): Schema {
 
 export function fieldsOf(schema: Schema, spec: OpenApiDocument): Field[] | null {
   const resolved = resolve(schema, spec);
-  if (!resolved.properties) return null;
+  if (!resolved.properties) {
+    return null;
+  }
   const required = new Set(resolved.required ?? []);
   return Object.entries(resolved.properties).map(([name, field]) => ({
     name,
@@ -104,14 +110,24 @@ export function fieldsOf(schema: Schema, spec: OpenApiDocument): Field[] | null 
 }
 
 export function typeLabel(schema: Schema): string {
-  if (schema.$ref) return refName(schema.$ref);
-  if (schema.anyOf) return schema.anyOf.map(typeLabel).join(" | ");
-  if (schema.enum) return schema.enum.map((value) => JSON.stringify(value)).join(" | ");
+  if (schema.$ref) {
+    return refName(schema.$ref);
+  }
+  if (schema.anyOf) {
+    return schema.anyOf.map(typeLabel).join(" | ");
+  }
+  if (schema.enum) {
+    return schema.enum.map((value) => JSON.stringify(value)).join(" | ");
+  }
   const types = Array.isArray(schema.type) ? schema.type : [schema.type ?? "object"];
   return types
     .map((type) => {
-      if (type === "array" && schema.items) return `${typeLabel(schema.items)}[]`;
-      if (type === "string" && schema.format) return `string (${schema.format})`;
+      if (type === "array" && schema.items) {
+        return `${typeLabel(schema.items)}[]`;
+      }
+      if (type === "string" && schema.format) {
+        return `string (${schema.format})`;
+      }
       return type;
     })
     .join(" | ");

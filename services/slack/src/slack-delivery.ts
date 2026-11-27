@@ -61,7 +61,9 @@ export class SlackDelivery {
       id === undefined ? [...this.log] : this.log.filter((d) => d.hook_id === id);
     webhooks.redeliver = async (deliveryId, options) => {
       const original = this.log.find((d) => d.id === deliveryId);
-      if (!original) return undefined;
+      if (!original) {
+        return undefined;
+      }
       const retryNum = (original.redelivery_count ?? 0) + 1;
       const pending: Pending = {
         id: await this.nextId(),
@@ -117,7 +119,9 @@ export class SlackDelivery {
 
   private async enqueue(event: string, payload: unknown): Promise<void> {
     const appId = appIdOf(payload);
-    if (!this.resolveTarget(appId, event)) return;
+    if (!this.resolveTarget(appId, event)) {
+      return;
+    }
     const id = await this.nextId();
     const dueAt = Date.now();
     await this.storage.put<Pending>(`${PENDING_PREFIX}${id}`, {
@@ -129,7 +133,9 @@ export class SlackDelivery {
       dueAt,
     });
     const alarm = await this.storage.getAlarm();
-    if (alarm === null || dueAt < alarm) await this.storage.setAlarm(dueAt);
+    if (alarm === null || dueAt < alarm) {
+      await this.storage.setAlarm(dueAt);
+    }
   }
 
   private async send(
@@ -137,7 +143,9 @@ export class SlackDelivery {
     extraHeaders: Record<string, string>,
   ): Promise<Outcome | null> {
     const target = this.resolveTarget(pending.appId, pending.event);
-    if (!target) return null;
+    if (!target) {
+      return null;
+    }
     const timestamp = Math.floor(Date.now() / 1000);
     const signature = await sign(target.signingSecret, `v0:${timestamp}:${pending.body}`);
     const started = Date.now();
@@ -158,7 +166,9 @@ export class SlackDelivery {
       status = response.status;
       await response.body?.cancel();
       const noRetry = response.headers.get("x-slack-no-retry") === "1";
-      if (!response.ok && !noRetry) retry = "http_error";
+      if (!response.ok && !noRetry) {
+        retry = "http_error";
+      }
     } catch (error) {
       retry =
         error instanceof Error && error.name === "TimeoutError"
@@ -186,7 +196,9 @@ export class SlackDelivery {
     this.log.push(delivery);
     await this.storage.put(logKey(delivery.id), delivery);
     const overflow = this.log.splice(0, Math.max(0, this.log.length - MAX_LOGGED));
-    if (overflow.length > 0) await this.storage.delete(overflow.map((d) => logKey(d.id)));
+    if (overflow.length > 0) {
+      await this.storage.delete(overflow.map((d) => logKey(d.id)));
+    }
   }
 
   private async nextId(): Promise<number> {
@@ -196,7 +208,9 @@ export class SlackDelivery {
   }
 
   private async load(): Promise<void> {
-    if (this.loaded) return;
+    if (this.loaded) {
+      return;
+    }
     this.log = [...(await this.storage.list<WebhookDelivery>({ prefix: LOG_PREFIX })).values()];
     this.loaded = true;
   }

@@ -75,8 +75,12 @@ export default function App() {
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   const notFound = isRouteErrorResponse(error) && error.status === 404;
   const reloading = useReloadOnNewDeploy(!notFound);
-  if (reloading) return null;
-  if (!notFound) console.error(error);
+  if (reloading) {
+    return null;
+  }
+  if (!notFound) {
+    console.error(error);
+  }
   return (
     <section className="section hero">
       <title>{notFound ? "Not found · Worlds" : "Error · Worlds"}</title>

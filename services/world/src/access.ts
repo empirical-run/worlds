@@ -19,14 +19,18 @@ export async function canControl(
   }
   const session = readCookie(request, SESSION_COOKIE);
   const user = session ? await userForSession(db, session) : null;
-  if (!user) return false;
+  if (!user) {
+    return false;
+  }
   return (await teamsForUser(db, user.id)).some(({ team }) => team.id === world.teamId);
 }
 
 function readCookie(request: Request, name: string): string | null {
   for (const part of request.headers.get("cookie")?.split(";") ?? []) {
     const [key, ...rest] = part.trim().split("=");
-    if (key === name) return decodeURIComponent(rest.join("="));
+    if (key === name) {
+      return decodeURIComponent(rest.join("="));
+    }
   }
   return null;
 }

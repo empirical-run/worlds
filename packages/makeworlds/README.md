@@ -41,7 +41,9 @@ const slack: SlackSpec = {
 const { data: world, error } = await worlds.POST("/api/worlds", {
   body: { name: "Thread routing eval", slack },
 });
-if (error) throw new Error(error.error.message);
+if (error) {
+  throw new Error(error.error.message);
+}
 
 world.slack?.api_url;
 world.slack?.spec.apps[0]?.install?.bot_token;
@@ -58,7 +60,9 @@ The `/_worlds/*` routes act inside a world, on its own hosts: post as a Slack us
 A world has only the services it was created with; the others are `null` on the world.
 
 ```ts
-if (!world.slack || !world.jira) throw new Error("This world needs Slack and Jira.");
+if (!world.slack || !world.jira) {
+  throw new Error("This world needs Slack and Jira.");
+}
 
 const slack = createClient({ apiKey: process.env.WORLDS_API_KEY, baseUrl: world.slack.ui_url });
 const general = world.slack.spec.channels[0].id;

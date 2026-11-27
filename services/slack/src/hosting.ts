@@ -15,8 +15,12 @@ export const slackHosting: ServiceHosting<SlackSpec, SlackState> = {
     };
   },
   page(request, url) {
-    if (url.pathname.startsWith("/assets/")) return "asset";
-    if (url.pathname === INSPECTOR_PATH) return "members-only";
+    if (url.pathname.startsWith("/assets/")) {
+      return "asset";
+    }
+    if (url.pathname === INSPECTOR_PATH) {
+      return "members-only";
+    }
     return request.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")
       ? "ui"
       : null;

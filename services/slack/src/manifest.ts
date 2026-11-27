@@ -99,10 +99,13 @@ export type ManifestProblem = { message: string; pointer: string };
 export function validateManifest(
   value: unknown,
 ): { manifest: SlackManifest } | { problems: ManifestProblem[] } {
-  if (typeof value !== "object" || value === null || Array.isArray(value))
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return { problems: [{ message: "Manifest must be a JSON object", pointer: "/" }] };
+  }
   const parsed = SlackManifestSchema.safeParse(value);
-  if (parsed.success) return { manifest: parsed.data };
+  if (parsed.success) {
+    return { manifest: parsed.data };
+  }
   return {
     problems: parsed.error.issues.map((issue) => ({
       message: issue.message,

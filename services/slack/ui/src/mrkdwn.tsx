@@ -46,19 +46,30 @@ function inline(text: string, lookup: Lookup, prefix: string): ReactNode[] {
   let last = 0;
   for (const match of text.matchAll(INLINE)) {
     const index = match.index ?? 0;
-    if (index > last) nodes.push(decode(text.slice(last, index)));
+    if (index > last) {
+      nodes.push(decode(text.slice(last, index)));
+    }
     const token = match[0];
     const key = `${prefix}-${index}`;
     const inner = token.slice(1, -1);
-    if (match[1]) nodes.push(emojiFor(inner) ? <Emoji key={key} name={inner} /> : token);
-    else if (match[2]) nodes.push(<code key={key}>{decode(inner)}</code>);
-    else if (match[3]) nodes.push(angle(token, lookup, key));
-    else if (match[4]) nodes.push(<strong key={key}>{inline(inner, lookup, key)}</strong>);
-    else if (match[5]) nodes.push(<em key={key}>{inline(inner, lookup, key)}</em>);
-    else nodes.push(<s key={key}>{inline(inner, lookup, key)}</s>);
+    if (match[1]) {
+      nodes.push(emojiFor(inner) ? <Emoji key={key} name={inner} /> : token);
+    } else if (match[2]) {
+      nodes.push(<code key={key}>{decode(inner)}</code>);
+    } else if (match[3]) {
+      nodes.push(angle(token, lookup, key));
+    } else if (match[4]) {
+      nodes.push(<strong key={key}>{inline(inner, lookup, key)}</strong>);
+    } else if (match[5]) {
+      nodes.push(<em key={key}>{inline(inner, lookup, key)}</em>);
+    } else {
+      nodes.push(<s key={key}>{inline(inner, lookup, key)}</s>);
+    }
     last = index + token.length;
   }
-  if (last < text.length) nodes.push(decode(text.slice(last)));
+  if (last < text.length) {
+    nodes.push(decode(text.slice(last)));
+  }
   return nodes;
 }
 

@@ -10,14 +10,17 @@ const PUBLIC_PATHS = new Set(["/api/openapi.json"]);
 export const authenticate: MiddlewareHandler<AppEnv> = async (c, next) => {
   const db = database(c.env.DB);
   c.set("db", db);
-  if (PUBLIC_PATHS.has(c.req.path)) return next();
+  if (PUBLIC_PATHS.has(c.req.path)) {
+    return next();
+  }
 
   const caller = await callerFor(c.req.header("authorization"), getCookie(c, SESSION_COOKIE), db);
-  if (!caller)
+  if (!caller) {
     return c.json(
       apiError("unauthorized", "Send an API key as Authorization: Bearer <key>, or sign in."),
       401,
     );
+  }
   if (
     caller.kind === "user" &&
     c.req.method !== "GET" &&
@@ -41,7 +44,9 @@ async function callerFor(
     const key = await useKey(db, authorization.slice("Bearer ".length).trim());
     return key ? { kind: "key", key } : null;
   }
-  if (!session) return null;
+  if (!session) {
+    return null;
+  }
   const user = await userForSession(db, session);
   return user ? { kind: "user", user } : null;
 }

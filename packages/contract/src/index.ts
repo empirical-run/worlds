@@ -36,7 +36,9 @@ export function jsonResponse<T extends z.ZodType>(description: string, schema: T
 export function routes<E extends Env>() {
   return new OpenAPIHono<E>({
     defaultHook: (result, c) => {
-      if (result.success) return;
+      if (result.success) {
+        return;
+      }
       const issue = result.error.issues[0];
       const path = issue?.path.join(".");
       const message = issue ? `${path ? `${path}: ` : ""}${issue.message}` : "Invalid request.";

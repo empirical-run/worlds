@@ -1,9 +1,13 @@
 export function readCookie(request: Request, name: string): string | null {
   const header = request.headers.get("cookie");
-  if (!header) return null;
+  if (!header) {
+    return null;
+  }
   for (const part of header.split(";")) {
     const [key, ...rest] = part.trim().split("=");
-    if (key === name) return decodeURIComponent(rest.join("="));
+    if (key === name) {
+      return decodeURIComponent(rest.join("="));
+    }
   }
   return null;
 }
@@ -18,8 +22,11 @@ export function cookie(url: URL, name: string, value: string, options: CookieOpt
     "HttpOnly",
     "SameSite=Lax",
   ];
-  if (url.protocol === "https:") parts.push("Secure");
-  if (options.sharedAcrossSubdomains && url.hostname.endsWith("makeworlds.dev"))
+  if (url.protocol === "https:") {
+    parts.push("Secure");
+  }
+  if (options.sharedAcrossSubdomains && url.hostname.endsWith("makeworlds.dev")) {
     parts.push("Domain=makeworlds.dev");
+  }
   return parts.join("; ");
 }

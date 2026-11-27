@@ -11,7 +11,9 @@ import { worlds } from "./routes/worlds";
 
 const app = new OpenAPIHono<AppEnv>({
   defaultHook: (result, c) => {
-    if (result.success) return;
+    if (result.success) {
+      return;
+    }
     return c.json(
       apiError("invalid_request", result.error.issues[0]?.message ?? "Invalid request."),
       400,
@@ -37,8 +39,11 @@ app.route("/", teams);
 app.route("/", apiKeys);
 app.route("/", worlds);
 
-for (const service of SERVICES)
-  for (const route of service.routes) app.openAPIRegistry.registerPath(route);
+for (const service of SERVICES) {
+  for (const route of service.routes) {
+    app.openAPIRegistry.registerPath(route);
+  }
+}
 
 app.doc31("/api/openapi.json", {
   openapi: "3.1.0",

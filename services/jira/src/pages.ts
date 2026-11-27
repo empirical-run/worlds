@@ -177,8 +177,9 @@ function user(state: JiraState, accountId: string | null): JiraUserState | undef
 }
 
 function avatar(person: JiraUserState | undefined, size: "" | "large" = ""): string {
-  if (!person)
+  if (!person) {
     return `<span class="avatar ${size}" style="background: var(--todo-bg); color: var(--subtle)">?</span>`;
+  }
   const initials = person.display_name
     .split(/\s+/)
     .filter(Boolean)
@@ -226,7 +227,9 @@ function displayDate(ms: number): string {
 }
 
 function adfToHtml(node: unknown): string {
-  if (!node || typeof node !== "object") return "";
+  if (!node || typeof node !== "object") {
+    return "";
+  }
   const { type, text, content, marks, attrs } = node as {
     type?: string;
     text?: string;
@@ -239,11 +242,18 @@ function adfToHtml(node: unknown): string {
     case "text": {
       let html = escapeHtml(text ?? "");
       for (const mark of marks ?? []) {
-        if (mark.type === "strong") html = `<strong>${html}</strong>`;
-        if (mark.type === "em") html = `<em>${html}</em>`;
-        if (mark.type === "code") html = `<code>${html}</code>`;
-        if (mark.type === "link" && mark.attrs?.href && /^https?:/i.test(mark.attrs.href))
+        if (mark.type === "strong") {
+          html = `<strong>${html}</strong>`;
+        }
+        if (mark.type === "em") {
+          html = `<em>${html}</em>`;
+        }
+        if (mark.type === "code") {
+          html = `<code>${html}</code>`;
+        }
+        if (mark.type === "link" && mark.attrs?.href && /^https?:/i.test(mark.attrs.href)) {
           html = `<a href="${escapeHtml(mark.attrs.href)}">${html}</a>`;
+        }
       }
       return html;
     }

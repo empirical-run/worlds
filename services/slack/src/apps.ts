@@ -52,7 +52,9 @@ export function eventTarget(
 ): EventTarget | null {
   const app = appId ? findApp(store, appId) : undefined;
   const subscriptions = app?.manifest.settings?.event_subscriptions;
-  if (!app || !subscriptions?.request_url) return null;
+  if (!app || !subscriptions?.request_url) {
+    return null;
+  }
   const events = subscriptions.bot_events ?? [];
   const subscribed =
     ALWAYS_DELIVERED.has(eventType) ||
@@ -80,8 +82,11 @@ function mirror(store: Store, app: SlackApp): void {
       : undefined,
   };
   const existing = slack.oauthApps.findOneBy("app_id", app.app_id);
-  if (existing) slack.oauthApps.update(existing.id, fields);
-  else slack.oauthApps.insert(fields);
+  if (existing) {
+    slack.oauthApps.update(existing.id, fields);
+  } else {
+    slack.oauthApps.insert(fields);
+  }
 }
 
 const CODE_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -107,13 +112,16 @@ function randomHex(length: number): string {
 export function acceptRedirect(store: Store, clientId: string, redirectUri: string): void {
   const app = listApps(store).find((candidate) => candidate.credentials.client_id === clientId);
   const record = getSlackStore(store).oauthApps.findOneBy("client_id", clientId);
-  if (!app || !record || record.redirect_uris.includes(redirectUri)) return;
+  if (!app || !record || record.redirect_uris.includes(redirectUri)) {
+    return;
+  }
   if (
     !(app.manifest.oauth_config?.redirect_urls ?? []).some((registered) =>
       redirectMatches(registered, redirectUri),
     )
-  )
+  ) {
     return;
+  }
   getSlackStore(store).oauthApps.update(record.id, {
     redirect_uris: [...record.redirect_uris, redirectUri],
   });
@@ -121,7 +129,9 @@ export function acceptRedirect(store: Store, clientId: string, redirectUri: stri
 
 function redirectMatches(registered: string, incoming: string): boolean {
   const pattern = /^(https?):\/\/([^/:]+)(:\d+)?(\/[^?#]*)?/.exec(registered);
-  if (!pattern || !URL.canParse(incoming)) return false;
+  if (!pattern || !URL.canParse(incoming)) {
+    return false;
+  }
   const [, scheme, host = "", port = "", path = "/"] = pattern;
   const url = new URL(incoming);
   const hostPattern = new RegExp(`^${host.split("*").map(escapeRegExp).join("[a-z0-9-]+")}$`);

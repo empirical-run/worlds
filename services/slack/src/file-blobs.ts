@@ -27,8 +27,12 @@ export class FileBlobs {
   async split(snapshot: StoreSnapshot): Promise<StoreSnapshot> {
     const lean = structuredClone(snapshot);
     for (const item of blobItems(lean)) {
-      if (!item.file_id || !item.content_base64) continue;
-      if (!this.stored.has(item.file_id)) await this.write(item.file_id, item.content_base64);
+      if (!item.file_id || !item.content_base64) {
+        continue;
+      }
+      if (!this.stored.has(item.file_id)) {
+        await this.write(item.file_id, item.content_base64);
+      }
       delete item.content_base64;
     }
     return lean;
@@ -36,9 +40,13 @@ export class FileBlobs {
 
   async join(snapshot: StoreSnapshot): Promise<StoreSnapshot> {
     for (const item of blobItems(snapshot)) {
-      if (!item.file_id || item.content_base64) continue;
+      if (!item.file_id || item.content_base64) {
+        continue;
+      }
       const content = await this.read(item.file_id);
-      if (content !== null) item.content_base64 = content;
+      if (content !== null) {
+        item.content_base64 = content;
+      }
     }
     return snapshot;
   }
@@ -55,14 +63,18 @@ export class FileBlobs {
         (index + 1) * CHUNK_CHARS,
       );
     }
-    for (const [key, value] of Object.entries(chunks)) await this.storage.put(key, value);
+    for (const [key, value] of Object.entries(chunks)) {
+      await this.storage.put(key, value);
+    }
     await this.storage.put(countKey(fileId), Object.keys(chunks).length);
     this.stored.add(fileId);
   }
 
   private async read(fileId: string): Promise<string | null> {
     const count = await this.storage.get<number>(countKey(fileId));
-    if (count === undefined) return null;
+    if (count === undefined) {
+      return null;
+    }
     const keys = Array.from({ length: count }, (_, index) => chunkKey(fileId, index));
     const chunks = await this.storage.get<string>(keys);
     this.stored.add(fileId);

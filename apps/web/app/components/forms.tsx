@@ -28,18 +28,20 @@ export function useSubmitting(intent: string, field?: { name: string; value: str
 }
 
 export function FormStatus({ error, message }: { error?: string; message?: string }) {
-  if (error)
+  if (error) {
     return (
       <p className="form-status error" role="alert">
         {error}
       </p>
     );
-  if (message)
+  }
+  if (message) {
     return (
       <p className="form-status" role="status">
         {message}
       </p>
     );
+  }
   return null;
 }
 
@@ -50,7 +52,9 @@ export function ActionError({
   result: ActionResult | undefined;
   intent: string;
 }) {
-  if (result?.intent !== intent) return null;
+  if (result?.intent !== intent) {
+    return null;
+  }
   return <FormStatus error={result.error} />;
 }
 

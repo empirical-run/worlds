@@ -49,9 +49,13 @@ export function starterSpecs(names: readonly string[]): Partial<StarterSpecs> {
 export function resolveHost(
   host: string,
 ): { service: ServiceContract; host: ServiceHost } | undefined {
-  for (const service of SERVICES)
-    for (const candidate of service.hosts)
-      if (candidate === host) return { service, host: candidate };
+  for (const service of SERVICES) {
+    for (const candidate of service.hosts) {
+      if (candidate === host) {
+        return { service, host: candidate };
+      }
+    }
+  }
   return undefined;
 }
 

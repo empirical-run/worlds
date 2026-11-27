@@ -53,7 +53,9 @@ export class JiraDelivery {
       dueAt,
     });
     const alarm = await this.storage.getAlarm();
-    if (alarm === null || dueAt < alarm) await this.storage.setAlarm(dueAt);
+    if (alarm === null || dueAt < alarm) {
+      await this.storage.setAlarm(dueAt);
+    }
   }
 
   async run(): Promise<void> {
@@ -127,8 +129,9 @@ export class JiraDelivery {
   private async record(entry: DeliveryLog): Promise<void> {
     await this.storage.put(`${LOG_PREFIX}${String(entry.id).padStart(12, "0")}`, entry);
     const keys = [...(await this.storage.list({ prefix: LOG_PREFIX })).keys()];
-    if (keys.length > MAX_LOGGED)
+    if (keys.length > MAX_LOGGED) {
       await this.storage.delete(keys.slice(0, keys.length - MAX_LOGGED));
+    }
   }
 
   private async nextId(): Promise<number> {
