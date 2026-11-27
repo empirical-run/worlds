@@ -71,7 +71,9 @@ a { color: inherit; text-decoration: none; }
 .property .label { color: var(--muted); }
 .property .value { display: flex; align-items: center; gap: 8px; }
 .reactions { display: flex; gap: 6px; margin-top: 16px; }
-.reaction { border: 1px solid var(--border); border-radius: 12px; padding: 0 8px; font-size: 12px; background: var(--panel); }
+.reaction { display: inline-flex; align-items: center; gap: 6px; height: 24px; border: 1px solid var(--border); border-radius: 12px; padding: 0 8px 0 6px; font-size: 12px; background: var(--panel); color: var(--muted); }
+.reaction .emoji { font-size: 14px; }
+.reaction .avatar { width: 16px; height: 16px; font-size: 8px; }
 .consent { max-width: 440px; margin: 72px auto; padding: 0 20px; }
 .consent-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 28px; }
 .consent h1 { font-size: 18px; line-height: 26px; font-weight: 600; margin: 16px 0 6px; }
@@ -105,6 +107,15 @@ const SCOPE_TEXT: Record<string, string> = {
   admin: "Full access to your workspace, including admin settings",
   "app:assignable": "Be assigned to and delegated issues",
   "app:mentionable": "Be mentioned in issues and documents",
+};
+
+const EMOJI: Record<string, string> = {
+  "+1": "👍",
+  "-1": "👎",
+  heart: "❤️",
+  eyes: "👀",
+  tada: "🎉",
+  rocket: "🚀",
 };
 
 const STATE_CLASS: Record<IssueState, string> = {
@@ -219,7 +230,7 @@ export function issuePage(workspace: LinearWorkspace, issue: Issue): Response {
     })
     .join("");
   const reactions = issue.reactions.length
-    ? `<div class="reactions">${issue.reactions.map((reaction) => `<span class="reaction" title="${escapeHtml(workspace.person(reaction.user)?.name ?? "")}">${escapeHtml(reaction.emoji === "+1" ? "👍" : reaction.emoji)}</span>`).join("")}</div>`
+    ? `<div class="reactions">${reactionGroups(workspace, issue).join("")}</div>`
     : "";
   const key = workspace.state.workspace.url_key;
   return page(
@@ -239,6 +250,20 @@ ${comments}</div>
 <div class="property"><span class="label">Team</span><span class="value">${escapeHtml(team?.name ?? issue.team)}</span></div></aside></div>`,
     ),
   );
+}
+
+function reactionGroups(workspace: LinearWorkspace, issue: Issue): string[] {
+  const byEmoji = new Map<string, (Person | null)[]>();
+  for (const reaction of issue.reactions) {
+    byEmoji.set(reaction.emoji, [
+      ...(byEmoji.get(reaction.emoji) ?? []),
+      workspace.person(reaction.user),
+    ]);
+  }
+  return [...byEmoji].map(([emoji, people]) => {
+    const names = people.map((person) => person?.name ?? "Someone").join(", ");
+    return `<span class="reaction" title="${escapeHtml(names)}"><span class="emoji">${escapeHtml(EMOJI[emoji] ?? emoji)}</span>${people.map(avatar).join("")}<span>${escapeHtml(names)}</span></span>`;
+  });
 }
 
 export function consentPage(
