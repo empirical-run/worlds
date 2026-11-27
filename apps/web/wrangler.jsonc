@@ -8,6 +8,7 @@
   "routes": [{ "pattern": "makeworlds.dev", "custom_domain": true }],
   "assets": { "binding": "ASSETS" },
   "services": [{ "binding": "API", "service": "worlds-api" }],
+  "r2_buckets": [{ "binding": "ASSETS_ARCHIVE", "bucket_name": "worlds-site-assets" }],
   "d1_databases": [
     {
       "binding": "DB",

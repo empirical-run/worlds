@@ -14,6 +14,7 @@ import { workerContext } from "../worker/context";
 import type { Route } from "./+types/root";
 import { NavProgress } from "./components/NavProgress";
 import { Rail } from "./components/Rail";
+import { useMarkHydrated, useReloadOnNewDeploy } from "./deploy-skew";
 
 export const links: Route.LinksFunction = () => [
   { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
@@ -45,6 +46,7 @@ export type RootData = Awaited<ReturnType<typeof loader>>;
 
 export function Layout({ children }: { children: ReactNode }) {
   const data = useRouteLoaderData<RootData>("root");
+  useMarkHydrated();
   return (
     <html lang="en">
       <head>
@@ -72,6 +74,8 @@ export default function App() {
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   const notFound = isRouteErrorResponse(error) && error.status === 404;
+  const reloading = useReloadOnNewDeploy(!notFound);
+  if (reloading) return null;
   if (!notFound) console.error(error);
   return (
     <section className="section hero">
