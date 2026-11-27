@@ -1,8 +1,10 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
+import { apiError } from "@worlds/contract";
+import { jira } from "@worlds/jira/contract";
 import { HTTPException } from "hono/http-exception";
 
 import { authenticate } from "./auth";
-import { apiError, type AppEnv } from "./context";
+import type { AppEnv } from "./context";
 import { apiKeys } from "./routes/api-keys";
 import { teams } from "./routes/teams";
 import { worlds } from "./routes/worlds";
@@ -34,6 +36,8 @@ app.use("/api/*", authenticate);
 app.route("/", teams);
 app.route("/", apiKeys);
 app.route("/", worlds);
+
+for (const route of jira.routes) app.openAPIRegistry.registerPath(route);
 
 app.doc31("/api/openapi.json", {
   openapi: "3.1.0",

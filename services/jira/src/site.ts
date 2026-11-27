@@ -354,7 +354,7 @@ export class JiraSite {
       "comment_created",
       actor,
       issue,
-      { comment: this.json.comment(issue, comment, "site") },
+      { comment: this.json.siteComment(issue, comment) },
       true,
     );
     return comment;
@@ -396,7 +396,7 @@ export class JiraSite {
       groups.set(groupKey, group);
     }
     if (groups.size === 0) return;
-    const issueJson = this.json.issue(issue, "site");
+    const issueJson = this.json.siteIssue(issue);
     const { comment: _comment, ...issueFields } = issueJson.fields;
     const payload = {
       timestamp: now,

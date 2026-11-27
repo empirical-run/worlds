@@ -677,6 +677,13 @@ button:disabled {
 .endpoint code {
   font-size: 14px;
 }
+.endpoint-host {
+  margin: -8px 0 16px;
+  color: var(--ink-2);
+}
+.endpoint-host code {
+  overflow-wrap: anywhere;
+}
 .method {
   padding: 2px 8px;
   font:

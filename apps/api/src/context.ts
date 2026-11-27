@@ -18,7 +18,3 @@ export type AppEnv = {
 };
 
 export type TeamAccess = { team: Team; role: Membership["role"] | null };
-
-export function apiError(code: string, message: string) {
-  return { error: { code, message } };
-}

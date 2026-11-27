@@ -349,6 +349,14 @@ try {
   ).json();
   await sleep(500);
   assert(events("jira:issue_created").length === 1, "an issue outside the JQL sends nothing");
+  const emptySummary = await fetch(
+    `${site}/_worlds/jira/issues`,
+    control("POST", { user: "alice", summary: " " }),
+  );
+  assert(
+    emptySummary.status === 400 && (await emptySummary.json()).error.code === "invalid_request",
+    "an empty summary is refused with the API's error shape",
+  );
   await fetch(
     `${site}/_worlds/jira/issues/${plain.key}`,
     control("PATCH", { user: "alice", labels: ["empirical"] }),

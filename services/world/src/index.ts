@@ -1,3 +1,4 @@
+import { apiError } from "@worlds/contract";
 import { database, liveWorld, parseWorldHost } from "@worlds/db";
 import type { JiraSpec, JiraState } from "@worlds/jira/spec";
 import type { SlackSpec, SlackState } from "@worlds/slack/spec";
@@ -69,7 +70,13 @@ export default {
       CONTROL_PATHS.some((prefix) => url.pathname.startsWith(prefix)) &&
       !(await canControl(request, db, world))
     ) {
-      return slackError(401, "not_authed");
+      return Response.json(
+        apiError(
+          "unauthorized",
+          "Send your team's API key as Authorization: Bearer <key>, or sign in.",
+        ),
+        { status: 401 },
+      );
     }
 
     const forwarded = new Request(request);

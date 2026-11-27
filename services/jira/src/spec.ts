@@ -1,3 +1,7 @@
+import type { z } from "@hono/zod-openapi";
+
+import type { JiraSpecSchema, JiraStateSchema } from "./contract";
+
 export const JIRA_SCOPES = [
   "read:jira-work",
   "write:jira-work",
@@ -16,64 +20,15 @@ export type JiraScope = (typeof JIRA_SCOPES)[number];
 
 export type IssueStatus = (typeof ISSUE_STATUSES)[number];
 
-export type JiraUserSpec = {
-  account_id?: string;
-  name: string;
-  display_name?: string;
-  email?: string;
-  hide_email?: boolean;
-};
+export type JiraSpec = z.output<typeof JiraSpecSchema>;
 
-export type JiraProjectSpec = { id?: string; key: string; name?: string };
+export type JiraState = z.output<typeof JiraStateSchema>;
 
-export type JiraCommentSpec = { author: string; body: string };
+export type JiraIssueSpec = NonNullable<JiraSpec["issues"]>[number];
 
-export type JiraIssueSpec = {
-  project: string;
-  summary: string;
-  description?: string;
-  labels?: string[];
-  status?: IssueStatus;
-  reporter?: string;
-  assignee?: string;
-  comments?: JiraCommentSpec[];
-};
+export type JiraUserState = JiraState["users"][number];
 
-export type JiraCredentials = { client_id: string; client_secret: string };
-
-export type JiraAppSpec = {
-  name: string;
-  callback_urls: string[];
-  scopes?: JiraScope[];
-  credentials?: Partial<JiraCredentials>;
-};
-
-export type JiraSpec = {
-  site?: { cloud_id?: string; name?: string };
-  users?: JiraUserSpec[];
-  projects?: JiraProjectSpec[];
-  issues?: JiraIssueSpec[];
-  apps?: JiraAppSpec[];
-};
-
-export type JiraUserState = Required<
-  Pick<JiraUserSpec, "account_id" | "name" | "display_name" | "email" | "hide_email">
->;
-
-export type JiraAppState = {
-  name: string;
-  callback_urls: string[];
-  scopes: JiraScope[];
-  credentials: JiraCredentials;
-};
-
-export type JiraState = {
-  site: { cloud_id: string; name: string; url: string };
-  users: JiraUserState[];
-  projects: Required<JiraProjectSpec>[];
-  issues: (JiraIssueSpec & { key: string })[];
-  apps: JiraAppState[];
-};
+export type JiraAppState = JiraState["apps"][number];
 
 export const DEFAULT_JIRA_SPEC: JiraSpec = {
   site: { name: "worlds" },

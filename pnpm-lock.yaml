@@ -40,6 +40,9 @@ importers:
       '@hono/zod-openapi':
         specifier: ^1.6.3
         version: 1.6.3(hono@4.13.22)(zod@4.6.7)
+      '@worlds/contract':
+        specifier: workspace:*
+        version: link:../../packages/contract
       '@worlds/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -118,6 +121,25 @@ importers:
         specifier: ^4.168.0
         version: 4.168.0(@cloudflare/workers-types@5.20261125.1)(@types/node@26.6.10)
 
+  packages/contract:
+    dependencies:
+      '@hono/zod-openapi':
+        specifier: ^1.6.3
+        version: 1.6.3(hono@4.13.22)(zod@4.6.7)
+      hono:
+        specifier: ^4.13.22
+        version: 4.13.22
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^5.20261125.1
+        version: 5.20261125.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/db:
     dependencies:
       drizzle-orm:
@@ -152,9 +174,18 @@ importers:
 
   services/jira:
     dependencies:
+      '@hono/zod-openapi':
+        specifier: ^1.6.3
+        version: 1.6.3(hono@4.13.22)(zod@4.6.7)
+      '@worlds/contract':
+        specifier: workspace:*
+        version: link:../../packages/contract
       hono:
         specifier: ^4.13.22
         version: 4.13.22
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^5.20261125.1
@@ -202,6 +233,9 @@ importers:
 
   services/world:
     dependencies:
+      '@worlds/contract':
+        specifier: workspace:*
+        version: link:../../packages/contract
       '@worlds/db':
         specifier: workspace:*
         version: link:../../packages/db

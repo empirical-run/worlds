@@ -1,4 +1,5 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
+import { apiError, errorResponse, jsonResponse, security } from "@worlds/contract";
 import {
   archiveWorld,
   createWorld,
@@ -11,11 +12,8 @@ import { DEFAULT_JIRA_SPEC, jiraSpecProblems, type JiraSpec } from "@worlds/jira
 import { validateManifest } from "@worlds/slack/manifest";
 import { DEFAULT_SLACK_SPEC, unknownReferences, type SlackSpec } from "@worlds/slack/spec";
 
-import { apiError, type AppEnv } from "../context";
+import type { AppEnv } from "../context";
 import {
-  errorResponse,
-  jsonResponse,
-  security,
   WorldCreatedSchema,
   WorldCreateSchema,
   WorldListSchema,

@@ -1,11 +1,9 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
+import { apiError, errorResponse, jsonResponse, security } from "@worlds/contract";
 import { membersOf, renameTeam } from "@worlds/db";
 
-import { apiError, type AppEnv } from "../context";
+import type { AppEnv } from "../context";
 import {
-  errorResponse,
-  jsonResponse,
-  security,
   TeamDetailSchema,
   TeamListSchema,
   TeamParamsSchema,

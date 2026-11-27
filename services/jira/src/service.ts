@@ -1,21 +1,25 @@
+import { apiError, routes, type ApiError } from "@worlds/contract";
 import { Hono, type Context } from "hono";
 
+import {
+  createCommentRoute,
+  createIssueRoute,
+  deleteIssueRoute,
+  jiraStateRoute,
+  updateIssueRoute,
+  type JiraHost,
+} from "./contract";
 import { JiraDelivery } from "./delivery";
-import { findUser, isAdf, type AccessToken, type JiraData, type Origins } from "./model";
+import { findUser, isAdf, type AccessToken, type Adf, type JiraData, type Origins } from "./model";
 import { consentPage, errorPage, issueListPage, issuePage } from "./pages";
-import { JiraSite, randomToken, textOrAdf, type IssueInput, type IssuePatch } from "./site";
+import { JiraSite, randomToken, textOrAdf, type IssuePatch } from "./site";
 import {
   DEFAULT_JIRA_SPEC,
-  ISSUE_STATUSES,
   OFFLINE_ACCESS,
   type IssueStatus,
   type JiraSpec,
   type JiraState,
 } from "./spec";
-
-export type JiraHost = "jira" | "jira-auth" | "jira-api";
-
-export const JIRA_HOSTS: readonly JiraHost[] = ["jira", "jira-auth", "jira-api"];
 
 const STATE_KEY = "jira";
 const AUDIENCE = "api.atlassian.com";
@@ -42,7 +46,7 @@ export class JiraService {
     this.apps = { jira: siteRoutes(), "jira-auth": authRoutes(), "jira-api": apiRoutes() };
   }
 
-  async setup(spec: JiraSpec, origins: Origins): Promise<JiraState> {
+  async setup(spec: JiraSpec | undefined, origins: Origins): Promise<JiraState> {
     return (await this.load(origins, spec)).state;
   }
 
@@ -317,7 +321,7 @@ function apiRoutes(): Hono<Env> {
   rest.get("/issue/:idOrKey", requireScope("read:jira-work"), (c) => {
     const site = c.get("site");
     const issue = site.issue(c.req.param("idOrKey") ?? "");
-    return issue ? c.json(site.json.issue(issue, "api")) : c.json(ISSUE_NOT_FOUND, 404);
+    return issue ? c.json(site.json.apiIssue(issue)) : c.json(ISSUE_NOT_FOUND, 404);
   });
   rest.post("/issue/:idOrKey/comment", requireScope("write:jira-work"), async (c) => {
     const site = c.get("site");
@@ -327,7 +331,7 @@ function apiRoutes(): Hono<Env> {
     if (!isAdf(body?.body))
       return c.json({ errorMessages: [], errors: { comment: "Comment body is not valid!" } }, 400);
     const comment = await site.addComment(c.get("token").account_id, issue, body.body);
-    return c.json(site.json.comment(issue, comment, "api"), 201);
+    return c.json(site.json.apiComment(issue, comment), 201);
   });
   rest.get("/user", requireScope("read:jira-user"), (c) => {
     const site = c.get("site");
@@ -424,117 +428,118 @@ function siteRoutes(): Hono<Env> {
     ),
   );
 
-  app.get("/_worlds/jira/state", async (c) => {
-    const site = c.get("site");
-    return c.json({
-      spec: site.state,
-      issues: site.data.issues.map((issue) => site.json.issue(issue, "api")),
-      webhooks: site.data.webhooks.map(
-        ({ id, client_id, account_id, url, jql, events, expires_at }) => ({
-          id,
-          client_id,
-          account_id,
-          url,
-          jql,
-          events,
-          expires_at,
-        }),
-      ),
-    });
-  });
-  app.post("/_worlds/jira/issues", async (c) => {
-    const site = c.get("site");
-    const body = ((await c.req.json().catch(() => null)) ?? {}) as Record<string, unknown>;
-    const actor = actorOf(site, body.user);
-    if (!actor) return c.json({ error: "user_not_found" }, 400);
-    const project = typeof body.project === "string" ? body.project : site.state.projects[0]?.key;
-    if (!project || !site.state.projects.some((candidate) => candidate.key === project))
-      return c.json({ error: "project_not_found" }, 400);
-    if (typeof body.summary !== "string" || !body.summary.trim())
-      return c.json({ error: "summary_required" }, 400);
-    const fields = issueFields(site, body);
-    if ("error" in fields) return c.json(fields, 400);
-    const issue = await site.createIssue(actor, {
-      ...fields,
-      project,
-      summary: body.summary,
-    } as IssueInput);
-    return c.json(site.json.issue(issue, "api"), 201);
-  });
-  app.patch("/_worlds/jira/issues/:key", async (c) => {
-    const site = c.get("site");
-    const issue = site.issue(c.req.param("key"));
-    if (!issue) return c.json(ISSUE_NOT_FOUND, 404);
-    const body = ((await c.req.json().catch(() => null)) ?? {}) as Record<string, unknown>;
-    const actor = actorOf(site, body.user);
-    if (!actor) return c.json({ error: "user_not_found" }, 400);
-    const fields = issueFields(site, body);
-    if ("error" in fields) return c.json(fields, 400);
-    const changelog = await site.updateIssue(actor, issue, fields);
-    return c.json({ issue: site.json.issue(issue, "api"), changelog });
-  });
-  app.delete("/_worlds/jira/issues/:key", async (c) => {
-    const site = c.get("site");
-    const issue = site.issue(c.req.param("key"));
-    if (!issue) return c.json(ISSUE_NOT_FOUND, 404);
-    const actor = actorOf(site, c.req.query("user"));
-    if (!actor) return c.json({ error: "user_not_found" }, 400);
-    await site.deleteIssue(actor, issue);
-    return c.body(null, 204);
-  });
-  app.post("/_worlds/jira/issues/:key/comments", async (c) => {
-    const site = c.get("site");
-    const issue = site.issue(c.req.param("key"));
-    if (!issue) return c.json(ISSUE_NOT_FOUND, 404);
-    const body = ((await c.req.json().catch(() => null)) ?? {}) as Record<string, unknown>;
-    const actor = actorOf(site, body.user);
-    if (!actor) return c.json({ error: "user_not_found" }, 400);
-    const adf = textOrAdf(body.body);
-    if (!adf || !isAdf(adf)) return c.json({ error: "body_required" }, 400);
-    const comment = await site.addComment(actor, issue, adf);
-    return c.json(site.json.comment(issue, comment, "api"), 201);
-  });
+  app.route("/", controlRoutes());
   app.notFound(() => errorPage("Page not found.", 404));
   return app;
 }
 
-function actorOf(site: JiraSite, ref: unknown): string | null {
-  if (ref === undefined || ref === null || ref === "")
-    return site.state.users[0]?.account_id ?? null;
-  return typeof ref === "string" ? (findUser(site.state, ref)?.account_id ?? null) : null;
+function controlRoutes() {
+  return routes<Env>()
+    .openapi(jiraStateRoute, (c) => {
+      const site = c.get("site");
+      return c.json(
+        {
+          spec: site.state,
+          issues: site.data.issues.map((issue) => site.json.apiIssue(issue)),
+          webhooks: site.data.webhooks.map(
+            ({ id, client_id, account_id, url, jql, events, expires_at }) => ({
+              id,
+              client_id,
+              account_id,
+              url,
+              jql,
+              events,
+              expires_at,
+            }),
+          ),
+        },
+        200,
+      );
+    })
+    .openapi(createIssueRoute, async (c) => {
+      const site = c.get("site");
+      const body = c.req.valid("json");
+      const actor = findUser(site.state, body.user);
+      if (!actor) return c.json(unknownUser(body.user), 400);
+      const project = body.project ?? site.state.projects[0]?.key;
+      if (!project || !site.state.projects.some((candidate) => candidate.key === project))
+        return c.json(apiError("project_not_found", `No project with key ${project}.`), 400);
+      const fields = issueFields(site, body);
+      if ("error" in fields) return c.json(fields, 400);
+      const issue = await site.createIssue(actor.account_id, {
+        ...fields,
+        project,
+        summary: body.summary,
+      });
+      return c.json(site.json.apiIssue(issue), 201);
+    })
+    .openapi(updateIssueRoute, async (c) => {
+      const site = c.get("site");
+      const { key } = c.req.valid("param");
+      const body = c.req.valid("json");
+      const issue = site.issue(key);
+      if (!issue) return c.json(issueNotFound(key), 404);
+      const actor = findUser(site.state, body.user);
+      if (!actor) return c.json(unknownUser(body.user), 400);
+      const fields = issueFields(site, body);
+      if ("error" in fields) return c.json(fields, 400);
+      const changelog = await site.updateIssue(actor.account_id, issue, fields);
+      return c.json({ issue: site.json.apiIssue(issue), changelog }, 200);
+    })
+    .openapi(deleteIssueRoute, async (c) => {
+      const site = c.get("site");
+      const { key } = c.req.valid("param");
+      const { user } = c.req.valid("query");
+      const issue = site.issue(key);
+      if (!issue) return c.json(issueNotFound(key), 404);
+      const actor = findUser(site.state, user);
+      if (!actor) return c.json(unknownUser(user), 400);
+      await site.deleteIssue(actor.account_id, issue);
+      return c.body(null, 204);
+    })
+    .openapi(createCommentRoute, async (c) => {
+      const site = c.get("site");
+      const { key } = c.req.valid("param");
+      const body = c.req.valid("json");
+      const issue = site.issue(key);
+      if (!issue) return c.json(issueNotFound(key), 404);
+      const actor = findUser(site.state, body.user);
+      if (!actor) return c.json(unknownUser(body.user), 400);
+      const adf = textOrAdf(body.body);
+      if (!adf) return c.json(apiError("invalid_request", "body: can't be empty."), 400);
+      const comment = await site.addComment(actor.account_id, issue, adf);
+      return c.json(site.json.apiComment(issue, comment), 201);
+    });
+}
+
+function unknownUser(ref: string): ApiError {
+  return apiError("user_not_found", `No user named ${ref} in this world.`);
+}
+
+function issueNotFound(key: string): ApiError {
+  return apiError("issue_not_found", `No issue ${key} in this world.`);
 }
 
 function issueFields(
   site: JiraSite,
-  body: Record<string, unknown>,
-): IssuePatch | { error: string } {
+  body: {
+    summary?: string;
+    description?: string | Adf | null;
+    labels?: string[];
+    status?: IssueStatus;
+    assignee?: string | null;
+  },
+): IssuePatch | ApiError {
   const fields: IssuePatch = {};
-  if (body.summary !== undefined) {
-    if (typeof body.summary !== "string" || !body.summary.trim())
-      return { error: "summary_required" };
-    fields.summary = body.summary;
-  }
+  if (body.summary !== undefined) fields.summary = body.summary;
   if (body.description !== undefined) fields.description = textOrAdf(body.description) ?? null;
-  if (body.labels !== undefined) {
-    if (
-      !Array.isArray(body.labels) ||
-      body.labels.some((label) => typeof label !== "string" || /\s/.test(label))
-    )
-      return { error: "labels_invalid" };
-    fields.labels = body.labels as string[];
-  }
-  if (body.status !== undefined) {
-    if (!ISSUE_STATUSES.includes(body.status as IssueStatus)) return { error: "status_invalid" };
-    fields.status = body.status as IssueStatus;
-  }
-  if (body.assignee !== undefined) {
-    if (body.assignee === null) fields.assignee = null;
-    else {
-      const user =
-        typeof body.assignee === "string" ? findUser(site.state, body.assignee) : undefined;
-      if (!user) return { error: "assignee_not_found" };
-      fields.assignee = user.account_id;
-    }
+  if (body.labels !== undefined) fields.labels = body.labels;
+  if (body.status !== undefined) fields.status = body.status;
+  if (body.assignee === null) fields.assignee = null;
+  else if (body.assignee !== undefined) {
+    const user = findUser(site.state, body.assignee);
+    if (!user) return apiError("user_not_found", `No user named ${body.assignee} to assign.`);
+    fields.assignee = user.account_id;
   }
   return fields;
 }

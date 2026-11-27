@@ -1,4 +1,5 @@
-import { JiraService, type JiraHost } from "@worlds/jira/service";
+import type { JiraHost } from "@worlds/jira/contract";
+import { JiraService } from "@worlds/jira/service";
 import type { JiraSpec, JiraState } from "@worlds/jira/spec";
 import { SlackService } from "@worlds/slack/service";
 import type { SlackSpec, SlackState } from "@worlds/slack/spec";

@@ -641,6 +641,312 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/_worlds/jira/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the Jira site's state
+         * @description The spec with generated ids filled in, every issue and the registered webhooks.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The site's state */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JiraWorldState"];
+                    };
+                };
+                /** @description Missing or invalid credentials, or not your team's world */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/_worlds/jira/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create an issue
+         * @description Creates the issue as user and sends jira:issue_created to matching webhooks.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["JiraIssueCreate"];
+                };
+            };
+            responses: {
+                /** @description The new issue */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JiraIssue"];
+                    };
+                };
+                /** @description Invalid fields, or an unknown user, assignee or project */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Missing or invalid credentials, or not your team's world */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/_worlds/jira/issues/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete an issue
+         * @description Deletes the issue as user and sends jira:issue_deleted to matching webhooks.
+         */
+        delete: {
+            parameters: {
+                query: {
+                    /** @description The user who acts: their name or account id. Webhooks name them as the actor. */
+                    user: string;
+                };
+                header?: never;
+                path: {
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Deleted */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Unknown user */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Missing or invalid credentials, or not your team's world */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description No issue with that key or id */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * Update an issue
+         * @description Changes the given fields as user and sends jira:issue_updated with the changelog to matching webhooks.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["JiraIssueUpdate"];
+                };
+            };
+            responses: {
+                /** @description The issue and what changed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JiraIssueUpdated"];
+                    };
+                };
+                /** @description Invalid fields, or an unknown user or assignee */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Missing or invalid credentials, or not your team's world */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description No issue with that key or id */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/_worlds/jira/issues/{key}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Comment on an issue
+         * @description Adds the comment as user and sends comment_created to matching webhooks.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["JiraCommentCreate"];
+                };
+            };
+            responses: {
+                /** @description The new comment */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JiraComment"];
+                    };
+                };
+                /** @description Empty body or unknown user */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Missing or invalid credentials, or not your team's world */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description No issue with that key or id */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -901,7 +1207,7 @@ export interface components {
             apps: {
                 name: string;
                 callback_urls: string[];
-                scopes: string[];
+                scopes: ("read:jira-work" | "write:jira-work" | "read:jira-user" | "manage:jira-webhook" | "manage:jira-project" | "manage:jira-configuration" | "read:me")[];
                 credentials: components["schemas"]["JiraCredentials"];
             }[];
         };
@@ -915,18 +1221,18 @@ export interface components {
             /** @enum {string} */
             status?: "To Do" | "In Progress" | "Done";
             /**
-             * @description A user's name or account id.
+             * @description A user's name or id.
              * @example alice
              */
             reporter?: string;
             /**
-             * @description A user's name or account id.
+             * @description A user's name or id.
              * @example alice
              */
             assignee?: string;
             comments?: {
                 /**
-                 * @description A user's name or account id.
+                 * @description A user's name or id.
                  * @example alice
                  */
                 author: string;
@@ -1090,6 +1396,150 @@ export interface components {
             slack: components["schemas"]["SlackState"];
             jira: components["schemas"]["JiraState"] & (Record<string, never> | null);
         };
+        JiraWorldState: {
+            spec: components["schemas"]["JiraState"];
+            issues: components["schemas"]["JiraIssue"][];
+            webhooks: {
+                id: number;
+                client_id: string;
+                account_id: string;
+                url: string;
+                jql: string;
+                events: string[];
+                /** @description Milliseconds since the epoch. */
+                expires_at: number;
+            }[];
+        };
+        /** @description The issue as the Jira REST API returns it. */
+        JiraIssue: {
+            id: string;
+            /** @example WRLD-1 */
+            key: string;
+            /** Format: uri */
+            self: string;
+            fields: {
+                summary: string;
+                description: components["schemas"]["JiraAdf"];
+                labels: string[];
+                status: {
+                    /** @enum {string} */
+                    name: "To Do" | "In Progress" | "Done";
+                } & {
+                    [key: string]: unknown;
+                };
+                reporter: ({
+                    accountId: string;
+                    displayName: string;
+                    emailAddress?: string;
+                } & {
+                    [key: string]: unknown;
+                }) | null;
+                assignee: ({
+                    accountId: string;
+                    displayName: string;
+                    emailAddress?: string;
+                } & {
+                    [key: string]: unknown;
+                }) | null;
+                created: string;
+                updated: string;
+            } & {
+                [key: string]: unknown;
+            };
+        } & {
+            [key: string]: unknown;
+        };
+        /** @description An Atlassian Document Format document. */
+        JiraAdf: ({
+            /** @enum {string} */
+            type: "doc";
+            /** @enum {number} */
+            version: 1;
+            content: unknown[];
+        } & {
+            [key: string]: unknown;
+        }) | null;
+        JiraIssueCreate: {
+            /**
+             * @description The user who acts: their name or account id. Webhooks name them as the actor.
+             * @example alice
+             */
+            user: string;
+            /** @description A project key. Defaults to the first project. */
+            project?: string;
+            /** @example Checkout fails for guest users */
+            summary: string;
+            /** @description Plain text, or an Atlassian Document Format document. */
+            description?: string | components["schemas"]["JiraAdf"];
+            labels?: string[];
+            /** @enum {string} */
+            status?: "To Do" | "In Progress" | "Done";
+            /**
+             * @description A user's name or id.
+             * @example alice
+             */
+            assignee?: string;
+        };
+        JiraIssueUpdated: {
+            issue: components["schemas"]["JiraIssue"];
+            changelog: components["schemas"]["JiraChangeItem"][];
+        };
+        JiraChangeItem: {
+            field: string;
+            /** @enum {string} */
+            fieldtype: "jira";
+            fieldId: string;
+            from: string | null;
+            fromString: string | null;
+            to: string | null;
+            toString: string | null;
+        };
+        JiraIssueUpdate: {
+            /**
+             * @description The user who acts: their name or account id. Webhooks name them as the actor.
+             * @example alice
+             */
+            user: string;
+            /** @example Checkout fails for guest users */
+            summary?: string;
+            /** @description Plain text, or an Atlassian Document Format document. */
+            description?: string | components["schemas"]["JiraAdf"] | null;
+            labels?: string[];
+            /** @enum {string} */
+            status?: "To Do" | "In Progress" | "Done";
+            /**
+             * @description null unassigns the issue.
+             * @example alice
+             */
+            assignee?: string | null;
+        };
+        /** @description The comment as the Jira REST API returns it. */
+        JiraComment: {
+            id: string;
+            /** Format: uri */
+            self: string;
+            author: ({
+                accountId: string;
+                displayName: string;
+                emailAddress?: string;
+            } & {
+                [key: string]: unknown;
+            }) | null;
+            body: components["schemas"]["JiraAdf"];
+            created: string;
+            updated: string;
+        } & {
+            [key: string]: unknown;
+        };
+        JiraCommentCreate: {
+            /**
+             * @description The user who acts: their name or account id. Webhooks name them as the actor.
+             * @example alice
+             */
+            user: string;
+            /** @description Plain text, or an Atlassian Document Format document. */
+            body: string | components["schemas"]["JiraAdf"];
+        };
     };
     responses: never;
     parameters: never;
@@ -1127,5 +1577,14 @@ export type JiraUserSpec = components['schemas']['JiraUserSpec'];
 export type JiraProjectSpec = components['schemas']['JiraProjectSpec'];
 export type JiraAppSpec = components['schemas']['JiraAppSpec'];
 export type WorldSpec = components['schemas']['WorldSpec'];
+export type JiraWorldState = components['schemas']['JiraWorldState'];
+export type JiraIssue = components['schemas']['JiraIssue'];
+export type JiraAdf = components['schemas']['JiraAdf'];
+export type JiraIssueCreate = components['schemas']['JiraIssueCreate'];
+export type JiraIssueUpdated = components['schemas']['JiraIssueUpdated'];
+export type JiraChangeItem = components['schemas']['JiraChangeItem'];
+export type JiraIssueUpdate = components['schemas']['JiraIssueUpdate'];
+export type JiraComment = components['schemas']['JiraComment'];
+export type JiraCommentCreate = components['schemas']['JiraCommentCreate'];
 export type $defs = Record<string, never>;
 export type operations = Record<string, never>;

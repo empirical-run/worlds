@@ -1,15 +1,6 @@
 import { z } from "@hono/zod-openapi";
 import { API_KEY_NAME_MAX, TEAM_NAME_MAX, WORLD_NAME_MAX } from "@worlds/db";
-import { ISSUE_STATUSES, JIRA_SCOPES } from "@worlds/jira/spec";
-
-export const ErrorSchema = z
-  .object({
-    error: z.object({
-      code: z.string().openapi({ example: "not_found" }),
-      message: z.string().openapi({ example: "No team with that id is visible to you." }),
-    }),
-  })
-  .openapi("ApiError");
+import { JiraSpecSchema, JiraStateSchema } from "@worlds/jira/contract";
 
 const Role = z.enum(["owner", "member"]);
 
@@ -309,143 +300,6 @@ const SlackStateSchema = z
       "The world's spec with every generated id, credential and token filled in. Create a world from it to get an identical one.",
   });
 
-const jiraRef = z
-  .string()
-  .openapi({ description: "A user's name or account id.", example: "alice" });
-
-const JiraUserSpecSchema = z
-  .object({
-    account_id: z
-      .string()
-      .regex(/^[0-9A-Za-z:-]{6,128}$/)
-      .optional()
-      .openapi({ example: "712020:4f1c6b9e-3d2a-4e8f-9b7c-1a2b3c4d5e6f" }),
-    name: z
-      .string()
-      .regex(/^[a-z0-9._-]{1,80}$/, {
-        error: "user names are lowercase letters, digits, . _ and -",
-      })
-      .openapi({ example: "alice" }),
-    display_name: z.string().max(200).optional().openapi({ example: "Alice Tester" }),
-    email: z.email().optional(),
-    hide_email: z.boolean().optional().openapi({
-      description:
-        "Hide the email from apps, like a profile with email visibility off. GET /user then has no emailAddress.",
-    }),
-  })
-  .openapi("JiraUserSpec");
-
-const JiraProjectSpecSchema = z
-  .object({
-    id: z
-      .string()
-      .regex(/^[0-9]{1,18}$/)
-      .optional(),
-    key: z
-      .string()
-      .regex(/^[A-Z][A-Z0-9]{1,9}$/, {
-        error: "project keys are 2-10 uppercase letters and digits, starting with a letter",
-      })
-      .openapi({ example: "WRLD" }),
-    name: z.string().max(80).optional().openapi({ example: "Worlds" }),
-  })
-  .openapi("JiraProjectSpec");
-
-const JiraIssueSpecSchema = z
-  .object({
-    project: z.string().openapi({ example: "WRLD" }),
-    summary: z.string().min(1).max(255).openapi({ example: "Checkout fails for guest users" }),
-    description: z.string().max(32_000).optional(),
-    labels: z
-      .array(z.string().regex(/^\S{1,255}$/, { error: "labels can't contain spaces" }))
-      .max(50)
-      .optional(),
-    status: z.enum(ISSUE_STATUSES).optional(),
-    reporter: jiraRef.optional(),
-    assignee: jiraRef.optional(),
-    comments: z
-      .array(z.object({ author: jiraRef, body: z.string().min(1).max(32_000) }))
-      .max(100)
-      .optional(),
-  })
-  .openapi("JiraIssueSpec");
-
-const JiraCredentialsSchema = z
-  .object({ client_id: z.string().min(8).max(128), client_secret: z.string().min(16).max(256) })
-  .openapi("JiraCredentials");
-
-const JiraAppSpecSchema = z
-  .object({
-    name: z.string().min(1).max(80).openapi({ example: "My app" }),
-    callback_urls: z
-      .array(z.string().regex(/^https?:\/\/[^\s]+$/))
-      .min(1)
-      .max(20)
-      .openapi({
-        description:
-          "OAuth 2.0 (3LO) callback URLs. redirect_uri must equal one of them; a * in the host matches one label.",
-        example: ["https://example.com/jira/callback"],
-      }),
-    scopes: z.array(z.enum(JIRA_SCOPES)).min(1).optional().openapi({
-      description:
-        "Scopes the app may request (offline_access is always allowed). Defaults to read:jira-work write:jira-work read:jira-user manage:jira-webhook.",
-    }),
-    credentials: JiraCredentialsSchema.partial().optional().openapi({
-      description: "Pin the client id and secret, e.g. to match ones your app already has.",
-    }),
-  })
-  .openapi("JiraAppSpec");
-
-export const JiraSpecSchema = z
-  .object({
-    site: z
-      .object({
-        cloud_id: z.uuid().optional(),
-        name: z
-          .string()
-          .regex(/^[a-z0-9-]{1,40}$/)
-          .optional(),
-      })
-      .optional(),
-    users: z.array(JiraUserSpecSchema).max(200).optional(),
-    projects: z.array(JiraProjectSpecSchema).max(50).optional(),
-    issues: z.array(JiraIssueSpecSchema).max(500).optional().openapi({
-      description: "Created in order before any app is installed, so they send no webhooks.",
-    }),
-    apps: z.array(JiraAppSpecSchema).max(10).optional(),
-  })
-  .openapi("JiraSpec", {
-    description:
-      "Everything in the world's Jira site. Omitted ids and credentials are generated. Without a spec the site has one user (alice) and project WRLD.",
-  });
-
-const JiraStateSchema = z
-  .object({
-    site: z.object({ cloud_id: z.string(), name: z.string(), url: z.string() }),
-    users: z.array(
-      z.object({
-        account_id: z.string(),
-        name: z.string(),
-        display_name: z.string(),
-        email: z.string(),
-        hide_email: z.boolean(),
-      }),
-    ),
-    projects: z.array(z.object({ id: z.string(), key: z.string(), name: z.string() })),
-    issues: z.array(JiraIssueSpecSchema.extend({ key: z.string() })),
-    apps: z.array(
-      z.object({
-        name: z.string(),
-        callback_urls: z.array(z.string()),
-        scopes: z.array(z.string()),
-        credentials: JiraCredentialsSchema,
-      }),
-    ),
-  })
-  .openapi("JiraState", {
-    description: "The world's Jira spec with every generated id and credential filled in.",
-  });
-
 export const WorldCreatedSchema = WorldSchema.extend({
   slack: WorldSchema.shape.slack.extend({ spec: SlackStateSchema }),
   jira: WorldSchema.shape.jira.extend({ spec: JiraStateSchema }),
@@ -482,13 +336,3 @@ export const ApiKeyParamsSchema = TeamParamsSchema.extend({
     .string()
     .openapi({ param: { name: "keyId", in: "path" }, example: "key_w2rh3pmnhl1pe2wjxgqs" }),
 });
-
-export const security: Record<string, string[]>[] = [{ bearerAuth: [] }, { sessionCookie: [] }];
-
-export function errorResponse(description: string) {
-  return { description, content: { "application/json": { schema: ErrorSchema } } };
-}
-
-export function jsonResponse<T extends z.ZodType>(description: string, schema: T) {
-  return { description, content: { "application/json": { schema } } };
-}

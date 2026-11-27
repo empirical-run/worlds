@@ -786,7 +786,16 @@
                 "scopes": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                      "read:jira-work",
+                      "write:jira-work",
+                      "read:jira-user",
+                      "manage:jira-webhook",
+                      "manage:jira-project",
+                      "manage:jira-configuration",
+                      "read:me"
+                    ]
                   }
                 },
                 "credentials": {
@@ -846,12 +855,14 @@
           },
           "reporter": {
             "type": "string",
-            "description": "A user's name or account id.",
+            "minLength": 1,
+            "description": "A user's name or id.",
             "example": "alice"
           },
           "assignee": {
             "type": "string",
-            "description": "A user's name or account id.",
+            "minLength": 1,
+            "description": "A user's name or id.",
             "example": "alice"
           },
           "comments": {
@@ -861,7 +872,8 @@
               "properties": {
                 "author": {
                   "type": "string",
-                  "description": "A user's name or account id.",
+                  "minLength": 1,
+                  "description": "A user's name or id.",
                   "example": "alice"
                 },
                 "body": {
@@ -1317,6 +1329,484 @@
         "required": [
           "slack",
           "jira"
+        ]
+      },
+      "JiraWorldState": {
+        "type": "object",
+        "properties": {
+          "spec": {
+            "$ref": "#/components/schemas/JiraState"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JiraIssue"
+            }
+          },
+          "webhooks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "client_id": {
+                  "type": "string"
+                },
+                "account_id": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "jql": {
+                  "type": "string"
+                },
+                "events": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "expires_at": {
+                  "type": "number",
+                  "description": "Milliseconds since the epoch."
+                }
+              },
+              "required": [
+                "id",
+                "client_id",
+                "account_id",
+                "url",
+                "jql",
+                "events",
+                "expires_at"
+              ]
+            }
+          }
+        },
+        "required": [
+          "spec",
+          "issues",
+          "webhooks"
+        ]
+      },
+      "JiraIssue": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string",
+            "example": "WRLD-1"
+          },
+          "self": {
+            "type": "string",
+            "format": "uri"
+          },
+          "fields": {
+            "type": "object",
+            "properties": {
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "$ref": "#/components/schemas/JiraAdf"
+              },
+              "labels": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "status": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "enum": [
+                      "To Do",
+                      "In Progress",
+                      "Done"
+                    ]
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": {}
+              },
+              "reporter": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "accountId": {
+                    "type": "string"
+                  },
+                  "displayName": {
+                    "type": "string"
+                  },
+                  "emailAddress": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "accountId",
+                  "displayName"
+                ],
+                "additionalProperties": {}
+              },
+              "assignee": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "accountId": {
+                    "type": "string"
+                  },
+                  "displayName": {
+                    "type": "string"
+                  },
+                  "emailAddress": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "accountId",
+                  "displayName"
+                ],
+                "additionalProperties": {}
+              },
+              "created": {
+                "type": "string"
+              },
+              "updated": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "summary",
+              "description",
+              "labels",
+              "status",
+              "reporter",
+              "assignee",
+              "created",
+              "updated"
+            ],
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "self",
+          "fields"
+        ],
+        "additionalProperties": {},
+        "description": "The issue as the Jira REST API returns it."
+      },
+      "JiraAdf": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "doc"
+            ]
+          },
+          "version": {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          "content": {
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "type",
+          "version",
+          "content"
+        ],
+        "additionalProperties": {},
+        "description": "An Atlassian Document Format document."
+      },
+      "JiraIssueCreate": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The user who acts: their name or account id. Webhooks name them as the actor.",
+            "example": "alice"
+          },
+          "project": {
+            "type": "string",
+            "description": "A project key. Defaults to the first project."
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "example": "Checkout fails for guest users"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 32000
+              },
+              {
+                "$ref": "#/components/schemas/JiraAdf"
+              }
+            ],
+            "description": "Plain text, or an Atlassian Document Format document."
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^\\S{1,255}$"
+            },
+            "maxItems": 50
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "To Do",
+              "In Progress",
+              "Done"
+            ]
+          },
+          "assignee": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A user's name or id.",
+            "example": "alice"
+          }
+        },
+        "required": [
+          "user",
+          "summary"
+        ]
+      },
+      "JiraIssueUpdated": {
+        "type": "object",
+        "properties": {
+          "issue": {
+            "$ref": "#/components/schemas/JiraIssue"
+          },
+          "changelog": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JiraChangeItem"
+            }
+          }
+        },
+        "required": [
+          "issue",
+          "changelog"
+        ]
+      },
+      "JiraChangeItem": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "fieldtype": {
+            "type": "string",
+            "enum": [
+              "jira"
+            ]
+          },
+          "fieldId": {
+            "type": "string"
+          },
+          "from": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fromString": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "to": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "toString": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "field",
+          "fieldtype",
+          "fieldId",
+          "from",
+          "fromString",
+          "to",
+          "toString"
+        ]
+      },
+      "JiraIssueUpdate": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The user who acts: their name or account id. Webhooks name them as the actor.",
+            "example": "alice"
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "example": "Checkout fails for guest users"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 32000
+              },
+              {
+                "$ref": "#/components/schemas/JiraAdf"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Plain text, or an Atlassian Document Format document."
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^\\S{1,255}$"
+            },
+            "maxItems": 50
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "To Do",
+              "In Progress",
+              "Done"
+            ]
+          },
+          "assignee": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "description": "null unassigns the issue.",
+            "example": "alice"
+          }
+        },
+        "required": [
+          "user"
+        ]
+      },
+      "JiraComment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "self": {
+            "type": "string",
+            "format": "uri"
+          },
+          "author": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "accountId": {
+                "type": "string"
+              },
+              "displayName": {
+                "type": "string"
+              },
+              "emailAddress": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "accountId",
+              "displayName"
+            ],
+            "additionalProperties": {}
+          },
+          "body": {
+            "$ref": "#/components/schemas/JiraAdf"
+          },
+          "created": {
+            "type": "string"
+          },
+          "updated": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "self",
+          "author",
+          "body",
+          "created",
+          "updated"
+        ],
+        "additionalProperties": {},
+        "description": "The comment as the Jira REST API returns it."
+      },
+      "JiraCommentCreate": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The user who acts: their name or account id. Webhooks name them as the actor.",
+            "example": "alice"
+          },
+          "body": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 32000
+              },
+              {
+                "$ref": "#/components/schemas/JiraAdf"
+              }
+            ],
+            "description": "Plain text, or an Atlassian Document Format document."
+          }
+        },
+        "required": [
+          "user",
+          "body"
         ]
       }
     },
@@ -1997,6 +2487,397 @@
           },
           "404": {
             "description": "No world with that id is visible to you",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_worlds/jira/state": {
+      "get": {
+        "tags": [
+          "Jira world"
+        ],
+        "servers": [
+          {
+            "url": "https://{world}-jira.makeworlds.dev",
+            "description": "{world} is the world id without its world_ prefix, as in the world's URLs.",
+            "variables": {
+              "world": {
+                "default": "k2v9x0q1m4",
+                "description": "The world id without its world_ prefix."
+              }
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Get the Jira site's state",
+        "description": "The spec with generated ids filled in, every issue and the registered webhooks.",
+        "responses": {
+          "200": {
+            "description": "The site's state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JiraWorldState"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials, or not your team's world",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_worlds/jira/issues": {
+      "post": {
+        "tags": [
+          "Jira world"
+        ],
+        "servers": [
+          {
+            "url": "https://{world}-jira.makeworlds.dev",
+            "description": "{world} is the world id without its world_ prefix, as in the world's URLs.",
+            "variables": {
+              "world": {
+                "default": "k2v9x0q1m4",
+                "description": "The world id without its world_ prefix."
+              }
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Create an issue",
+        "description": "Creates the issue as user and sends jira:issue_created to matching webhooks.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JiraIssueCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new issue",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JiraIssue"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields, or an unknown user, assignee or project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials, or not your team's world",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_worlds/jira/issues/{key}": {
+      "patch": {
+        "tags": [
+          "Jira world"
+        ],
+        "servers": [
+          {
+            "url": "https://{world}-jira.makeworlds.dev",
+            "description": "{world} is the world id without its world_ prefix, as in the world's URLs.",
+            "variables": {
+              "world": {
+                "default": "k2v9x0q1m4",
+                "description": "The world id without its world_ prefix."
+              }
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Update an issue",
+        "description": "Changes the given fields as user and sends jira:issue_updated with the changelog to matching webhooks.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "WRLD-1"
+            },
+            "required": true,
+            "name": "key",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JiraIssueUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The issue and what changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JiraIssueUpdated"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields, or an unknown user or assignee",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials, or not your team's world",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No issue with that key or id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Jira world"
+        ],
+        "servers": [
+          {
+            "url": "https://{world}-jira.makeworlds.dev",
+            "description": "{world} is the world id without its world_ prefix, as in the world's URLs.",
+            "variables": {
+              "world": {
+                "default": "k2v9x0q1m4",
+                "description": "The world id without its world_ prefix."
+              }
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Delete an issue",
+        "description": "Deletes the issue as user and sends jira:issue_deleted to matching webhooks.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "WRLD-1"
+            },
+            "required": true,
+            "name": "key",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The user who acts: their name or account id. Webhooks name them as the actor.",
+              "example": "alice"
+            },
+            "required": true,
+            "description": "The user who acts: their name or account id. Webhooks name them as the actor.",
+            "name": "user",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "description": "Unknown user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials, or not your team's world",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No issue with that key or id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_worlds/jira/issues/{key}/comments": {
+      "post": {
+        "tags": [
+          "Jira world"
+        ],
+        "servers": [
+          {
+            "url": "https://{world}-jira.makeworlds.dev",
+            "description": "{world} is the world id without its world_ prefix, as in the world's URLs.",
+            "variables": {
+              "world": {
+                "default": "k2v9x0q1m4",
+                "description": "The world id without its world_ prefix."
+              }
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Comment on an issue",
+        "description": "Adds the comment as user and sends comment_created to matching webhooks.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "WRLD-1"
+            },
+            "required": true,
+            "name": "key",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JiraCommentCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new comment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JiraComment"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty body or unknown user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials, or not your team's world",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No issue with that key or id",
             "content": {
               "application/json": {
                 "schema": {

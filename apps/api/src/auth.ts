@@ -1,8 +1,9 @@
+import { apiError } from "@worlds/contract";
 import { database, SESSION_COOKIE, useKey, userForSession } from "@worlds/db";
 import type { MiddlewareHandler } from "hono";
 import { getCookie } from "hono/cookie";
 
-import { apiError, type AppEnv, type Caller } from "./context";
+import type { AppEnv, Caller } from "./context";
 
 const PUBLIC_PATHS = new Set(["/api/openapi.json"]);
 
