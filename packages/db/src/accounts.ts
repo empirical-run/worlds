@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, gt, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { randomToken, sha256 } from "./crypto";
-import { newId } from "./ids";
+import { API_KEY_SECRET_PREFIX, newApiKeySecret, newId } from "./ids";
 import {
   apiKeys,
   identities,
@@ -30,7 +30,6 @@ export type Profile = {
 
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 export const SESSION_TTL_SECONDS = SESSION_TTL_MS / 1000;
-const API_KEY_PREFIX = "wk_";
 
 export type Db = ReturnType<typeof database>;
 
@@ -163,10 +162,10 @@ export async function createKey(
   createdBy: string,
   name: string,
 ): Promise<{ apiKey: ApiKey; secret: string }> {
-  const secret = `${API_KEY_PREFIX}${randomToken()}`;
+  const secret = newApiKeySecret();
   const [apiKey] = await db
     .insert(apiKeys)
-    .values({ teamId, createdBy, name, keyHash: await sha256(secret), prefix: secret.slice(0, API_KEY_PREFIX.length + 6) })
+    .values({ teamId, createdBy, name, keyHash: await sha256(secret), prefix: secret.slice(0, API_KEY_SECRET_PREFIX.length + 6) })
     .returning();
   if (!apiKey) throw new Error("api key insert returned no row");
   return { apiKey, secret };

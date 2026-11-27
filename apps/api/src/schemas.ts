@@ -52,7 +52,7 @@ export const ApiKeySchema = z
   .object({
     id: z.string().openapi({ example: "key_w2rh3pmnhl1pe2wjxgqs" }),
     name: z.string().openapi({ example: "CI" }),
-    prefix: z.string().openapi({ description: "The first characters of the secret, to tell keys apart.", example: "wk_y1MZk0" }),
+    prefix: z.string().openapi({ description: "The first characters of the secret, to tell keys apart.", example: "wk_live_4fQ9zT" }),
     created_by: z.string().nullable().openapi({ description: "Id of the user who created the key." }),
     created_at: z.iso.datetime(),
     last_used_at: z.iso.datetime().nullable(),
@@ -66,7 +66,7 @@ export const ApiKeyCreateSchema = z
   .openapi("ApiKeyCreate");
 
 export const ApiKeyCreatedSchema = ApiKeySchema.extend({
-  secret: z.string().openapi({ description: "The key itself. Shown only in this response.", example: "wk_y1MZk0gCOgdKdzgt1CYd1EMVVqs_nK-KWVTBm5i3PQw" }),
+  secret: z.string().openapi({ description: "The key itself. Shown only in this response.", example: "wk_live_4fQ9zTb1Lx7mKc2RyV8nHs0dWq5ePj3uGa6oNi9E" }),
 }).openapi("ApiKeyCreated");
 
 export const TeamParamsSchema = z.object({
